@@ -1,0 +1,13 @@
+# Standard ignores
+*~
+*.pyc
+\#*#
+.#*
+.*.swp
+*.so
+*.egg-info/
+
+# Repostiory list file for egdist
+.egdist
+*.sublime-*
+
