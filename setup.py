@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name             = 'flowforge',
     version          = '0.0.1',
-    author           = 'Cole Gentry',
-    author_email     = 'cole.gentry@austin.utexas.edu',
+    author           = 'Benjamin Collins',
+    author_email     = 'ben.collins@utexas.edu',
     description      = 'Frontend interface for multichannel thermal fluids systems solvers',
     url              = 'https://github.com/UT-Computational-NE/FlowForge',
     project_urls     = {
@@ -18,10 +18,11 @@ setup(
         'Programming Language :: Python :: 3',
         'Operating System :: OS Independent',
     ],
-    python_requires  = '>=3.9'
+    python_requires  = '>=3.9',
     install_requires = [
         'h5py',
         'numpy>=1.8.0',
         'pyevtk',
+        'vtk',
     ],
 )
