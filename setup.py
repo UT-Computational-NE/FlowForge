@@ -1,5 +1,15 @@
 from setuptools import setup, find_packages
 
+# Function to read the contents of the requirements file
+def read_requirements():
+    with open('requirements.txt') as req:
+        content = req.read()
+        requirements = [i.strip() for i in content.split('\n') if i.strip() and not i.startswith('#')] # Filter empty lines and comments
+    return requirements
+
+# Call the function to get the list of requirements
+requirements = read_requirements()
+
 setup(
     name             = 'flowforge',
     version          = '0.0.1',
@@ -19,10 +29,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires  = '>=3.9',
-    install_requires = [
-        'h5py',
-        'numpy>=1.8.0',
-        'pyevtk',
-        'vtk',
-    ],
+    install_requires = requirements,
 )
