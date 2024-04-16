@@ -1168,9 +1168,9 @@ class ParallelComponents(Component):
         self._upperPlenum.setupFluidMesh(fm, inlet_coords=up_inlet)
         compOutIdx = self._firstNodeIndex
         # Connect all of the components to the upper plenum
-        for comp in self._myComponents:
-            compOutIdx += self._myComponents[comp].nCell
-            fm.addConnection(Surface(self._myComponents[comp].flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
+        for comp in self._myComponents.values():
+            compOutIdx += comp.nCell
+            fm.addConnection(Surface(comp.flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
         # Since annulus is optional, set it up seperately
         if self._annulus is not None:
             compOutIdx += self._annulus.nCell
@@ -1194,8 +1194,8 @@ class ParallelComponents(Component):
         firstcomp = list(self._myComponents.items())[0][0]
         outlet = self._myComponents[firstcomp].getOutlet(lower)
         outlet = (round(outlet[0], 5), round(outlet[1], 5), round(outlet[2], 5))
-        for comp in self._myComponents:
-            compOutlet = self._myComponents[comp].getOutlet(lower)
+        for comp in self._myComponents.values():
+            compOutlet = comp.getOutlet(lower)
             compOutletRounded = round(compOutlet[0], 5), round(compOutlet[1], 5), round(compOutlet[2], 5)
             assert compOutletRounded == outlet
         outlet = self._upperPlenum.getOutlet(outlet)
@@ -1238,8 +1238,8 @@ class ParallelComponents(Component):
         self._lowerPlenum._convertUnits(uc)
         if self._annulus is not None:
             self._annulus._convertUnits(uc)
-        for c in self._myComponents:
-            self._myComponents[c]._convertUnits(uc)
+        for c, comp in self._myComponents.items():
+            comp._convertUnits(uc)
             self._centroids[c][0] *= uc.lengthConversion
             self._centroids[c][1] *= uc.lengthConversion
 
@@ -1404,8 +1404,8 @@ class SerialComponents(Component):
         Args: None
         """
         L = 0
-        for c in self._myComponents:
-            L += self._myComponents[c].length
+        for c in self._myComponents.values():
+            L += c.length
         return round(L, 5)
 
     @property

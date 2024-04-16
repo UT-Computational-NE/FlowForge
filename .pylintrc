@@ -9,7 +9,6 @@ disable=
     fixme,
     invalid-name,
     missing-module-docstring,
-    no-self-use,
     pointless-string-statement,
     redefined-outer-name,
     too-few-public-methods,
