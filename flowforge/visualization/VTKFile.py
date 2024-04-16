@@ -1,17 +1,17 @@
 from pyevtk.hl import unstructuredGridToVTK
 import numpy as np
 
-"""
-The VTKFile Class provides the ability to convert the mesh data into a file
-that is able to be rendering using additional software (i.e. VisIt). This class
-must be initialized with a file path. This will be the name of the file that is
-saved after calling the 'writeFile()' function.
-
-If no data is set using the __setitem__ function, the file will still write with a data list that is set by default to be
-empty. No errors will occur if a mesh is desired with no data values.
-"""
-
 class VTKFile:
+    """
+    The VTKFile Class provides the ability to convert the mesh data into a file
+    that is able to be rendering using additional software (i.e. VisIt). This class
+    must be initialized with a file path. This will be the name of the file that is
+    saved after calling the 'writeFile()' function.
+    
+    If no data is set using the __setitem__ function, the file will still write with a data list that is set by default to be
+    empty. No errors will occur if a mesh is desired with no data values.
+    """
+
     def __init__(self, filepath, mesh=None):
         """
         The VTKFile class is initialized with the desired file path of the export file.
@@ -62,10 +62,10 @@ class VTKFile:
             data : np array, this contains the data values for the cells in the mesh
                    such as the pressure or temperature values of that cell
         """
-        assert(self.vtkmesh is not None)
-        values = np.zeros(self.vtkmesh._offsets.size)
-        for i in range(len(self.vtkmesh._meshmap) - 1):
-            values[int(self.vtkmesh._meshmap[i]):int(self.vtkmesh._meshmap[i+1])] = data[i]
+        assert self.vtkmesh is not None
+        values = np.zeros(self.vtkmesh._offsets.size)                                         # pylint: disable=protected-access
+        for i in range(len(self.vtkmesh._meshmap) - 1):                                       # pylint: disable=protected-access
+            values[int(self.vtkmesh._meshmap[i]):int(self.vtkmesh._meshmap[i+1])] = data[i]   # pylint: disable=protected-access
         return values
 
     def writeFile(self):
@@ -78,7 +78,7 @@ class VTKFile:
 
         Args: None
         """
-        assert(self.vtkmesh is not None)
-        unstructuredGridToVTK(self.filepath, self.vtkmesh._x, self.vtkmesh._y, self.vtkmesh._z,
-            connectivity=self.vtkmesh._conn, offsets=self.vtkmesh._offsets,
-            cell_types=self.vtkmesh._ctypes, cellData=self.data)
+        assert self.vtkmesh is not None
+        unstructuredGridToVTK(self.filepath, self.vtkmesh._x, self.vtkmesh._y, self.vtkmesh._z,   # pylint: disable=protected-access
+            connectivity=self.vtkmesh._conn, offsets=self.vtkmesh._offsets,                       # pylint: disable=protected-access
+            cell_types=self.vtkmesh._ctypes, cellData=self.data)                                  # pylint: disable=protected-access

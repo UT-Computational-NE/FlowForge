@@ -159,7 +159,7 @@ class System:
 
 if __name__ == "__main__":
     import json
-    from syth.Components import component_factory
+    from flowforge.input.Components import component_factory
 
     with open('sample3.json', 'r') as f:
         input_dict = json.load(f)
