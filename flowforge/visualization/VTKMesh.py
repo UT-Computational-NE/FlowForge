@@ -1,12 +1,12 @@
 import numpy as np
 
-"""
-The VTKMesh Class provides a way to store the mesh of the entire system.
-It provides the functions necessary to add meshes together as well as
-the function to translate the shapes in the coordinate system.
-"""
-
 class VTKMesh:
+    """
+    The VTKMesh Class provides a way to store the mesh of the entire system.
+    It provides the functions necessary to add meshes together as well as
+    the function to translate the shapes in the coordinate system.
+    """
+
     def __init__(self, points=None, conn=None, offsets=None, ctypes=None, meshmap=None):
         """
         Initializes an empty mesh by default or stores the values inputted.
@@ -25,7 +25,7 @@ class VTKMesh:
         """
         inp_none = [points is None, conn is None, offsets is None, ctypes is None, meshmap is None]
         if any(inp_none):
-            assert(all(inp_none))
+            assert all(inp_none)
             self._x =       np.array([])
             self._y =       np.array([])
             self._z =       np.array([])
@@ -80,7 +80,7 @@ class VTKMesh:
         if self._meshmap.size > 0:
             newmesh._meshmap = np.delete(newmesh._meshmap, 0)
             newmesh._meshmap += int(self._meshmap[-1])
-        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)
+        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)  # pylint: disable=unexpected-keyword-arg
 
         return combinedMesh
 
