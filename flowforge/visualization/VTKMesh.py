@@ -52,6 +52,34 @@ class VTKMesh:
         """
         return (self._x, self._y, self._z)
 
+    @property
+    def connections(self):
+        """
+        Returns the connections array.
+        """
+        return self._conn
+
+    @property
+    def offsets(self):
+        """
+        Returns the offsets array.
+        """
+        return self._offsets
+
+    @property
+    def ctypes(self):
+        """
+        Returns the ctypes array.
+        """
+        return self._ctypes
+
+    @property
+    def meshmap(self):
+        """
+        Returns the meshmap array.
+        """
+        return self._meshmap
+
     def __add__(self, newmesh):
         """
         The __add__ function is a function that will overload the addition operator to
@@ -80,7 +108,11 @@ class VTKMesh:
         if self._meshmap.size > 0:
             newmesh._meshmap = np.delete(newmesh._meshmap, 0)
             newmesh._meshmap += int(self._meshmap[-1])
-        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)  # pylint: disable=unexpected-keyword-arg
+
+        # np.concatenate has dtype kwarg by pylint doesn't like it
+        # (https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)
+        # pylint:disable=unexpected-keyword-arg
+        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)
 
         return combinedMesh
 
