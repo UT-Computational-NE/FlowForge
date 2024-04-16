@@ -1,6 +1,7 @@
 import pprint
 import h5py
 
+
 class Node:
     """
     Nodes are 3D volumes that make up the fluid mesh network.
@@ -8,6 +9,7 @@ class Node:
     The insurface/outsurface objects indicate which surface fluid is flowing in/out. For a pipe, the insurface would
     be a circle with diameter=hydDiam
     """
+
     def __init__(self, V, Dh, Ph, L, costh=0.0, boundingbox=[]):
         """
         The initialization of the node class.
@@ -48,7 +50,7 @@ class Node:
         """
         Returns the heated area of the node.
         """
-        return self._heatedPerm*self._length
+        return self._heatedPerm * self._length
 
     @property
     def length(self):
@@ -138,20 +140,22 @@ class Node:
         for s in self.inSurfaces:
             inID.append(s.index)
         info = group.create_group(f"node_{self.index:04d}")
-        info.create_dataset('volume', data=self.volume)
-        info.create_dataset('hydraulic_diameter', data=self.hydraulicDiameter)
-        info.create_dataset('heated_area', data=self.heatedArea)
-        info.create_dataset('length', data=self.length)
-        info.create_dataset('cosine_theta', data=self.costh)
-        info.create_dataset('in_surface_indices', data=inID)
-        info.create_dataset('out_surface_indices', data=outID)
-        info.create_dataset('bounding_box', data=self._boundingBox)
+        info.create_dataset("volume", data=self.volume)
+        info.create_dataset("hydraulic_diameter", data=self.hydraulicDiameter)
+        info.create_dataset("heated_area", data=self.heatedArea)
+        info.create_dataset("length", data=self.length)
+        info.create_dataset("cosine_theta", data=self.costh)
+        info.create_dataset("in_surface_indices", data=inID)
+        info.create_dataset("out_surface_indices", data=outID)
+        info.create_dataset("bounding_box", data=self._boundingBox)
+
 
 class Surface:
     """
     Surfaces desribe the connection surfaces between nodes. They are characterized by their area and index.
     fromNode and toNode indicate which nodes the surface is connecting and in what order.
     """
+
     def __init__(self, A):
         """
         The initialization of the surface class.
@@ -247,14 +251,17 @@ class Surface:
         for s in self.toNode:
             to_node.append(s.index)
         info = group.create_group(f"surface_{self.index:04d}")
-        info.create_dataset('area', data=self.area)
-        info.create_dataset('from_node_index', data=from_node, dtype=int)
-        info.create_dataset('to_node_index', data=to_node, dtype=int)
+        info.create_dataset("area", data=self.area)
+        info.create_dataset("from_node_index", data=from_node, dtype=int)
+        info.create_dataset("to_node_index", data=to_node, dtype=int)
+
+
 class FluidMesh:
     """
     A mesh is "discretization of a geometric domain into small simple shapes" (nodes) and is made up by the
     nodes and the surfaces that connect the nodes to each other.
     """
+
     def __init__(self):
         """
         Initializes the fluid mesh with no nodes or surfaces.
@@ -338,13 +345,11 @@ class FluidMesh:
         """
         yield from self._nodes
 
-
     def Surfaces(self):
         """
         Generator interface for getting each surface sequentially
         """
         yield from self._surfs
-
 
     def addConnection(self, surf, below, above):
         """
@@ -377,7 +382,7 @@ class FluidMesh:
         Notes:
             - Only insurf or outsurf can be provided, not both
         """
-        assert (insurf is None) ^ (outsurf is None) # XOR logic to ensure one but not both insurf and outsurf are passed in
+        assert (insurf is None) ^ (outsurf is None)  # XOR logic to ensure one but not both insurf and outsurf are passed in
         if insurf is not None:
             insurf.index = self._nextSurfID
             self._nextSurfID += 1
@@ -419,25 +424,26 @@ class FluidMesh:
             loop=f.create_group("/example_mesh")
             some_mesh.exportHDF5(loop)
         """
-        f = h5py.File(filename, 'a')
-        loop = f.create_group(path+"fluid_mesh")
-        surfs = loop.create_group('surfaces')
-        nodes = loop.create_group('nodes')
+        f = h5py.File(filename, "a")
+        loop = f.create_group(path + "fluid_mesh")
+        surfs = loop.create_group("surfaces")
+        nodes = loop.create_group("nodes")
         for node in self.Nodes():
             node.exportHDF5(nodes)
         for surf in self.Surfaces():
             surf.exportHDF5(surfs)
-        nodes.create_dataset('number_of_nodes', data=self.nNodes)
-        surfs.create_dataset('number_of_surfaces', data=self.nConnections)
+        nodes.create_dataset("number_of_nodes", data=self.nNodes)
+        surfs.create_dataset("number_of_surfaces", data=self.nConnections)
         f.close()
+
 
 if __name__ == "__main__":
     mesh = FluidMesh()
     for i in range(5):
-        mesh.addNode(Node(0.1*(i+1), 0.05*(i+1), 0.04*(i+1), 0.2*(i+1)))
+        mesh.addNode(Node(0.1 * (i + 1), 0.05 * (i + 1), 0.04 * (i + 1), 0.2 * (i + 1)))
 
     for i in range(5):
-        mesh.addConnection(Surface(0.07*(i+1)), mesh.getNode(i), mesh.getNode((i+1) % 5))
+        mesh.addConnection(Surface(0.07 * (i + 1)), mesh.getNode(i), mesh.getNode((i + 1) % 5))
 
     for i in range(5):
         print(i)

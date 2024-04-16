@@ -3,6 +3,7 @@ from pyevtk.vtk import VtkWedge
 from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
+
 def genNozzle(L, Rin, Rout, resolution=CYL_RESOLUTION):
     """
     Generates mesh for a nozzle
@@ -16,8 +17,8 @@ def genNozzle(L, Rin, Rout, resolution=CYL_RESOLUTION):
     nlayers = 1
     ncells = nwedges
     pi = np.pi
-    sliceAngle = 2 * pi / nwedges # radians
-    angles = np.arange(0, 2*pi, sliceAngle)
+    sliceAngle = 2 * pi / nwedges  # radians
+    angles = np.arange(0, 2 * pi, sliceAngle)
     xin = Rin * np.cos(angles)
     yin = Rin * np.sin(angles)
     xout = Rout * np.cos(angles)

@@ -1,13 +1,14 @@
 from pyevtk.hl import unstructuredGridToVTK
 import numpy as np
 
+
 class VTKFile:
     """
     The VTKFile Class provides the ability to convert the mesh data into a file
     that is able to be rendering using additional software (i.e. VisIt). This class
     must be initialized with a file path. This will be the name of the file that is
     saved after calling the 'writeFile()' function.
-    
+
     If no data is set using the __setitem__ function, the file will still write with a data list that is set by default to be
     empty. No errors will occur if a mesh is desired with no data values.
     """
@@ -63,9 +64,9 @@ class VTKFile:
                    such as the pressure or temperature values of that cell
         """
         assert self.vtkmesh is not None
-        values = np.zeros(self.vtkmesh._offsets.size)                                         # pylint: disable=protected-access
-        for i in range(len(self.vtkmesh._meshmap) - 1):                                       # pylint: disable=protected-access
-            values[int(self.vtkmesh._meshmap[i]):int(self.vtkmesh._meshmap[i+1])] = data[i]   # pylint: disable=protected-access
+        values = np.zeros(self.vtkmesh.offsets.size)
+        for i in range(len(self.vtkmesh.meshmap) - 1):
+            values[int(self.vtkmesh.meshmap[i]) : int(self.vtkmesh.meshmap[i + 1])] = data[i]
         return values
 
     def writeFile(self):
@@ -79,6 +80,11 @@ class VTKFile:
         Args: None
         """
         assert self.vtkmesh is not None
-        unstructuredGridToVTK(self.filepath, self.vtkmesh._x, self.vtkmesh._y, self.vtkmesh._z,   # pylint: disable=protected-access
-            connectivity=self.vtkmesh._conn, offsets=self.vtkmesh._offsets,                       # pylint: disable=protected-access
-            cell_types=self.vtkmesh._ctypes, cellData=self.data)                                  # pylint: disable=protected-access
+        unstructuredGridToVTK(
+            self.filepath,
+            *self.vtkmesh.points,
+            connectivity=self.vtkmesh.connections,
+            offsets=self.vtkmesh.offsets,
+            cell_types=self.vtkmesh.ctypes,
+            cellData=self.data
+        )

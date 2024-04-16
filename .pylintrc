@@ -1,8 +1,17 @@
 [MESSAGES CONTROL]
 disable=
-    invalid-name,
+    chained-comparison,
+    broad-exception-raised,
+    broad-exception-caught,
+    dangerous-default-value,
     duplicate-code,
+    eval-used,
+    fixme,
+    invalid-name,
     missing-module-docstring,
+    no-self-use,
+    pointless-string-statement,
+    redefined-outer-name,
     too-few-public-methods,
     too-many-lines,
     too-many-locals,
@@ -12,17 +21,8 @@ disable=
     too-many-statements,
     too-many-nested-blocks,
     too-many-instance-attributes,
-    redefined-outer-name,
-    pointless-string-statement,
-    unused-variable,
-    dangerous-default-value,
     unspecified-encoding,
-    broad-exception-raised,
-    broad-exception-caught,
-    chained-comparison,
-    fixme,
-    eval-used,
-    deprecated-decorator
+    unused-variable,
 
 [FORMAT]
 max-line-length=127

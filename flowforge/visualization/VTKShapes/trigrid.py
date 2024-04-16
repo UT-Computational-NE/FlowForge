@@ -2,7 +2,8 @@ import numpy as np
 from pyevtk.vtk import VtkWedge
 from flowforge.visualization import VTKMesh
 
-_sq32 = np.sqrt(3.)/2.
+_sq32 = np.sqrt(3.0) / 2.0
+
 
 def genTriGrid(sideLength, layerHeights, pointsPerRow):
     """
@@ -48,7 +49,7 @@ def genTriGrid(sideLength, layerHeights, pointsPerRow):
     points = (xx, yy, zz)
 
     # connection data
-    conn = np.zeros(nwedges*6, dtype=int)
+    conn = np.zeros(nwedges * 6, dtype=int)
     points_per_level = np.sum(ppr)
     n = 0
     for k in range(z.size - 1):
@@ -59,21 +60,21 @@ def genTriGrid(sideLength, layerHeights, pointsPerRow):
                     conn[n + 0] = k * points_per_level + nprev + ppr[row] + i + np.floor(0.5 * (ppr[row + 1] - ppr[row]))
                     conn[n + 1] = k * points_per_level + nprev + ppr[row] + i + np.floor(0.5 * (ppr[row + 1] - ppr[row])) + 1
                     conn[n + 2] = k * points_per_level + nprev + ppr[row] + i - ppr[row]
-                    conn[n + 3] = (k + 1) * points_per_level + nprev + ppr[row] + i + \
-                        np.floor(0.5 * (ppr[row + 1] - ppr[row]))
-                    conn[n + 4] = (k + 1) * points_per_level + nprev + ppr[row] + i + \
-                        np.floor(0.5 * (ppr[row + 1] - ppr[row])) + 1
+                    conn[n + 3] = (k + 1) * points_per_level + nprev + ppr[row] + i + np.floor(0.5 * (ppr[row + 1] - ppr[row]))
+                    conn[n + 4] = (
+                        (k + 1) * points_per_level + nprev + ppr[row] + i + np.floor(0.5 * (ppr[row + 1] - ppr[row])) + 1
+                    )
                     conn[n + 5] = (k + 1) * points_per_level + nprev + ppr[row] + i - ppr[row]
                     n += 6
                     if i != ppr[row] - 1:
                         conn[n + 0] = k * points_per_level + nprev + i
                         conn[n + 1] = k * points_per_level + nprev + i + 1
-                        conn[n + 2] = k * points_per_level + nprev + i + \
-                            np.ceil(0.5 * (ppr[row + 1] - ppr[row])) + ppr[row]
+                        conn[n + 2] = k * points_per_level + nprev + i + np.ceil(0.5 * (ppr[row + 1] - ppr[row])) + ppr[row]
                         conn[n + 3] = (k + 1) * points_per_level + nprev + i
                         conn[n + 4] = (k + 1) * points_per_level + nprev + i + 1
-                        conn[n + 5] = (k + 1) * points_per_level + nprev + i + \
-                            np.ceil(0.5 * (ppr[row + 1] - ppr[row])) + ppr[row]
+                        conn[n + 5] = (
+                            (k + 1) * points_per_level + nprev + i + np.ceil(0.5 * (ppr[row + 1] - ppr[row])) + ppr[row]
+                        )
                         n += 6
             elif ppr[row + 1] < ppr[row]:
                 for i in range(ppr[row + 1]):
@@ -87,19 +88,25 @@ def genTriGrid(sideLength, layerHeights, pointsPerRow):
                     if i != ppr[row + 1] - 1:
                         conn[n + 0] = k * points_per_level + nprev + ppr[row] + i
                         conn[n + 1] = k * points_per_level + nprev + ppr[row] + i + 1
-                        conn[n + 2] = k * points_per_level + nprev + ppr[row] + i + \
-                            np.ceil(0.5 * (ppr[row] - ppr[row + 1]) - ppr[row])
+                        conn[n + 2] = (
+                            k * points_per_level + nprev + ppr[row] + i + np.ceil(0.5 * (ppr[row] - ppr[row + 1]) - ppr[row])
+                        )
                         conn[n + 3] = (k + 1) * points_per_level + nprev + ppr[row] + i
                         conn[n + 4] = (k + 1) * points_per_level + nprev + ppr[row] + i + 1
-                        conn[n + 5] = (k + 1) * points_per_level + nprev + ppr[row] + i + \
-                            np.ceil(0.5 * (ppr[row] - ppr[row + 1]) - ppr[row])
+                        conn[n + 5] = (
+                            (k + 1) * points_per_level
+                            + nprev
+                            + ppr[row]
+                            + i
+                            + np.ceil(0.5 * (ppr[row] - ppr[row + 1]) - ppr[row])
+                        )
                         n += 6
             nprev += ppr[row]
 
     # offset data
     offsets = 6 + 6 * np.arange(nwedges, dtype=int)
 
-    #ctype data
+    # ctype data
     ctypes = np.ones(nwedges) * VtkWedge.tid
 
     # meshmap data
