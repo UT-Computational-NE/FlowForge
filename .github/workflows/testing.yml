@@ -1,0 +1,41 @@
+name: FlowForge Testing
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.11
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Install syth
+      run: |
+        python setup.py develop
+    - name: Lint with pylint
+      run: |
+        # stop the build if there are Python syntax errors or pylint warnings
+        pylint --rcfile=.pylintrc flowforge/input/*.py
+        pylint --rcfile=.pylintrc flowforge/meshing/*.py
+        pylint --rcfile=.pylintrc flowforge/visualization/*.py
+    - name: Test with pytest
+      run: |
+        pytest
