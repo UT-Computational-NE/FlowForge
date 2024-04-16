@@ -1,4 +1,4 @@
-'h5py'
-'numpy>=1.8.0'
-'pyevtk'
-'vtk'
+h5py
+numpy>=1.8.0
+pyevtk
+vtk

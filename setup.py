@@ -5,6 +5,7 @@ def read_requirements():
     with open('requirements.txt') as req:
         content = req.read()
         requirements = [i.strip() for i in content.split('\n') if i.strip() and not i.startswith('#')] # Filter empty lines and comments
+    print(requirements)
     return requirements
 
 # Call the function to get the list of requirements
