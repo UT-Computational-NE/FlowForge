@@ -2,8 +2,8 @@ name: FlowForge Testing
 
 on:
   push:
-    branches:
-      - main
+    branches-ignore: # run on push from any branch
+      - '*'
   pull_request:
     branches:
       - main
