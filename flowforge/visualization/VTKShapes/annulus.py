@@ -1,7 +1,8 @@
 import numpy as np
 from pyevtk.vtk import VtkHexahedron
-from flowforge.visualization.VTKMesh import VTKMesh
+from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
+
 
 def genAnnulus(L, Rin, Rout, resolution=CYL_RESOLUTION, nazimuthal=1, nlayers=1):
     """
@@ -17,13 +18,13 @@ def genAnnulus(L, Rin, Rout, resolution=CYL_RESOLUTION, nazimuthal=1, nlayers=1)
     resolution = int(np.ceil(resolution / nazimuthal) * nazimuthal)
     ncells = resolution * nlayers
     npoints = 2 * resolution * (nlayers + 1)
-    sliceAngle = 2 * np.pi / resolution # radians
+    sliceAngle = 2 * np.pi / resolution  # radians
     angles = np.arange(0, 2 * np.pi, sliceAngle)
     xin = Rin * np.cos(angles)
     yin = Rin * np.sin(angles)
     xout = Rout * np.cos(angles)
     yout = Rout * np.sin(angles)
-    dz = L/nlayers
+    dz = L / nlayers
     z = np.arange(0, L + dz, dz)
 
     # points

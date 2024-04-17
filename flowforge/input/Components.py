@@ -7,13 +7,14 @@ from flowforge.meshing.FluidMesh import Node, Surface
 
 _CYL_RESOLUTION = 50
 
-# pragma pylint: disable=protected-access, abstract-method, consider-using-dict-items
+# pragma pylint: disable=protected-access, abstract-method
 
 """
 The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 component_list = {}
+
 
 def component_factory(indict):
     """
@@ -29,7 +30,7 @@ def component_factory(indict):
                 for name, input_ in comp.items():
                     components[name] = component_list[compname](**input_)
             else:
-                raise TypeError('Unknown component type: ' + compname)
+                raise TypeError("Unknown component type: " + compname)
         elif isinstance(comp, Component):
             components[compname] = comp
         else:
@@ -37,11 +38,13 @@ def component_factory(indict):
 
     return components
 
+
 @add_metaclass(abc.ABCMeta)
 class Component:
     """
     Base class for all components of the system.
     """
+
     def __init__(self):
         """
         Initializes the component.
@@ -94,7 +97,7 @@ class Component:
         """
         Abstract method which does any post-processing of the code output
         """
-        return self.flowArea*self.length
+        return self.flowArea * self.length
 
     @property
     def inletArea(self):
@@ -110,7 +113,7 @@ class Component:
         """
         return self.flowArea
 
-    def setupFluidMesh(self, fm, inlet = (None, None), outlet = (None, None), inlet_coords=(0,0,0)):
+    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
         """
         Method which adds component to the Fluid Mesh
 
@@ -126,40 +129,44 @@ class Component:
         """
         self._firstNodeIndex = fm.nextNodeIndex
         comp_bb = self.getBoundingBox(inlet_coords)
-        point_1 = np.array(inlet_coords+self._rotate(comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6]))
+        point_1 = np.array(inlet_coords + self._rotate(comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6]))
         for i in range(self.nCell):
-            #before rotation - alternate sign for radial plane for each node but axial is always added - radial is line below
-            point_2 = np.array(inlet_coords+(np.cos(np.pi*(i+1)))*self._rotate(comp_bb[2], comp_bb[3],
-                                                                               0, comp_bb[5], comp_bb[6])
-                              + self._rotate(0, 0, comp_bb[4]/self.nCell, comp_bb[5], comp_bb[6])) #axial direction
+            # before rotation - alternate sign for radial plane for each node but axial is always added - radial is line below
+            point_2 = np.array(
+                inlet_coords
+                + (np.cos(np.pi * (i + 1))) * self._rotate(comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6])
+                + self._rotate(0, 0, comp_bb[4] / self.nCell, comp_bb[5], comp_bb[6])
+            )  # axial direction
             node_bb = np.array([*point_1, *point_2])
-            point_1 = point_2 # point 2 becomes point 1 for next node
-            #setting outlet of current node to inlet of next node
-            inlet_coords = point_2-(np.cos(np.pi*(i+1)))*self._rotate(comp_bb[2], comp_bb[3],0, comp_bb[5], comp_bb[6])
-            if i == self.nCell-1:
-                #asserting that the outlet is equal to the the outlet of the last node
+            point_1 = point_2  # point 2 becomes point 1 for next node
+            # setting outlet of current node to inlet of next node
+            inlet_coords = point_2 - (np.cos(np.pi * (i + 1))) * self._rotate(
+                comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6]
+            )
+            if i == self.nCell - 1:
+                # asserting that the outlet is equal to the the outlet of the last node
                 if "Pump" not in str(self.__class__):
-                    assert np.abs(inlet_coords[0]-comp_bb[1][0])<1e-10
-                    assert np.abs(inlet_coords[1]-comp_bb[1][1])<1e-10
-                    assert np.abs(inlet_coords[2]-comp_bb[1][2])<1e-10
+                    assert np.abs(inlet_coords[0] - comp_bb[1][0]) < 1e-10
+                    assert np.abs(inlet_coords[1] - comp_bb[1][1]) < 1e-10
+                    assert np.abs(inlet_coords[2] - comp_bb[1][2]) < 1e-10
 
-            fm.addNode(Node(self.volume, self.hydraulicDiameter, 0.0, self.length,
-                            self.heightChange/self.length, node_bb))
-            #if you're in the first cell and an inlet surface is provided
+            fm.addNode(Node(self.volume, self.hydraulicDiameter, 0.0, self.length, self.heightChange / self.length, node_bb))
+            # if you're in the first cell and an inlet surface is provided
             if i == 0 and inlet[0] is not None:
-                #if the node on the other side is None, you're at a boundary surface otherwise, create the
+                # if the node on the other side is None, you're at a boundary surface otherwise, create the
                 #  connection with previous node
                 if inlet[1] is None:
-                    fm.addBoundarySurface(fm.getNode(self._firstNodeIndex + i), insurf = inlet[0])
+                    fm.addBoundarySurface(fm.getNode(self._firstNodeIndex + i), insurf=inlet[0])
                 else:
                     fm.addConnection(inlet[0], inlet[1], fm.getNode(self._firstNodeIndex + i))
-            #for all internal nodes, add connections
+            # for all internal nodes, add connections
             if i > 0:
-                fm.addConnection(Surface(self.flowArea), fm.getNode(self._firstNodeIndex - 1 + i),
-                                 fm.getNode(self._firstNodeIndex + i))
-            #if you're at the final cell and an outlet surface is provided
+                fm.addConnection(
+                    Surface(self.flowArea), fm.getNode(self._firstNodeIndex - 1 + i), fm.getNode(self._firstNodeIndex + i)
+                )
+            # if you're at the final cell and an outlet surface is provided
             if (i == self.nCell - 1) and outlet[0] is not None:
-                #if the node on the other side is None, you're at a boundary surface otherwise, create the
+                # if the node on the other side is None, you're at a boundary surface otherwise, create the
                 #  connection with previous node
                 if outlet[1] is None:
                     fm.addBoundarySurface(fm.getNode(self._firstNodeIndex + i), outsurf=inlet[0])
@@ -180,13 +187,13 @@ class Component:
         """
         return self._firstNodeIndex + self.nCell - 1
 
-    def getOutlet(self, inlet): #pylint:disable=unused-argument
+    def getOutlet(self, inlet):  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
         return NotImplementedError
 
-    def getVTKMesh(self, inlet): #pylint:disable=unused-argument
+    def getVTKMesh(self, inlet):  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
@@ -203,8 +210,8 @@ class Component:
         """
         Abstract method which does any post-processing of the code output
         """
-        outlet=self.getOutlet(inlet)
-        return [(inlet[0] + outlet[0])/2, (inlet[1] + outlet[1])/2, (inlet[2] + outlet[1])/2]
+        outlet = self.getOutlet(inlet)
+        return [(inlet[0] + outlet[0]) / 2, (inlet[1] + outlet[1]) / 2, (inlet[2] + outlet[1]) / 2]
 
     def _rotate(self, d_x, d_y, d_z, theta=0.0, alpha=0.0):
         """
@@ -218,19 +225,17 @@ class Component:
             theta   : (OPTIONAL) float, the degree of rotation desired about the y axis (polar)
             alpha   : (OPTIONAL) float, the degree of rotation desired about the z axis (azimuthal)
         """
-        polar_rotate =    np.array([[ np.cos(theta), 0, np.sin(theta)],
-                                    [             0, 1,             0],
-                                    [-np.sin(theta), 0, np.cos(theta)]])
-        azimuthal_rotate = np.array([[np.cos(alpha), -np.sin(alpha), 0],
-                                     [np.sin(alpha),  np.cos(alpha), 0],
-                                     [            0,              0, 1]])
+        polar_rotate = np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
+        azimuthal_rotate = np.array([[np.cos(alpha), -np.sin(alpha), 0], [np.sin(alpha), np.cos(alpha), 0], [0, 0, 1]])
         new_vec = np.dot(azimuthal_rotate, np.dot(polar_rotate, np.array([d_x, d_y, d_z])))
         return new_vec
+
 
 class Pipe(Component):
     """
     Pipe component.
     """
+
     def __init__(self, L, R=None, Ac=None, Dh=None, n=1, theta=0.0, alpha=0.0, Kloss=0, **kwargs):
         """
         The __init__ function initializes the pipe subclass of component by storing the
@@ -248,26 +253,26 @@ class Pipe(Component):
         super().__init__()
         self._L = L
         self._n = n
-        self._costh = np.cos(np.pi/180*theta)
-        self._theta = theta*np.pi/180
-        self._alpha = alpha*np.pi/180
+        self._costh = np.cos(np.pi / 180 * theta)
+        self._theta = theta * np.pi / 180
+        self._alpha = alpha * np.pi / 180
         self._kloss = Kloss
         self._kwargs = kwargs
         if R is None:
             assert Dh is not None and Ac is not None
-            self._R = 0.5*Dh
+            self._R = 0.5 * Dh
         else:
             self._R = R
         if Ac is None:
-            self._Ac = np.pi*R*R
+            self._Ac = np.pi * R * R
         else:
             self._Ac = Ac
         if Dh is None:
-            self._Pw = 2*np.pi*self._R
-            self._Dh = 4.0*self._Ac/self._Pw
+            self._Pw = 2 * np.pi * self._R
+            self._Dh = 4.0 * self._Ac / self._Pw
         else:
             self._Dh = Dh
-            self._Pw = 4.0*self._Ac / self._Dh
+            self._Pw = 4.0 * self._Ac / self._Dh
         self._temps = np.zeros(self.nCell)
 
     @property
@@ -300,7 +305,7 @@ class Pipe(Component):
         The HeightChange property returns the value of the height change each segment of the pipe.
         Args: None
         """
-        return self._costh*self._L / self._n
+        return self._costh * self._L / self._n
 
     @property
     def nCell(self):
@@ -344,17 +349,18 @@ class Pipe(Component):
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        return genCyl(self._L, self._R, nlayers=self._n,
-            **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genCyl(self._L, self._R, nlayers=self._n, **self._kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
-    def getBoundingBox(self,inlet):
+    def getBoundingBox(self, inlet):
         """
         Gets a Bounding box for any pipe
         Args:
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        outlet=self.getOutlet(inlet)
+        outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc):
@@ -374,12 +380,15 @@ class Pipe(Component):
         self._Dh *= uc.lengthConversion
         self._Pw *= uc.lengthConversion
 
+
 component_list["pipe"] = Pipe
+
 
 class SquarePipe(Pipe):
     """
     Square pipe component.
     """
+
     def __init__(self, L, W, **kwargs):
         """
         Initializes the square pipe instance.
@@ -388,7 +397,7 @@ class SquarePipe(Pipe):
             - L (float)  : length of the pipe
             - W (float)  : width of the pipe (flat-to-flat)
         """
-        super().__init__(L=L, Dh=W, Ac=W**2, **kwargs)
+        super().__init__(L=L, Dh=W, Ac=W ** 2, **kwargs)
 
     def getVTKMesh(self, inlet):
         """
@@ -400,15 +409,19 @@ class SquarePipe(Pipe):
         Args:
             - inlet (tuple): contains the x, y, and z coordinates of the inlet point
         """
-        return genUniformCube(self._Dh, self._Dh, self._L, nz=self._n
-            ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genUniformCube(self._Dh, self._Dh, self._L, nz=self._n).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
+
 
 component_list["square_pipe"] = SquarePipe
+
 
 class Tee(Pipe):
     """
     Tee pipe component. To be implemented.
     """
+
     def __init__(self, **kwargs):
         """
         Initializes the tee pipe instance.
@@ -416,12 +429,15 @@ class Tee(Pipe):
         super().__init__(**kwargs)
         assert self._n == 1
 
+
 component_list["tee"] = Tee
+
 
 class Pump(Component):
     """
     Pump component.
     """
+
     def __init__(self, Ac, Dh, V, height, dP, **kwargs):
         """
         The __init__ function initializes the pump subclass of component by storing the
@@ -495,7 +511,7 @@ class Pump(Component):
         """
         Gets the momentum source.
         """
-        return self._dP*self._Ac
+        return self._dP * self._Ac
 
     def getOutlet(self, inlet):
         """
@@ -527,15 +543,15 @@ class Pump(Component):
         """
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self,inlet):
+    def getBoundingBox(self, inlet):
         """
         Gets a Bounding box for any pump assuming orientation inline with cartesian grid
         Args:
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        outlet=self.getOutlet(inlet)
-        return [inlet, outlet, self._Dh/2, self._Dh/2, self._h, 0.0, 0.0]
+        outlet = self.getOutlet(inlet)
+        return [inlet, outlet, self._Dh / 2, self._Dh / 2, self._h, 0.0, 0.0]
 
     def _convertUnits(self, uc):
         """
@@ -550,16 +566,19 @@ class Pump(Component):
         """
         self._Ac *= uc.areaConversion
         self._Dh *= uc.lengthConversion
-        self._V  *= uc.volumeConversion
-        self._h  *= uc.lengthConversion
+        self._V *= uc.volumeConversion
+        self._h *= uc.lengthConversion
         self._dP *= uc.pressureConversion
 
+
 component_list["pump"] = Pump
+
 
 class Nozzle(Component):
     """
     Nozzle component.
     """
+
     def __init__(self, L, R_inlet, R_outlet, theta=0.0, alpha=0.0, resolution=_CYL_RESOLUTION, **kwargs):
         """
         The __init__ function initializes the nozzle subclass of component by storing the
@@ -576,10 +595,10 @@ class Nozzle(Component):
         self._L = L
         self._Rin = R_inlet
         self._Rout = R_outlet
-        self._theta = theta*np.pi/180
-        self._alpha = alpha*np.pi/180
-        self._Dh = self._Rin + self._Rout # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
-        self._Ac = 0.25*np.pi*self._Dh*self._Dh
+        self._theta = theta * np.pi / 180
+        self._alpha = alpha * np.pi / 180
+        self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
+        self._Ac = 0.25 * np.pi * self._Dh * self._Dh
         self._res = resolution
         self._kwargs = kwargs
         self._temps = np.ones(self.nCell)
@@ -598,7 +617,7 @@ class Nozzle(Component):
         The InletArea property returns the inlet flow area of the nozzle.
         Args: None
         """
-        return np.pi*self._Rin*self._Rin
+        return np.pi * self._Rin * self._Rin
 
     @property
     def outletArea(self):
@@ -606,7 +625,7 @@ class Nozzle(Component):
         The OutletArea property returns the outlet flow area of the nozzle.
         Args: None
         """
-        return np.pi*self._Rout*self._Rout
+        return np.pi * self._Rout * self._Rout
 
     @property
     def length(self):
@@ -646,7 +665,7 @@ class Nozzle(Component):
         """
         raise NotImplementedError
 
-    def setupFluidMesh(self, fm, **kwargs): #pylint:disable=arguments-differ
+    def setupFluidMesh(self, fm, **kwargs):  # pylint:disable=arguments-differ
         """
         Method which adds nozzle component to the Fluid Mesh
 
@@ -690,21 +709,22 @@ class Nozzle(Component):
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        return genNozzle(self._L, self._Rin, self._Rout, resolution=self._res,
-            **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genNozzle(self._L, self._Rin, self._Rout, resolution=self._res, **self._kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
-    def getBoundingBox(self,inlet):
+    def getBoundingBox(self, inlet):
         """
         Gets a Bounding box for any nozzle assuming inlet radius> outlet radius
         Args:
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        outlet=self.getOutlet(inlet)
-        if self._Rin>=self._Rout:
-            big_r=self._Rin
+        outlet = self.getOutlet(inlet)
+        if self._Rin >= self._Rout:
+            big_r = self._Rin
         else:
-            big_r=self._Rout
+            big_r = self._Rout
         return [inlet, outlet, big_r, big_r, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc):
@@ -724,12 +744,15 @@ class Nozzle(Component):
         self._Dh *= uc.lengthConversion
         self._Ac *= uc.areaConversion
 
+
 component_list["nozzle"] = Nozzle
+
 
 class Annulus(Component):
     """
     Annulus component.
     """
+
     def __init__(self, L, R_inner, R_outer, n=1, theta=0.0, alpha=0.0, resolution=_CYL_RESOLUTION, **kwargs):
         """
         The __init__ function initializes the annulus subclass of component by storing the
@@ -748,8 +771,8 @@ class Annulus(Component):
         self._Rin = R_inner
         self._Rout = R_outer
         self._n = n
-        self._theta = theta*np.pi/180
-        self._alpha = alpha*np.pi/180
+        self._theta = theta * np.pi / 180
+        self._alpha = alpha * np.pi / 180
         self._res = resolution
         self._kwargs = kwargs
         self._temps = np.ones(self.nCell)
@@ -760,7 +783,7 @@ class Annulus(Component):
         The FlowArea property returns the stored value of the flow area of the annulus.
         Args: None
         """
-        return np.pi * (self._Rout*self._Rout - self._Rin*self._Rin)
+        return np.pi * (self._Rout * self._Rout - self._Rin * self._Rin)
 
     @property
     def length(self):
@@ -776,7 +799,7 @@ class Annulus(Component):
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the annulus.
         Args: None
         """
-        return 2 * self.flowArea / (np.pi*(self._Rin + self._Rout))
+        return 2 * self.flowArea / (np.pi * (self._Rin + self._Rout))
 
     @property
     def heightChange(self):
@@ -827,18 +850,19 @@ class Annulus(Component):
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        return genAnnulus(self._L, self._Rin, self._Rout, resolution=self._res,
-                nlayers=self._n, **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genAnnulus(self._L, self._Rin, self._Rout, resolution=self._res, nlayers=self._n, **self._kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
-    def getBoundingBox(self,inlet):
+    def getBoundingBox(self, inlet):
         """
         Gets a Bounding box for annulus
         Args:
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        outlet=self.getOutlet(inlet)
-        return [inlet, outlet,self._Rout, self._Rout, self._L, self._theta, self._alpha]
+        outlet = self.getOutlet(inlet)
+        return [inlet, outlet, self._Rout, self._Rout, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc):
         """
@@ -851,16 +875,19 @@ class Annulus(Component):
             - uc : unit_converter, class that takes all the units from the input file and
                 stores the conversions from those units to the base SI units
         """
-        self._L    *= uc.lengthConversion
-        self._Rin  *= uc.lengthConversion
+        self._L *= uc.lengthConversion
+        self._Rin *= uc.lengthConversion
         self._Rout *= uc.lengthConversion
 
+
 component_list["annulus"] = Annulus
+
 
 class Tank(Component):
     """
     Tank component.
     """
+
     def __init__(self, L, R, n=1, theta=0.0, alpha=0.0, **kwargs):
         """
         The __init__ function initializes the tank subclass of component by storing the
@@ -874,15 +901,15 @@ class Tank(Component):
             alpha   : (OPTIONAL) float, orientation angle of the tank in the aziumathal direction
         """
         super().__init__()
-        self._Ac = np.pi*R*R
-        self._Pw = 2.0*np.pi*R
-        self._Dh = 4.0*self._Ac/self._Pw
+        self._Ac = np.pi * R * R
+        self._Pw = 2.0 * np.pi * R
+        self._Dh = 4.0 * self._Ac / self._Pw
         self._L = L
         self._n = n
-        self._costh = np.cos(np.pi/180*theta)
+        self._costh = np.cos(np.pi / 180 * theta)
         self._R = R
-        self._theta = theta*np.pi/180
-        self._alpha = alpha*np.pi/180
+        self._theta = theta * np.pi / 180
+        self._alpha = alpha * np.pi / 180
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
@@ -916,7 +943,7 @@ class Tank(Component):
         The HeightChange property returns the value of the height change of the tank.
         Args: None
         """
-        return self._costh*self._L
+        return self._costh * self._L
 
     @property
     def nCell(self):
@@ -960,18 +987,19 @@ class Tank(Component):
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        return genCyl(self._L, self._R, resolution=_CYL_RESOLUTION,
-                nlayers=self._n, **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genCyl(self._L, self._R, resolution=_CYL_RESOLUTION, nlayers=self._n, **self._kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
-    def getBoundingBox(self,inlet):
+    def getBoundingBox(self, inlet):
         """
         Gets a Bounding box for tank
         Args:
             inlet : tuple of floats, contains the x, y, and z coordinates of the
                     inlet point
         """
-        outlet=self.getOutlet(inlet)
-        return [inlet, outlet,self._R, self._R, self._L, self._theta, self._alpha]
+        outlet = self.getOutlet(inlet)
+        return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc):
         """
@@ -987,15 +1015,18 @@ class Tank(Component):
         self._Ac *= uc.areaConversion
         self._Pw *= uc.lengthConversion
         self._Dh *= uc.lengthConversion
-        self._L  *= uc.lengthConversion
-        self._R  *= uc.lengthConversion
+        self._L *= uc.lengthConversion
+        self._R *= uc.lengthConversion
+
 
 component_list["tank"] = Tank
+
 
 class ParallelComponents(Component):
     """
     ParallelComponents handles the case with components in parallel.
     """
+
     def __init__(self, components, centroids, lower_plenum, upper_plenum, annulus=None, **kwargs):
         """
         The __init__ function of the parallel_components class initializes the
@@ -1101,7 +1132,7 @@ class ParallelComponents(Component):
         """
         raise NotImplementedError
 
-    def setupFluidMesh(self, fm, inlet = (None, None), outlet = (None, None), inlet_coords=(0,0,0) ):
+    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
         """
         Method which adds all components in parallel component to the Fluid Mesh
 
@@ -1117,35 +1148,37 @@ class ParallelComponents(Component):
         """
         self._firstNodeIndex = fm.nextNodeIndex
         lowerPlenumIdx = fm.nextNodeIndex
-        #Set up the lower plenum fluid mesh first, its always the bottom so pass in inlet conditions
+        # Set up the lower plenum fluid mesh first, its always the bottom so pass in inlet conditions
         self._lowerPlenum.setupFluidMesh(fm, inlet_coords=inlet_coords, inlet=inlet)
-        lp_outlet=self._lowerPlenum.getOutlet(inlet_coords)
-        #Loop over all parallle components.  Connect those to the lower plenum as their inlet
+        lp_outlet = self._lowerPlenum.getOutlet(inlet_coords)
+        # Loop over all parallle components.  Connect those to the lower plenum as their inlet
         for cname, centroid in self._centroids.items():
             i = (lp_outlet[0] + centroid[0], lp_outlet[1] + centroid[1], lp_outlet[2])
-            self._myComponents[cname].setupFluidMesh(fm, inlet=(Surface(self._myComponents[cname].flowArea),
-                                                                fm.getNode(lowerPlenumIdx)), inlet_coords=i)
-        #Since annulus is an optional component, check if it exists and set it up
+            self._myComponents[cname].setupFluidMesh(
+                fm, inlet=(Surface(self._myComponents[cname].flowArea), fm.getNode(lowerPlenumIdx)), inlet_coords=i
+            )
+        # Since annulus is an optional component, check if it exists and set it up
         if self._annulus is not None:
-            self._annulus.setupFluidMesh(fm, inlet=(Surface(self._annulus.flowArea), fm.getNode(lowerPlenumIdx)),
-                                         inlet_coords=lp_outlet)
-        #Set up the upper plenum
+            self._annulus.setupFluidMesh(
+                fm, inlet=(Surface(self._annulus.flowArea), fm.getNode(lowerPlenumIdx)), inlet_coords=lp_outlet
+            )
+        # Set up the upper plenum
         upperPlenumIdx = fm.nextNodeIndex
-        up_inlet=list(self._myComponents.items())[0][1].getOutlet(lp_outlet)
+        up_inlet = list(self._myComponents.items())[0][1].getOutlet(lp_outlet)
         self._upperPlenum.setupFluidMesh(fm, inlet_coords=up_inlet)
         compOutIdx = self._firstNodeIndex
-        #Connect all of the components to the upper plenum
-        for comp in self._myComponents:
-            compOutIdx += self._myComponents[comp].nCell
-            fm.addConnection(Surface(self._myComponents[comp].flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
-        #Since annulus is optional, set it up seperately
+        # Connect all of the components to the upper plenum
+        for comp in self._myComponents.values():
+            compOutIdx += comp.nCell
+            fm.addConnection(Surface(comp.flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
+        # Since annulus is optional, set it up seperately
         if self._annulus is not None:
             compOutIdx += self._annulus.nCell
             fm.addConnection(Surface(self._annulus.flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
-        #Now connect upper plenum to the outlet if its present.  Either as a boundary surface or by adding a connection
+        # Now connect upper plenum to the outlet if its present.  Either as a boundary surface or by adding a connection
         if outlet[0] is not None:
             if outlet[1] is None:
-                fm.addBoundarySurface(fm.getNode(upperPlenumIdx), outsurf = outlet[0])
+                fm.addBoundarySurface(fm.getNode(upperPlenumIdx), outsurf=outlet[0])
             else:
                 fm.addConnection(outlet[0], fm.getNode(upperPlenumIdx), outlet[1])
 
@@ -1161,8 +1194,8 @@ class ParallelComponents(Component):
         firstcomp = list(self._myComponents.items())[0][0]
         outlet = self._myComponents[firstcomp].getOutlet(lower)
         outlet = (round(outlet[0], 5), round(outlet[1], 5), round(outlet[2], 5))
-        for comp in self._myComponents:
-            compOutlet = self._myComponents[comp].getOutlet(lower)
+        for comp in self._myComponents.values():
+            compOutlet = comp.getOutlet(lower)
             compOutletRounded = round(compOutlet[0], 5), round(compOutlet[1], 5), round(compOutlet[2], 5)
             assert compOutletRounded == outlet
         outlet = self._upperPlenum.getOutlet(outlet)
@@ -1205,17 +1238,20 @@ class ParallelComponents(Component):
         self._lowerPlenum._convertUnits(uc)
         if self._annulus is not None:
             self._annulus._convertUnits(uc)
-        for c in self._myComponents:
-            self._myComponents[c]._convertUnits(uc)
+        for c, comp in self._myComponents.items():
+            comp._convertUnits(uc)
             self._centroids[c][0] *= uc.lengthConversion
             self._centroids[c][1] *= uc.lengthConversion
 
+
 component_list["parallel_components"] = ParallelComponents
+
 
 class HexCore(ParallelComponents):
     """
     Hexagonal core component.
     """
+
     def __init__(self, pitch, components, hexmap, **kwargs):
         """
         The __init__ function of the hex_core class initializes the class instance by storing the
@@ -1256,10 +1292,10 @@ class HexCore(ParallelComponents):
             inlet : tuple, contains the x, y, and z coordinates of the inlet, respectively
         """
         core_inlet = self._lowerPlenum.getOutlet(inlet)
-        channels=self.tmpComponents[list(self.tmpComponents.keys())[0]]._myComponents
+        channels = self.tmpComponents[list(self.tmpComponents.keys())[0]]._myComponents
         for c in channels.keys():
             channels[c]._convertUnits(self.uc)
-            if c == 'plate':
+            if c == "plate":
                 core_inlet = channels[c].getOutlet(core_inlet)
         mesh = VTKMesh()
         mesh += super().getVTKMesh(inlet)
@@ -1277,18 +1313,18 @@ class HexCore(ParallelComponents):
             c : int, col in the hexmap
         """
         dx = self._pitch
-        dy = self._pitch * np.sqrt(3)/2
+        dy = self._pitch * np.sqrt(3) / 2
 
         rc = len(self._map) / 2
-        yoffset = 0.5*(0.5*self._pitch*np.tan(np.pi/6) - 0.5*self._pitch/np.cos(np.pi/6))
+        yoffset = 0.5 * (0.5 * self._pitch * np.tan(np.pi / 6) - 0.5 * self._pitch / np.cos(np.pi / 6))
         if len(self._map) % 2 == 0:
-            yoffset += -0.5 * dy  #even rows
+            yoffset += -0.5 * dy  # even rows
         yc = dy * (rc - r) + yoffset
 
         cc = np.floor(len(self._map[r]) / 2)
         xoffset = 0.0
         if len(self._map[r]) % 2 == 0:
-            xoffset = 0.5 * dx  #even columns
+            xoffset = 0.5 * dx  # even columns
         xc = dx * (c - cc) + xoffset
 
         return xc, yc
@@ -1308,12 +1344,15 @@ class HexCore(ParallelComponents):
         self._pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
+
 component_list["hex_core"] = HexCore
+
 
 class SerialComponents(Component):
     """
     SerialComponents handles the case with components that are connected in series.
     """
+
     def __init__(self, components, order, **kwargs):
         """
         The __init__ function of the serial_components class initializes the class instance by storing the
@@ -1365,9 +1404,9 @@ class SerialComponents(Component):
         Args: None
         """
         L = 0
-        for c in self._myComponents:
-            L += self._myComponents[c].length
-        return round(L,5)
+        for c in self._myComponents.values():
+            L += c.length
+        return round(L, 5)
 
     @property
     def hydraulicDiameter(self):
@@ -1377,7 +1416,7 @@ class SerialComponents(Component):
         """
         names = list(self._myComponents.keys())
         for c in names:
-            if c[0] == 'c':
+            if c[0] == "c":
                 return round(self._myComponents[c]._R * 2, 6)
         raise Exception("Component with hydraulic diameter not found.")
 
@@ -1413,7 +1452,7 @@ class SerialComponents(Component):
         """
         raise NotImplementedError
 
-    def setupFluidMesh(self, fm, inlet = (None, None), outlet = (None, None), inlet_coords =(0,0,0)):
+    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
         """
         Method which adds all components in serial component to the Fluid Mesh
 
@@ -1428,23 +1467,23 @@ class SerialComponents(Component):
         """
         self._firstNodeIndex = fm.nextNodeIndex
         compIdx = fm.nextNodeIndex
-        #Loop over all the sequential components, set up each component
+        # Loop over all the sequential components, set up each component
         for i, comp in enumerate(self._myComponents.values()):
-            #If the first component, pass in the inlet
+            # If the first component, pass in the inlet
             if i == 0:
-                comp.setupFluidMesh(fm,inlet = inlet, inlet_coords=inlet_coords)
-            #if the last component, pass in the outlet
+                comp.setupFluidMesh(fm, inlet=inlet, inlet_coords=inlet_coords)
+            # if the last component, pass in the outlet
             elif i == len(self._order) - 1:
-                comp.setupFluidMesh(fm, outlet = outlet, inlet_coords=inlet_coords)
-            #otherwise just set it up
+                comp.setupFluidMesh(fm, outlet=outlet, inlet_coords=inlet_coords)
+            # otherwise just set it up
             else:
                 comp.setupFluidMesh(fm, inlet_coords=inlet_coords)
-            #connections are added for the bottom surface of the current component, only first node
+            # connections are added for the bottom surface of the current component, only first node
             # doesn't need this bottom surface set up (handled by passing in "inlet")
             if i > 0:
                 fm.addConnection(Surface(comp.flowArea), fm.getNode(compIdx), fm.getNode(comp._firstNodeIndex))
             compIdx = fm.prevNodeIndex
-            inlet_coords=comp.getOutlet(inlet_coords)
+            inlet_coords = comp.getOutlet(inlet_coords)
 
     def getOutlet(self, inlet):
         """
@@ -1488,5 +1527,6 @@ class SerialComponents(Component):
         """
         for cname in self._order:
             self._myComponents[cname]._convertUnits(uc)
+
 
 component_list["serial_components"] = SerialComponents

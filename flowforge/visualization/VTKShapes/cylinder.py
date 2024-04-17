@@ -3,6 +3,7 @@ from pyevtk.vtk import VtkWedge
 from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
+
 def genCyl(L, R, resolution=CYL_RESOLUTION, nlayers=1):
     """
     Generates mesh for a cylinder
@@ -15,12 +16,12 @@ def genCyl(L, R, resolution=CYL_RESOLUTION, nlayers=1):
     nwedges = resolution
     ncells = nwedges * nlayers
     pi = np.pi
-    sliceAngle = 2 * pi / nwedges # radians
-    angles = np.arange(0, 2*pi, sliceAngle)
+    sliceAngle = 2 * pi / nwedges  # radians
+    angles = np.arange(0, 2 * pi, sliceAngle)
     # conversion from polar to cartesian coordinates
     x = R * np.cos(angles)
     y = R * np.sin(angles)
-    dz = L/nlayers
+    dz = L / nlayers
     z = np.linspace(0, L, nlayers + 1)
 
     # points

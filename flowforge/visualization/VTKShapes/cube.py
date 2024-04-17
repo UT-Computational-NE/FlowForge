@@ -2,6 +2,7 @@ import numpy as np
 from pyevtk.vtk import VtkHexahedron
 from flowforge.visualization import VTKMesh
 
+
 def genUniformCube(L, W, H, nx=1, ny=1, nz=1):
     """
     Generates the vtk mesh for a cube with uniform cell division
@@ -18,9 +19,9 @@ def genUniformCube(L, W, H, nx=1, ny=1, nz=1):
     dz = H / nz
 
     # points
-    mesh_x = np.arange(-L/2, L/2 + dx, dx)
-    mesh_y = np.arange(-W/2, W/2 + dy, dy)
-    mesh_z = np.arange(   0,   H + dz, dz)
+    mesh_x = np.arange(-L / 2, L / 2 + dx, dx)
+    mesh_y = np.arange(-W / 2, W / 2 + dy, dy)
+    mesh_z = np.arange(0, H + dz, dz)
 
     return _genCube(mesh_x, mesh_y, mesh_z)
 
@@ -61,14 +62,14 @@ def _genCube(mesh_x, mesh_y, mesh_z):
     for k in range(nz):
         for j in range(ny):
             for i in range(nx):
-                conn[a+0] = k + j*(nx+1)*(nz+1) + i*(nz+1)
-                conn[a+1] = k + j*(nx+1)*(nz+1) + i*(nz+1) + 1
-                conn[a+2] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nz+1) + 1
-                conn[a+3] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nz+1)
-                conn[a+4] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nx+1)*(nz+1)
-                conn[a+5] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nx+1)*(nz+1) + 1
-                conn[a+6] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nx+1)*(nz+1) + (nz+1) + 1
-                conn[a+7] = k + j*(nx+1)*(nz+1) + i*(nz+1) + (nx+1)*(nz+1) + (nz+1)
+                conn[a + 0] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1)
+                conn[a + 1] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + 1
+                conn[a + 2] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nz + 1) + 1
+                conn[a + 3] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nz + 1)
+                conn[a + 4] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nx + 1) * (nz + 1)
+                conn[a + 5] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nx + 1) * (nz + 1) + 1
+                conn[a + 6] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nx + 1) * (nz + 1) + (nz + 1) + 1
+                conn[a + 7] = k + j * (nx + 1) * (nz + 1) + i * (nz + 1) + (nx + 1) * (nz + 1) + (nz + 1)
                 a += 8
 
     # offset data

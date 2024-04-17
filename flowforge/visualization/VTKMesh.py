@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class VTKMesh:
     """
     The VTKMesh Class provides a way to store the mesh of the entire system.
@@ -26,12 +27,12 @@ class VTKMesh:
         inp_none = [points is None, conn is None, offsets is None, ctypes is None, meshmap is None]
         if any(inp_none):
             assert all(inp_none)
-            self._x =       np.array([])
-            self._y =       np.array([])
-            self._z =       np.array([])
-            self._conn =    np.array([], dtype=int)
+            self._x = np.array([])
+            self._y = np.array([])
+            self._z = np.array([])
+            self._conn = np.array([], dtype=int)
             self._offsets = np.array([], dtype=int)
-            self._ctypes  = np.array([])
+            self._ctypes = np.array([])
             self._meshmap = np.array([], dtype=int)
         else:
             self._x = points[0]
@@ -51,6 +52,34 @@ class VTKMesh:
         Args: None
         """
         return (self._x, self._y, self._z)
+
+    @property
+    def connections(self):
+        """
+        Returns the connections array.
+        """
+        return self._conn
+
+    @property
+    def offsets(self):
+        """
+        Returns the offsets array.
+        """
+        return self._offsets
+
+    @property
+    def ctypes(self):
+        """
+        Returns the ctypes array.
+        """
+        return self._ctypes
+
+    @property
+    def meshmap(self):
+        """
+        Returns the meshmap array.
+        """
+        return self._meshmap
 
     def __add__(self, newmesh):
         """
@@ -76,11 +105,14 @@ class VTKMesh:
 
         combinedMesh._ctypes = np.concatenate((self._ctypes, newmesh._ctypes))
 
-        # print(newmesh._meshmap)
         if self._meshmap.size > 0:
             newmesh._meshmap = np.delete(newmesh._meshmap, 0)
             newmesh._meshmap += int(self._meshmap[-1])
-        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)  # pylint: disable=unexpected-keyword-arg
+
+        # np.concatenate has dtype kwarg by pylint doesn't like it
+        # (https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)
+        # pylint:disable=unexpected-keyword-arg
+        combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)
 
         return combinedMesh
 
@@ -99,12 +131,8 @@ class VTKMesh:
             alpha   : (OPTIONAL) float, the degree of rotation desired about the z axis (azimuthal)
         """
         # rotation matrices
-        polar_rotate =    np.array([[ np.cos(theta), 0, np.sin(theta)],
-                                    [             0, 1,             0],
-                                    [-np.sin(theta), 0, np.cos(theta)]])
-        azimuthal_rotate = np.array([[np.cos(alpha), -np.sin(alpha), 0],
-                                     [np.sin(alpha),  np.cos(alpha), 0],
-                                     [            0,              0, 1]])
+        polar_rotate = np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
+        azimuthal_rotate = np.array([[np.cos(alpha), -np.sin(alpha), 0], [np.sin(alpha), np.cos(alpha), 0], [0, 0, 1]])
         points = np.array([self._x, self._y, self._z])
         # multiplies the points by 2 rotation matrices
         points = np.dot(polar_rotate, points)
