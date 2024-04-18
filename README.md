@@ -33,5 +33,5 @@ pylint ./flowforge
 ### Formatting code with black
 Execute this line from the `~/FlowForge` directory to automatically format the code to PEP8 standard using [black](https://pypi.org/project/black/):
 ```bash
-black .
+black ./flowforge
 ```
