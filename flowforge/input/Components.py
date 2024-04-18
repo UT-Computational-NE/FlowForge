@@ -4,6 +4,7 @@ import numpy as np
 from six import add_metaclass
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
 from flowforge.meshing.FluidMesh import Node, Surface
+from flowforge.input.UnitConverter import UnitConverter
 
 _CYL_RESOLUTION = 50
 
@@ -16,7 +17,7 @@ This can be used in a factory to build each component in a system.
 component_list = {}
 
 
-def component_factory(indict):
+def component_factory(indict: dict) -> list["Component"]:
     """
     Factory to initialize all components in the system.
 
@@ -45,7 +46,7 @@ class Component:
     Base class for all components of the system.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the component.
         """
@@ -54,7 +55,7 @@ class Component:
 
     @property
     @abc.abstractmethod
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -62,7 +63,7 @@ class Component:
 
     @property
     @abc.abstractmethod
-    def length(self):
+    def length(self) -> float:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -70,7 +71,7 @@ class Component:
 
     @property
     @abc.abstractmethod
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -78,7 +79,7 @@ class Component:
 
     @property
     @abc.abstractmethod
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -86,28 +87,28 @@ class Component:
 
     @property
     @abc.abstractmethod
-    def nCell(self):
+    def nCell(self) -> int:
         """
         Abstract method which does any post-processing of the code output
         """
         raise NotImplementedError
 
     @property
-    def volume(self):
+    def volume(self) -> float:
         """
         Abstract method which does any post-processing of the code output
         """
         return self.flowArea * self.length
 
     @property
-    def inletArea(self):
+    def inletArea(self) -> float:
         """
         Default method to get inlet Area
         """
         return self.flowArea
 
     @property
-    def outletArea(self):
+    def outletArea(self) -> float:
         """
         Default method to get outlet Area
         """
@@ -187,13 +188,13 @@ class Component:
         """
         return self._firstNodeIndex + self.nCell - 1
 
-    def getOutlet(self, inlet):  # pylint:disable=unused-argument
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
         return NotImplementedError
 
-    def getVTKMesh(self, inlet):  # pylint:disable=unused-argument
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
@@ -206,14 +207,14 @@ class Component:
         for i in range(self.nCell):
             yield self
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Abstract method which does any post-processing of the code output
         """
         outlet = self.getOutlet(inlet)
         return [(inlet[0] + outlet[0]) / 2, (inlet[1] + outlet[1]) / 2, (inlet[2] + outlet[1]) / 2]
 
-    def _rotate(self, d_x, d_y, d_z, theta=0.0, alpha=0.0):
+    def _rotate(self, d_x: float, d_y: float, d_z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
         """
         Method which rotates x, y, & z coordinates according to theta and alpha angles.
         As of now, it is only used for the node bounding box
@@ -236,7 +237,18 @@ class Pipe(Component):
     Pipe component.
     """
 
-    def __init__(self, L, R=None, Ac=None, Dh=None, n=1, theta=0.0, alpha=0.0, Kloss=0, **kwargs):
+    def __init__(
+        self,
+        L: float,
+        R: float = None,
+        Ac: float = None,
+        Dh: float = None,
+        n: int = 1,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        Kloss: float = 0,
+        **kwargs,
+    ) -> None:
         """
         The __init__ function initializes the pipe subclass of component by storing the
         values of the pipe.
@@ -276,7 +288,7 @@ class Pipe(Component):
         self._temps = np.zeros(self.nCell)
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the pipe.
         Args: None
@@ -284,7 +296,7 @@ class Pipe(Component):
         return self._Ac
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of the pipe.
         Args: None
@@ -292,7 +304,7 @@ class Pipe(Component):
         return self._L / self._n
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the pipe.
         Args: None
@@ -300,7 +312,7 @@ class Pipe(Component):
         return self._Dh
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change each segment of the pipe.
         Args: None
@@ -308,20 +320,20 @@ class Pipe(Component):
         return self._costh * self._L / self._n
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the stored value of the number of segments the pipe is made up of.
         Args: None
         """
         return self._n
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the pipe will be
         and returns the point as a tuple. This function can be used by automating
@@ -337,7 +349,7 @@ class Pipe(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a cylinder which will represent the pipe. This function will
@@ -353,7 +365,7 @@ class Pipe(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Gets a Bounding box for any pipe
         Args:
@@ -363,7 +375,7 @@ class Pipe(Component):
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -389,7 +401,7 @@ class SquarePipe(Pipe):
     Square pipe component.
     """
 
-    def __init__(self, L, W, **kwargs):
+    def __init__(self, L: float, W: float, **kwargs) -> None:
         """
         Initializes the square pipe instance.
 
@@ -397,9 +409,9 @@ class SquarePipe(Pipe):
             - L (float)  : length of the pipe
             - W (float)  : width of the pipe (flat-to-flat)
         """
-        super().__init__(L=L, Dh=W, Ac=W ** 2, **kwargs)
+        super().__init__(L=L, Dh=W, Ac=W**2, **kwargs)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a square pipe. This function will also automatically translate
@@ -422,7 +434,7 @@ class Tee(Pipe):
     Tee pipe component. To be implemented.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         """
         Initializes the tee pipe instance.
         """
@@ -438,7 +450,7 @@ class Pump(Component):
     Pump component.
     """
 
-    def __init__(self, Ac, Dh, V, height, dP, **kwargs):
+    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, **kwargs) -> None:
         """
         The __init__ function initializes the pump subclass of component by storing the
         values of the pump.
@@ -460,7 +472,7 @@ class Pump(Component):
         self._temps = np.zeros(self.nCell)
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the pump.
         Args: None
@@ -468,7 +480,7 @@ class Pump(Component):
         return self._Ac
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the Length of the pump.
         Args: None
@@ -476,7 +488,7 @@ class Pump(Component):
         return self._V / self._Ac
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the pump.
         Args: None
@@ -484,7 +496,7 @@ class Pump(Component):
         return self._Dh
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the stored value of the height change of the pump.
         Args: None
@@ -492,7 +504,7 @@ class Pump(Component):
         return self._h
 
     @property
-    def volume(self):
+    def volume(self) -> float:
         """
         The Volume property returns the stored value of the volume of the pump.
         Args: None
@@ -500,20 +512,20 @@ class Pump(Component):
         return self._V
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the number of cells the pump consists of, which is 1.
         Args: None
         """
         return 1
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         return self._dP * self._Ac
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the pump will be
         and returns the point as a tuple. This function can be used by automating
@@ -530,7 +542,7 @@ class Pump(Component):
         z = inlet[2] + self.heightChange / 2
         return (x, y, z)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCube function from VTKShapes to create
         a mesh for a cube which will represent the pump. This function will
@@ -543,7 +555,7 @@ class Pump(Component):
         """
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Gets a Bounding box for any pump assuming orientation inline with cartesian grid
         Args:
@@ -553,7 +565,7 @@ class Pump(Component):
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._Dh / 2, self._Dh / 2, self._h, 0.0, 0.0]
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -579,7 +591,16 @@ class Nozzle(Component):
     Nozzle component.
     """
 
-    def __init__(self, L, R_inlet, R_outlet, theta=0.0, alpha=0.0, resolution=_CYL_RESOLUTION, **kwargs):
+    def __init__(
+        self,
+        L: float,
+        R_inlet: float,
+        R_outlet: float,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        resolution: int = _CYL_RESOLUTION,
+        **kwargs,
+    ) -> None:
         """
         The __init__ function initializes the nozzle subclass of component by storing the
         values from the inputs.
@@ -604,7 +625,7 @@ class Nozzle(Component):
         self._temps = np.ones(self.nCell)
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the nozzle.
         Args: None
@@ -612,7 +633,7 @@ class Nozzle(Component):
         return self._Ac
 
     @property
-    def inletArea(self):
+    def inletArea(self) -> float:
         """
         The InletArea property returns the inlet flow area of the nozzle.
         Args: None
@@ -620,7 +641,7 @@ class Nozzle(Component):
         return np.pi * self._Rin * self._Rin
 
     @property
-    def outletArea(self):
+    def outletArea(self) -> float:
         """
         The OutletArea property returns the outlet flow area of the nozzle.
         Args: None
@@ -628,7 +649,7 @@ class Nozzle(Component):
         return np.pi * self._Rout * self._Rout
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of each segment of the nozzle.
         Args: None
@@ -636,7 +657,7 @@ class Nozzle(Component):
         return self._L
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the nozzle.
         Args: None
@@ -644,7 +665,7 @@ class Nozzle(Component):
         return self._Dh
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change each segment of the nozzle.
         Args: None
@@ -652,14 +673,14 @@ class Nozzle(Component):
         return self._L * np.cos(self._theta)
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the stored value of the number of segments the nozzle is made up of.
         Args: None
         """
         return 1
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
@@ -682,7 +703,7 @@ class Nozzle(Component):
         assert self.nCell == 1
         super().setupFluidMesh(fm, **kwargs)
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the nozzle will be
         and returns the point as a tuple. This function can be used by automating
@@ -698,7 +719,7 @@ class Nozzle(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genNozzle function from VTKShapes to create
         a mesh for a nozzle. This function will also automatically translate the shape
@@ -713,7 +734,7 @@ class Nozzle(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Gets a Bounding box for any nozzle assuming inlet radius> outlet radius
         Args:
@@ -727,7 +748,7 @@ class Nozzle(Component):
             big_r = self._Rout
         return [inlet, outlet, big_r, big_r, self._L, self._theta, self._alpha]
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -753,7 +774,17 @@ class Annulus(Component):
     Annulus component.
     """
 
-    def __init__(self, L, R_inner, R_outer, n=1, theta=0.0, alpha=0.0, resolution=_CYL_RESOLUTION, **kwargs):
+    def __init__(
+        self,
+        L: float,
+        R_inner: float,
+        R_outer: float,
+        n: int = 1,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        resolution: int = _CYL_RESOLUTION,
+        **kwargs,
+    ) -> None:
         """
         The __init__ function initializes the annulus subclass of component by storing the
         values from the inputs.
@@ -778,7 +809,7 @@ class Annulus(Component):
         self._temps = np.ones(self.nCell)
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the annulus.
         Args: None
@@ -786,7 +817,7 @@ class Annulus(Component):
         return np.pi * (self._Rout * self._Rout - self._Rin * self._Rin)
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of the annulus.
         Args: None
@@ -794,7 +825,7 @@ class Annulus(Component):
         return self._L / self._n
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the annulus.
         Args: None
@@ -802,7 +833,7 @@ class Annulus(Component):
         return 2 * self.flowArea / (np.pi * (self._Rin + self._Rout))
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change each segment of the annulus.
         Args: None
@@ -810,20 +841,20 @@ class Annulus(Component):
         return self._L * np.cos(self._theta) / self._n
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the stored value of the number of segments the annulus is made up of.
         Args: None
         """
         return self._n
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the annulus will be
         and returns the point as a tuple. This function can be used by automating
@@ -839,7 +870,7 @@ class Annulus(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genAnnulus function from VTKShapes to create
         a mesh for a annulus. This function will also automatically translate the shape
@@ -854,7 +885,7 @@ class Annulus(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Gets a Bounding box for annulus
         Args:
@@ -864,7 +895,7 @@ class Annulus(Component):
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._Rout, self._Rout, self._L, self._theta, self._alpha]
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -888,7 +919,7 @@ class Tank(Component):
     Tank component.
     """
 
-    def __init__(self, L, R, n=1, theta=0.0, alpha=0.0, **kwargs):
+    def __init__(self, L: float, R: float, n: int = 1, theta: float = 0.0, alpha: float = 0.0, **kwargs) -> None:
         """
         The __init__ function initializes the tank subclass of component by storing the
         values of the tank.
@@ -914,7 +945,7 @@ class Tank(Component):
         self._temps = np.zeros(self.nCell)
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the tank.
         Args: None
@@ -922,7 +953,7 @@ class Tank(Component):
         return self._Ac
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of the tank.
         Args: None
@@ -930,7 +961,7 @@ class Tank(Component):
         return self._L
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the tank.
         Args: None
@@ -938,7 +969,7 @@ class Tank(Component):
         return self._Dh
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change of the tank.
         Args: None
@@ -946,20 +977,20 @@ class Tank(Component):
         return self._costh * self._L
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the stored value of the number of segments the tank is made up of.
         Args: None
         """
         return self._n
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the tank will be
         and returns the point as a tuple. This function can be used by automating
@@ -975,7 +1006,7 @@ class Tank(Component):
         z = inlet[2]
         return (x, y, z)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a cylinder which will represent the tank. This function will
@@ -991,7 +1022,7 @@ class Tank(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet):
+    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
         """
         Gets a Bounding box for tank
         Args:
@@ -1001,7 +1032,7 @@ class Tank(Component):
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -1027,7 +1058,9 @@ class ParallelComponents(Component):
     ParallelComponents handles the case with components in parallel.
     """
 
-    def __init__(self, components, centroids, lower_plenum, upper_plenum, annulus=None, **kwargs):
+    def __init__(
+        self, components: dict, centroids: dict, lower_plenum: dict, upper_plenum: dict, annulus: dict = None, **kwargs
+    ) -> None:
         """
         The __init__ function of the parallel_components class initializes the
         class instance by storing the components dictionary that is used to run the component_factory
@@ -1064,28 +1097,28 @@ class ParallelComponents(Component):
         self._firstNodeIndex = None
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the component.
         """
         return NotImplementedError
 
     @property
-    def inletArea(self):
+    def inletArea(self) -> float:
         """
         The InletArea property returns the inlet flow area of the parallel component.
         """
         return self._lowerPlenum.inletArea
 
     @property
-    def outletArea(self):
+    def outletArea(self) -> float:
         """
         The OutletArea property returns the outlet flow area of the parallel component.
         """
         return self._upperPlenum.outletArea
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of the component.
         """
@@ -1094,21 +1127,21 @@ class ParallelComponents(Component):
         return L
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the component.
         """
         raise NotImplementedError
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change of the component.
         """
         raise NotImplementedError
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the number of cells in this component.
         """
@@ -1126,7 +1159,7 @@ class ParallelComponents(Component):
         for cname in self._centroids.keys():
             yield from self._myComponents[cname].getNodeGenerator()
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
@@ -1182,7 +1215,7 @@ class ParallelComponents(Component):
             else:
                 fm.addConnection(outlet[0], fm.getNode(upperPlenumIdx), outlet[1])
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function will get the outlets of each of the components inside of the parallel_components
         and confirm that they are the same before proceeding.
@@ -1201,7 +1234,7 @@ class ParallelComponents(Component):
         outlet = self._upperPlenum.getOutlet(outlet)
         return outlet
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function loops through each of the components contained inside parallel_components
         and calls the getVTKMesh for their specific component type. Each of these is added to the mesh
@@ -1223,7 +1256,7 @@ class ParallelComponents(Component):
         mesh += self._upperPlenum.getVTKMesh(inlet2)
         return mesh
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -1252,7 +1285,7 @@ class HexCore(ParallelComponents):
     Hexagonal core component.
     """
 
-    def __init__(self, pitch, components, hexmap, **kwargs):
+    def __init__(self, pitch: float, components: dict, hexmap: list[list[int]], **kwargs) -> None:
         """
         The __init__ function of the hex_core class initializes the class instance by storing the
         pitch between the channels, the components dictionary, which is again recursively passed into
@@ -1283,7 +1316,7 @@ class HexCore(ParallelComponents):
 
         super().__init__(extended_comps, centroids, **kwargs)
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function gets the mesh of the parallel portion of hex_core,
         then adds the core mesh
@@ -1301,7 +1334,7 @@ class HexCore(ParallelComponents):
         mesh += super().getVTKMesh(inlet)
         return mesh
 
-    def _getChannelCoords(self, r, c):
+    def _getChannelCoords(self, r: int, c: int) -> tuple[float, float]:
         """
         The _getChannelCoords function is a private function which returns the calculated x and y coordinates
         of the particular location in the map, which is determined by r (row) and c (col). This function
@@ -1329,7 +1362,7 @@ class HexCore(ParallelComponents):
 
         return xc, yc
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
@@ -1353,7 +1386,7 @@ class SerialComponents(Component):
     SerialComponents handles the case with components that are connected in series.
     """
 
-    def __init__(self, components, order, **kwargs):
+    def __init__(self, components: dict, order: dict, **kwargs) -> None:
         """
         The __init__ function of the serial_components class initializes the class instance by storing the
         dictionary of components that is produced from sending the components to the component_factory
@@ -1374,7 +1407,7 @@ class SerialComponents(Component):
         self._firstNodeIndex = None
 
     @property
-    def flowArea(self):
+    def flowArea(self) -> float:
         """
         The FlowArea property returns the stored value of the flow area of the component.
         Args: None
@@ -1382,7 +1415,7 @@ class SerialComponents(Component):
         return self._myComponents[self._order[0]].flowArea
 
     @property
-    def inletArea(self):
+    def inletArea(self) -> float:
         """
         The InletArea property returns the inlet flow area of the parallel component.
         Args: None
@@ -1390,7 +1423,7 @@ class SerialComponents(Component):
         return self._myComponents[self._order[0]].inletArea
 
     @property
-    def outletArea(self):
+    def outletArea(self) -> float:
         """
         The OutletArea property returns the outlet flow area of the parallel component.
         Args: None
@@ -1398,7 +1431,7 @@ class SerialComponents(Component):
         return self._myComponents[self._order[-1]].outletArea
 
     @property
-    def length(self):
+    def length(self) -> float:
         """
         The Length property returns the stored value of the length of the component.
         Args: None
@@ -1409,7 +1442,7 @@ class SerialComponents(Component):
         return round(L, 5)
 
     @property
-    def hydraulicDiameter(self):
+    def hydraulicDiameter(self) -> float:
         """
         The HydraulicDiameter property returns the stored value of the hydraulic diameter of the component.
         Args: None
@@ -1421,7 +1454,7 @@ class SerialComponents(Component):
         raise Exception("Component with hydraulic diameter not found.")
 
     @property
-    def heightChange(self):
+    def heightChange(self) -> float:
         """
         The HeightChange property returns the value of the height change of the component.
         Args: None
@@ -1429,7 +1462,7 @@ class SerialComponents(Component):
         raise NotImplementedError
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         The nCell property returns the number of cells in this component.
         Args: None
@@ -1446,7 +1479,7 @@ class SerialComponents(Component):
         for cname in self._order:
             yield self._myComponents[cname].getNodeGenerator()
 
-    def getMomentumSource(self):
+    def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
@@ -1485,7 +1518,7 @@ class SerialComponents(Component):
             compIdx = fm.prevNodeIndex
             inlet_coords = comp.getOutlet(inlet_coords)
 
-    def getOutlet(self, inlet):
+    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
         """
         The getOutlet function will get the outlet of the serial component. Because this component is in
         series, we looped through the components and got the outlet of each and used this outlet as the
@@ -1498,7 +1531,7 @@ class SerialComponents(Component):
             inlet = self._myComponents[cname].getOutlet(inlet)
         return inlet
 
-    def getVTKMesh(self, inlet):
+    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function loops through each of the components contained inside serial_components
         and calls the getVTKMesh for their specific component type. Each of these is added to the mesh.
@@ -1514,7 +1547,7 @@ class SerialComponents(Component):
             inlet = self._myComponents[cname].getOutlet(inlet)
         return mesh
 
-    def _convertUnits(self, uc):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         This private function will pass in the unit converter and the stored dimensions
         in this component will be multiplied by the corresponding conversion. The units
