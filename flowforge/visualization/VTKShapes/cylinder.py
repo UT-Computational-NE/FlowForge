@@ -4,7 +4,7 @@ from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
-def genCyl(L, R, resolution=CYL_RESOLUTION, nlayers=1):
+def genCyl(L: float, R: float, resolution: int = CYL_RESOLUTION, nlayers: int = 1) -> VTKMesh:
     """
     Generates mesh for a cylinder
         Args:

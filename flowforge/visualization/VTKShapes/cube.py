@@ -3,7 +3,7 @@ from pyevtk.vtk import VtkHexahedron
 from flowforge.visualization import VTKMesh
 
 
-def genUniformCube(L, W, H, nx=1, ny=1, nz=1):
+def genUniformCube(L: float, W: float, H: float, nx: int = 1, ny: int = 1, nz: int = 1) -> VTKMesh:
     """
     Generates the vtk mesh for a cube with uniform cell division
         Args:
@@ -26,7 +26,7 @@ def genUniformCube(L, W, H, nx=1, ny=1, nz=1):
     return _genCube(mesh_x, mesh_y, mesh_z)
 
 
-def genNonuniformCube(mesh_x, mesh_y, mesh_z):
+def genNonuniformCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
     """
     Generates the vtk mesh for a cube with non-uniform cell division
         Args:
@@ -37,7 +37,7 @@ def genNonuniformCube(mesh_x, mesh_y, mesh_z):
     return _genCube(mesh_x, mesh_y, mesh_z)
 
 
-def _genCube(mesh_x, mesh_y, mesh_z):
+def _genCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
     """
     Generates the vtk mesh for a cube
         Args:
