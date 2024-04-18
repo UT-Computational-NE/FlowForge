@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowforge"
+version = "0.0.1"
+authors = [
+  { name="Benjamin Collins", email="ben.collins@utexas.edu" },
+]
+description = "Frontend interface for multichannel thermal fluids systems solvers"
+readme = "README.md"
+keywords = []
+requires-python = ">=3.9"
+license = {text = "MIT License"}
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 3',
+    'Operating System :: OS Independent',
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "h5py",
+    "pyevtk",
+    "vtk",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pylint",
+    "black",
+]
+test = [
+    "pytest",
+    "pylint",
+]
+
+[project.urls]
+Homepage = "https://github.com/UT-Computational-NE/FlowForge"
+Issues = "https://github.com/UT-Computational-NE/FlowForge/issues"
+
+[tool.pylint.'messages control']
+disable = [
+    "chained-comparison",
+    "broad-exception-raised",
+    "broad-exception-caught",
+    "dangerous-default-value",
+    "duplicate-code",
+    "eval-used",
+    "fixme",
+    "invalid-name",
+    "missing-module-docstring",
+    "pointless-string-statement",
+    "redefined-outer-name",
+    "too-few-public-methods",
+    "too-many-lines",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-ancestors",
+    "too-many-arguments",
+    "too-many-statements",
+    "too-many-nested-blocks",
+    "too-many-instance-attributes",
+    "unspecified-encoding",
+    "unused-variable"
+]
+
+[tool.pylint.'format']
+max-line-length = 127
+
+[tool.black]
+line-length = 127
