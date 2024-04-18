@@ -1,6 +1,0 @@
-pylint
-pytest
-h5py
-numpy>=1.8.0
-pyevtk
-vtk
