@@ -4,7 +4,9 @@ from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
-def genAnnulus(L, Rin, Rout, resolution=CYL_RESOLUTION, nazimuthal=1, nlayers=1):
+def genAnnulus(
+    L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTION, nazimuthal: int = 1, nlayers: int = 1
+) -> VTKMesh:
     """
     Generates mesh for an annulus (a hollow cylinder)
         Args:

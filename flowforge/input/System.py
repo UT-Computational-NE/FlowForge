@@ -1,6 +1,8 @@
+from typing import Dict, List
 import flowforge.meshing.FluidMesh as fm
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
+from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
 
 
@@ -9,7 +11,7 @@ class System:
     Controls the whole system by initializing all components and writing vtk solution file.
     """
 
-    def __init__(self, components, sysdict, unitdict):
+    def __init__(self, components: List[Component], sysdict: Dict[str, str], unitdict: Dict[str, str]) -> None:
         """
         Initialize system of components
 
@@ -40,7 +42,7 @@ class System:
         """
         return self._fluidMesh
 
-    def _setupSimpleLoop(self, components, loop):
+    def _setupSimpleLoop(self, components: List[Component], loop: Dict[str, str]) -> None:
         """
         Sets up a loop of components (last components outlet connects to first component input)
 
@@ -58,7 +60,7 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSection(self, components, section):
+    def _setupSection(self, components: List[Component], section: Dict[str, str]) -> None:
         """
         Sets up a section (this is a model with defined inlet and outlet boundary conditions)
 
@@ -124,7 +126,7 @@ class System:
                 self._fluidMesh.getNode(self._outBoundComp.lastNodeIndex), outsurf=fm.Surface(self._outBoundComp.outletArea)
             )
 
-    def getVTKMesh(self):
+    def getVTKMesh(self) -> VTKMesh:
         """
         The getVTKMesh function is a private function that starts with the
         first inlet at the origin and adds the mesh of every component to the
@@ -141,7 +143,7 @@ class System:
             inlet = c.getOutlet(inlet)
         return mesh
 
-    def writeVTKFile(self, filename, time=None):  # pylint:disable=unused-argument
+    def writeVTKFile(self, filename: str, time: float = None) -> None:  # pylint:disable=unused-argument
         """
         The write system file will be used to export the whole system mesh into
         a VTK file to view in another program. This function calls the _getSystemMesh
@@ -156,7 +158,7 @@ class System:
         sysFile.writeFile()
 
     @property
-    def nCell(self):
+    def nCell(self) -> int:
         """
         Returns the number of cells in the system.
         """
@@ -164,16 +166,3 @@ class System:
         for c in self._components:
             ncell += c.nCell
         return ncell
-
-
-if __name__ == "__main__":
-    import json
-    from flowforge.input.Components import component_factory
-
-    with open("sample3.json", "r") as f:
-        input_dict = json.load(f)
-
-    comp = component_factory(input_dict["components"])
-    sys = System(comp, input_dict.get("system", {}), input_dict.get("units", {}))
-    sys.writeVTKFile("sample3")
-    sys.getMesh()

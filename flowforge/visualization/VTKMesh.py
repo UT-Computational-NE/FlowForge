@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Tuple
 import numpy as np
 
 
@@ -8,7 +10,14 @@ class VTKMesh:
     the function to translate the shapes in the coordinate system.
     """
 
-    def __init__(self, points=None, conn=None, offsets=None, ctypes=None, meshmap=None):
+    def __init__(
+        self,
+        points: np.ndarray = None,
+        conn: np.ndarray = None,
+        offsets: np.ndarray = None,
+        ctypes: np.ndarray = None,
+        meshmap: np.ndarray = None,
+    ) -> None:
         """
         Initializes an empty mesh by default or stores the values inputted.
         The initialization of this class must either be empty or contain
@@ -44,7 +53,7 @@ class VTKMesh:
             self._meshmap = meshmap
 
     @property
-    def points(self):
+    def points(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         The 'points' property is a more convenient way to return the arrays of points
         in the mesh. Using '.points' will return a tuple containing the x, y, and z coordinates.
@@ -54,34 +63,34 @@ class VTKMesh:
         return (self._x, self._y, self._z)
 
     @property
-    def connections(self):
+    def connections(self) -> np.ndarray:
         """
         Returns the connections array.
         """
         return self._conn
 
     @property
-    def offsets(self):
+    def offsets(self) -> np.ndarray:
         """
         Returns the offsets array.
         """
         return self._offsets
 
     @property
-    def ctypes(self):
+    def ctypes(self) -> np.ndarray:
         """
         Returns the ctypes array.
         """
         return self._ctypes
 
     @property
-    def meshmap(self):
+    def meshmap(self) -> np.ndarray:
         """
         Returns the meshmap array.
         """
         return self._meshmap
 
-    def __add__(self, newmesh):
+    def __add__(self, newmesh: VTKMesh) -> VTKMesh:
         """
         The __add__ function is a function that will overload the addition operator to
         add multiple meshes together. The most practical use of this operator would be
@@ -109,14 +118,14 @@ class VTKMesh:
             newmesh._meshmap = np.delete(newmesh._meshmap, 0)
             newmesh._meshmap += int(self._meshmap[-1])
 
-        # np.concatenate has dtype kwarg by pylint doesn't like it
+        # np.concatenate has dtype kwarg but pylint doesn't like it
         # (https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)
         # pylint:disable=unexpected-keyword-arg
         combinedMesh._meshmap = np.concatenate((self._meshmap, newmesh._meshmap), dtype=int)
 
         return combinedMesh
 
-    def translate(self, x, y, z, theta=0, alpha=0):
+    def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> VTKMesh:
         """
         The translate function serves the purpose of moving the shapes within the coordinate frame.
         This function has the ability to move the shapes in the x, y, and z axis and it also has

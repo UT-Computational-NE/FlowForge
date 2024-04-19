@@ -1,5 +1,6 @@
 from pyevtk.hl import unstructuredGridToVTK
 import numpy as np
+from flowforge.visualization import VTKMesh
 
 
 class VTKFile:
@@ -13,7 +14,7 @@ class VTKFile:
     empty. No errors will occur if a mesh is desired with no data values.
     """
 
-    def __init__(self, filepath, mesh=None):
+    def __init__(self, filepath: str, mesh: VTKMesh = None) -> None:
         """
         The VTKFile class is initialized with the desired file path of the export file.
         An example if you want the file to be created in the current directory would
@@ -28,7 +29,7 @@ class VTKFile:
         self.filepath = filepath
         self.data = {}
 
-    def addMesh(self, mesh):
+    def addMesh(self, mesh: VTKMesh) -> None:
         """
         The addMesh function stores the mesh input to prepare to export to a VTK file for viewing.
 
@@ -37,7 +38,7 @@ class VTKFile:
         """
         self.vtkmesh = mesh
 
-    def __setitem__(self, key, data):
+    def __setitem__(self, key: str, data: np.ndarray) -> None:
         """
         The __setitem__ function sets the mesh data using the _unroll_data function.
         The most useful way to use this function is the implicitly call it by doing something like:
@@ -54,7 +55,7 @@ class VTKFile:
         """
         self.data[key] = self._unroll_data(data)
 
-    def _unroll_data(self, data):
+    def _unroll_data(self, data: np.ndarray) -> np.ndarray:
         """
         The _unroll_data function is a helper function that loops through the inputed data array
         as well as the meshmap and sets the values to the appropriate cells in the mesh.
@@ -69,7 +70,7 @@ class VTKFile:
             values[int(self.vtkmesh.meshmap[i]) : int(self.vtkmesh.meshmap[i + 1])] = data[i]
         return values
 
-    def writeFile(self):
+    def writeFile(self) -> None:
         """
         The writeFile function exports all the saved data as a '.vtu' file.
         This file will allow you to visualize the meshes created. It will
@@ -86,5 +87,5 @@ class VTKFile:
             connectivity=self.vtkmesh.connections,
             offsets=self.vtkmesh.offsets,
             cell_types=self.vtkmesh.ctypes,
-            cellData=self.data
+            cellData=self.data,
         )

@@ -4,7 +4,7 @@ from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
-def genNozzle(L, Rin, Rout, resolution=CYL_RESOLUTION):
+def genNozzle(L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTION) -> VTKMesh:
     """
     Generates mesh for a nozzle
         Args:

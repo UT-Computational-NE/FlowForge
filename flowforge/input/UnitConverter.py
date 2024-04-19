@@ -1,3 +1,5 @@
+from typing import Dict
+
 # length to m
 lendict = {"in": 0.0254, "ft": 0.3048, "yd": 0.9144, "mm": 0.001, "cm": 0.01, "m": 1.0}
 
@@ -45,7 +47,7 @@ class UnitConverter:
     Handles all unit conversions for system inputs.
     """
 
-    def __init__(self, unitdict):
+    def __init__(self, unitdict: Dict[str, str]) -> None:
         """
         The __init__ function initializes the unit conversion class by setting the
         default of all unit conversions to be equal to 1.0. To initialize this class
@@ -139,7 +141,7 @@ class UnitConverter:
                 raise Exception("Unknown temperature input type: " + unitdict["temperature"])
 
     @property
-    def lengthConversion(self):
+    def lengthConversion(self) -> float:
         """
         The lengthConversion function uses the stored _lenconv variable
         to return the system input length in m.
@@ -147,7 +149,7 @@ class UnitConverter:
         return self._lenconv
 
     @property
-    def areaConversion(self):
+    def areaConversion(self) -> float:
         """
         The areaConversion function squares the stored _lenconv variable
         to return the system input area in m2.
@@ -155,7 +157,7 @@ class UnitConverter:
         return self._lenconv * self._lenconv
 
     @property
-    def volumeConversion(self):
+    def volumeConversion(self) -> float:
         """
         The volumeConversion function uses the stored _volconv variable
         to return the system input volume in m3.
@@ -163,7 +165,7 @@ class UnitConverter:
         return self._volconv
 
     @property
-    def timeConversion(self):
+    def timeConversion(self) -> float:
         """
         The timeConversion function uses the stored _timeconv variable
         to return the system input time in s.
@@ -171,7 +173,7 @@ class UnitConverter:
         return self._timeconv
 
     @property
-    def pressureConversion(self):
+    def pressureConversion(self) -> float:
         """
         The pressureConversion function uses the stored _presconv variable
         to return the system input pressure in pa.
@@ -179,7 +181,7 @@ class UnitConverter:
         return self._presconv
 
     @property
-    def massFlowRateConversion(self):
+    def massFlowRateConversion(self) -> float:
         """
         The massFlowRateConversion function uses the stored _mfrconv variable
         to return the system input mass flow rate in kg/s.
@@ -187,7 +189,7 @@ class UnitConverter:
         return self._mfrconv
 
     @property
-    def densityConversion(self):
+    def densityConversion(self) -> float:
         """
         The densityConversion function uses the stored _densconv variable
         to return the system input density in kg/m3.
@@ -195,14 +197,14 @@ class UnitConverter:
         return self._densconv
 
     @property
-    def powerConversion(self):
+    def powerConversion(self) -> float:
         """
         The powerConversion function uses the stored _powerconv variable
         to return the system input power in w.
         """
         return self._powerconv
 
-    def temperatureConversion(self, T):
+    def temperatureConversion(self, T: float) -> float:
         """
         The temperatureConversion function uses the stored _tempconv variable
         to return the system input temperature in K.
@@ -211,13 +213,3 @@ class UnitConverter:
             - T : float, temperature
         """
         return self._tempconv(T)
-
-
-if __name__ == "__main__":
-    import json
-
-    with open("sample.json", "r") as f:
-        input_dict = json.load(f)
-        unit_dict = input_dict["units"]
-        converter = UnitConverter(unit_dict)
-        print(converter.temperatureConversion(600))
