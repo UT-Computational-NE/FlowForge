@@ -1,8 +1,8 @@
 import abc
 from copy import deepcopy
-import numpy as np
-from six import add_metaclass
 from typing import List, Dict, Tuple
+from six import add_metaclass
+import numpy as np
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
 from flowforge.meshing.FluidMesh import Node, Surface
 from flowforge.input.UnitConverter import UnitConverter

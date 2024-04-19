@@ -87,5 +87,5 @@ class VTKFile:
             connectivity=self.vtkmesh.connections,
             offsets=self.vtkmesh.offsets,
             cell_types=self.vtkmesh.ctypes,
-            cellData=self.data
+            cellData=self.data,
         )
