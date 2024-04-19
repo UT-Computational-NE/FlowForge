@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
@@ -117,3 +117,31 @@ class System:
         for c in self._components:
             ncell += c.nCell
         return ncell
+    
+    @property
+    def components(self) -> List[Component]:
+        """
+        Returns the system components
+        """
+        return self._components
+
+    @property
+    def connectivity(self) -> List[Tuple[Component, Component]]:
+        """
+        Returns the system component connectivities
+        """
+        return self._connectivity
+
+    @property
+    def inBoundComp(self) -> Component:
+        """
+        Returns the system inlet boundary component
+        """
+        return self._inBoundComp
+
+    @property
+    def outBoundComp(self) -> Component:
+        """
+        Returns the system outlet boundary component
+        """
+        return self._outBoundComp
