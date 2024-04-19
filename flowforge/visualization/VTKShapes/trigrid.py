@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 from pyevtk.vtk import VtkWedge
 from flowforge.visualization import VTKMesh
@@ -5,7 +6,7 @@ from flowforge.visualization import VTKMesh
 _sq32 = np.sqrt(3.0) / 2.0
 
 
-def genTriGrid(sideLength: float, layerHeights: list, pointsPerRow: list) -> VTKMesh:
+def genTriGrid(sideLength: float, layerHeights: List[float], pointsPerRow: List[int]) -> VTKMesh:
     """
     The genTriGrid function generates a VTKMesh class instance containing information of
     a mesh grid consisting of triangles.
