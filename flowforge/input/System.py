@@ -117,7 +117,7 @@ class System:
         for c in self._components:
             ncell += c.nCell
         return ncell
-    
+
     @property
     def components(self) -> List[Component]:
         """

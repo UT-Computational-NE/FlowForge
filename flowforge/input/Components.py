@@ -28,7 +28,6 @@ class Component:
         Initializes the component.
         """
         self.uc = None
-        self._firstNodeIndex = None
 
     @property
     @abc.abstractmethod
@@ -1009,7 +1008,6 @@ class ParallelComponents(Component):
             self._annulus = component_list[compname](**input_)
 
         self._kwargs = kwargs
-        self._firstNodeIndex = None
 
     @property
     def flowArea(self) -> float:
@@ -1262,7 +1260,6 @@ class SerialComponents(Component):
         self._myComponents = component_factory(components)
         self._order = order
         self._kwargs = kwargs
-        self._firstNodeIndex = None
 
     @property
     def flowArea(self) -> float:
