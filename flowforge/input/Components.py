@@ -185,7 +185,7 @@ class Component:
         for i in range(self.nCell):
             yield self
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -366,7 +366,7 @@ class Pipe(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Gets a Bounding box for any pipe
         Args:
@@ -556,7 +556,7 @@ class Pump(Component):
         """
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Gets a Bounding box for any pump assuming orientation inline with cartesian grid
         Args:
@@ -735,7 +735,7 @@ class Nozzle(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Gets a Bounding box for any nozzle assuming inlet radius> outlet radius
         Args:
@@ -886,7 +886,7 @@ class Annulus(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Gets a Bounding box for annulus
         Args:
@@ -1023,7 +1023,7 @@ class Tank(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float]:
         """
         Gets a Bounding box for tank
         Args:
