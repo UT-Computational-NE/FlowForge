@@ -1,3 +1,4 @@
+from typing import Dict, List
 import flowforge.meshing.FluidMesh as fm
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
@@ -10,7 +11,7 @@ class System:
     Controls the whole system by initializing all components and writing vtk solution file.
     """
 
-    def __init__(self, components: list[Component], sysdict: dict, unitdict: dict) -> None:
+    def __init__(self, components: List[Component], sysdict: Dict[str, str], unitdict: Dict[str, str]) -> None:
         """
         Initialize system of components
 
@@ -41,7 +42,7 @@ class System:
         """
         return self._fluidMesh
 
-    def _setupSimpleLoop(self, components: list[Component], loop: dict) -> None:
+    def _setupSimpleLoop(self, components: List[Component], loop: Dict[str, str]) -> None:
         """
         Sets up a loop of components (last components outlet connects to first component input)
 
@@ -59,7 +60,7 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSection(self, components: list[Component], section: dict) -> None:
+    def _setupSection(self, components: List[Component], section: Dict[str, str]) -> None:
         """
         Sets up a section (this is a model with defined inlet and outlet boundary conditions)
 

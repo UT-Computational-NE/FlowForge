@@ -2,6 +2,7 @@ import abc
 from copy import deepcopy
 import numpy as np
 from six import add_metaclass
+from typing import List, Dict, Tuple
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
 from flowforge.meshing.FluidMesh import Node, Surface
 from flowforge.input.UnitConverter import UnitConverter
@@ -15,29 +16,6 @@ The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 component_list = {}
-
-
-def component_factory(indict: dict) -> list["Component"]:
-    """
-    Factory to initialize all components in the system.
-
-    Args:
-        - indict : dict, input dictionary containing the components
-    """
-    components = {}
-    for compname, comp in indict.items():
-        if isinstance(comp, dict):
-            if compname in component_list:
-                for name, input_ in comp.items():
-                    components[name] = component_list[compname](**input_)
-            else:
-                raise TypeError("Unknown component type: " + compname)
-        elif isinstance(comp, Component):
-            components[compname] = comp
-        else:
-            raise TypeError(f"Unknown input dictionary: {compname:s} type: {str(type(comp)):s}")
-
-    return components
 
 
 @add_metaclass(abc.ABCMeta)
@@ -188,13 +166,13 @@ class Component:
         """
         return self._firstNodeIndex + self.nCell - 1
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:  # pylint:disable=unused-argument
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
         return NotImplementedError
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
         """
         Abstract method which does any post-processing of the code output
         """
@@ -207,7 +185,7 @@ class Component:
         for i in range(self.nCell):
             yield self
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Abstract method which does any post-processing of the code output
         """
@@ -230,6 +208,29 @@ class Component:
         azimuthal_rotate = np.array([[np.cos(alpha), -np.sin(alpha), 0], [np.sin(alpha), np.cos(alpha), 0], [0, 0, 1]])
         new_vec = np.dot(azimuthal_rotate, np.dot(polar_rotate, np.array([d_x, d_y, d_z])))
         return new_vec
+
+
+def component_factory(indict: Dict[str, Dict[str, float]]) -> List[Component]:
+    """
+    Factory to initialize all components in the system.
+
+    Args:
+        - indict : dict, input dictionary containing the components
+    """
+    components = {}
+    for compname, comp in indict.items():
+        if isinstance(comp, dict):
+            if compname in component_list:
+                for name, input_ in comp.items():
+                    components[name] = component_list[compname](**input_)
+            else:
+                raise TypeError("Unknown component type: " + compname)
+        elif isinstance(comp, Component):
+            components[compname] = comp
+        else:
+            raise TypeError(f"Unknown input dictionary: {compname:s} type: {str(type(comp)):s}")
+
+    return components
 
 
 class Pipe(Component):
@@ -333,7 +334,7 @@ class Pipe(Component):
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the pipe will be
         and returns the point as a tuple. This function can be used by automating
@@ -349,7 +350,7 @@ class Pipe(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a cylinder which will represent the pipe. This function will
@@ -365,7 +366,7 @@ class Pipe(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Gets a Bounding box for any pipe
         Args:
@@ -411,7 +412,7 @@ class SquarePipe(Pipe):
         """
         super().__init__(L=L, Dh=W, Ac=W**2, **kwargs)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a square pipe. This function will also automatically translate
@@ -525,7 +526,7 @@ class Pump(Component):
         """
         return self._dP * self._Ac
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the pump will be
         and returns the point as a tuple. This function can be used by automating
@@ -542,7 +543,7 @@ class Pump(Component):
         z = inlet[2] + self.heightChange / 2
         return (x, y, z)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCube function from VTKShapes to create
         a mesh for a cube which will represent the pump. This function will
@@ -555,7 +556,7 @@ class Pump(Component):
         """
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Gets a Bounding box for any pump assuming orientation inline with cartesian grid
         Args:
@@ -703,7 +704,7 @@ class Nozzle(Component):
         assert self.nCell == 1
         super().setupFluidMesh(fm, **kwargs)
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the nozzle will be
         and returns the point as a tuple. This function can be used by automating
@@ -719,7 +720,7 @@ class Nozzle(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genNozzle function from VTKShapes to create
         a mesh for a nozzle. This function will also automatically translate the shape
@@ -734,7 +735,7 @@ class Nozzle(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Gets a Bounding box for any nozzle assuming inlet radius> outlet radius
         Args:
@@ -854,7 +855,7 @@ class Annulus(Component):
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the annulus will be
         and returns the point as a tuple. This function can be used by automating
@@ -870,7 +871,7 @@ class Annulus(Component):
         z = inlet[2] + self._L * np.cos(self._theta)
         return (x, y, z)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genAnnulus function from VTKShapes to create
         a mesh for a annulus. This function will also automatically translate the shape
@@ -885,7 +886,7 @@ class Annulus(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Gets a Bounding box for annulus
         Args:
@@ -990,7 +991,7 @@ class Tank(Component):
         """
         raise NotImplementedError
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the tank will be
         and returns the point as a tuple. This function can be used by automating
@@ -1006,7 +1007,7 @@ class Tank(Component):
         z = inlet[2]
         return (x, y, z)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function calls the genCyl function from VTKShapes to create
         a mesh for a cylinder which will represent the tank. This function will
@@ -1022,7 +1023,7 @@ class Tank(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: tuple[float, float, float]) -> list[float, float, float]:
+    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> List[float, float, float]:
         """
         Gets a Bounding box for tank
         Args:
@@ -1059,7 +1060,13 @@ class ParallelComponents(Component):
     """
 
     def __init__(
-        self, components: dict, centroids: dict, lower_plenum: dict, upper_plenum: dict, annulus: dict = None, **kwargs
+        self,
+        components: Dict[str, Dict[str, float]],
+        centroids: Dict[str, float],
+        lower_plenum: Dict[str, float],
+        upper_plenum: Dict[str, float],
+        annulus: Dict[str, float] = None,
+        **kwargs,
     ) -> None:
         """
         The __init__ function of the parallel_components class initializes the
@@ -1215,7 +1222,7 @@ class ParallelComponents(Component):
             else:
                 fm.addConnection(outlet[0], fm.getNode(upperPlenumIdx), outlet[1])
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function will get the outlets of each of the components inside of the parallel_components
         and confirm that they are the same before proceeding.
@@ -1234,7 +1241,7 @@ class ParallelComponents(Component):
         outlet = self._upperPlenum.getOutlet(outlet)
         return outlet
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function loops through each of the components contained inside parallel_components
         and calls the getVTKMesh for their specific component type. Each of these is added to the mesh
@@ -1285,7 +1292,7 @@ class HexCore(ParallelComponents):
     Hexagonal core component.
     """
 
-    def __init__(self, pitch: float, components: dict, hexmap: list[list[int]], **kwargs) -> None:
+    def __init__(self, pitch: float, components: Dict[str, Dict[str, float]], hexmap: List[List[int]], **kwargs) -> None:
         """
         The __init__ function of the hex_core class initializes the class instance by storing the
         pitch between the channels, the components dictionary, which is again recursively passed into
@@ -1316,7 +1323,7 @@ class HexCore(ParallelComponents):
 
         super().__init__(extended_comps, centroids, **kwargs)
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function gets the mesh of the parallel portion of hex_core,
         then adds the core mesh
@@ -1334,7 +1341,7 @@ class HexCore(ParallelComponents):
         mesh += super().getVTKMesh(inlet)
         return mesh
 
-    def _getChannelCoords(self, r: int, c: int) -> tuple[float, float]:
+    def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
         """
         The _getChannelCoords function is a private function which returns the calculated x and y coordinates
         of the particular location in the map, which is determined by r (row) and c (col). This function
@@ -1386,7 +1393,7 @@ class SerialComponents(Component):
     SerialComponents handles the case with components that are connected in series.
     """
 
-    def __init__(self, components: dict, order: dict, **kwargs) -> None:
+    def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
         """
         The __init__ function of the serial_components class initializes the class instance by storing the
         dictionary of components that is produced from sending the components to the component_factory
@@ -1397,7 +1404,7 @@ class SerialComponents(Component):
 
         Args:
             components : dict, dictionary containing the components to be rendered in series
-            order      : dict, the order of the series of components that to be rendered
+            order      : list, the order of the series of components that to be rendered
             **kwargs   : dict, dictionary containing any additional keyword arguments passed in
         """
         super().__init__()
@@ -1518,7 +1525,7 @@ class SerialComponents(Component):
             compIdx = fm.prevNodeIndex
             inlet_coords = comp.getOutlet(inlet_coords)
 
-    def getOutlet(self, inlet: tuple[float, float, float]) -> tuple[float, float, float]:
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function will get the outlet of the serial component. Because this component is in
         series, we looped through the components and got the outlet of each and used this outlet as the
@@ -1531,7 +1538,7 @@ class SerialComponents(Component):
             inlet = self._myComponents[cname].getOutlet(inlet)
         return inlet
 
-    def getVTKMesh(self, inlet: tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """
         The getVTKMesh function loops through each of the components contained inside serial_components
         and calls the getVTKMesh for their specific component type. Each of these is added to the mesh.

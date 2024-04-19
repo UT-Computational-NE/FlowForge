@@ -1,3 +1,5 @@
+from typing import Dict
+
 # length to m
 lendict = {"in": 0.0254, "ft": 0.3048, "yd": 0.9144, "mm": 0.001, "cm": 0.01, "m": 1.0}
 
@@ -45,7 +47,7 @@ class UnitConverter:
     Handles all unit conversions for system inputs.
     """
 
-    def __init__(self, unitdict: dict) -> None:
+    def __init__(self, unitdict: Dict[str, str]) -> None:
         """
         The __init__ function initializes the unit conversion class by setting the
         default of all unit conversions to be equal to 1.0. To initialize this class

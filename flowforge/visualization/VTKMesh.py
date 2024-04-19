@@ -1,4 +1,6 @@
 import numpy as np
+from typing import Tuple
+from __future__ import annotations
 
 
 class VTKMesh:
@@ -51,7 +53,7 @@ class VTKMesh:
             self._meshmap = meshmap
 
     @property
-    def points(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def points(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         The 'points' property is a more convenient way to return the arrays of points
         in the mesh. Using '.points' will return a tuple containing the x, y, and z coordinates.
@@ -88,7 +90,7 @@ class VTKMesh:
         """
         return self._meshmap
 
-    def __add__(self, newmesh: "VTKMesh") -> "VTKMesh":
+    def __add__(self, newmesh: VTKMesh) -> VTKMesh:
         """
         The __add__ function is a function that will overload the addition operator to
         add multiple meshes together. The most practical use of this operator would be
@@ -123,7 +125,7 @@ class VTKMesh:
 
         return combinedMesh
 
-    def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> "VTKMesh":
+    def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> VTKMesh:
         """
         The translate function serves the purpose of moving the shapes within the coordinate frame.
         This function has the ability to move the shapes in the x, y, and z axis and it also has
