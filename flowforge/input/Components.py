@@ -4,7 +4,6 @@ from typing import List, Dict, Tuple
 from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
-from flowforge.meshing.FluidMesh import Node, Surface
 from flowforge.input.UnitConverter import UnitConverter
 
 _CYL_RESOLUTION = 50
@@ -91,80 +90,6 @@ class Component:
         Default method to get outlet Area
         """
         return self.flowArea
-
-    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
-        """
-        Method which adds component to the Fluid Mesh
-
-        Args:
-            fm : fluid mesh object, the fluid mesh object that the component will be added to
-            inlet: tuple of the components inlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            outlet: tuple of the components outlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            inlet_coords: tuple of inlet location of the component as a whole
-        """
-        self._firstNodeIndex = fm.nextNodeIndex
-        comp_bb = self.getBoundingBox(inlet_coords)
-        point_1 = np.array(inlet_coords + self._rotate(comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6]))
-        for i in range(self.nCell):
-            # before rotation - alternate sign for radial plane for each node but axial is always added - radial is line below
-            point_2 = np.array(
-                inlet_coords
-                + (np.cos(np.pi * (i + 1))) * self._rotate(comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6])
-                + self._rotate(0, 0, comp_bb[4] / self.nCell, comp_bb[5], comp_bb[6])
-            )  # axial direction
-            node_bb = np.array([*point_1, *point_2])
-            point_1 = point_2  # point 2 becomes point 1 for next node
-            # setting outlet of current node to inlet of next node
-            inlet_coords = point_2 - (np.cos(np.pi * (i + 1))) * self._rotate(
-                comp_bb[2], comp_bb[3], 0, comp_bb[5], comp_bb[6]
-            )
-            if i == self.nCell - 1:
-                # asserting that the outlet is equal to the the outlet of the last node
-                if "Pump" not in str(self.__class__):
-                    assert np.abs(inlet_coords[0] - comp_bb[1][0]) < 1e-10
-                    assert np.abs(inlet_coords[1] - comp_bb[1][1]) < 1e-10
-                    assert np.abs(inlet_coords[2] - comp_bb[1][2]) < 1e-10
-
-            fm.addNode(Node(self.volume, self.hydraulicDiameter, 0.0, self.length, self.heightChange / self.length, node_bb))
-            # if you're in the first cell and an inlet surface is provided
-            if i == 0 and inlet[0] is not None:
-                # if the node on the other side is None, you're at a boundary surface otherwise, create the
-                #  connection with previous node
-                if inlet[1] is None:
-                    fm.addBoundarySurface(fm.getNode(self._firstNodeIndex + i), insurf=inlet[0])
-                else:
-                    fm.addConnection(inlet[0], inlet[1], fm.getNode(self._firstNodeIndex + i))
-            # for all internal nodes, add connections
-            if i > 0:
-                fm.addConnection(
-                    Surface(self.flowArea), fm.getNode(self._firstNodeIndex - 1 + i), fm.getNode(self._firstNodeIndex + i)
-                )
-            # if you're at the final cell and an outlet surface is provided
-            if (i == self.nCell - 1) and outlet[0] is not None:
-                # if the node on the other side is None, you're at a boundary surface otherwise, create the
-                #  connection with previous node
-                if outlet[1] is None:
-                    fm.addBoundarySurface(fm.getNode(self._firstNodeIndex + i), outsurf=inlet[0])
-                else:
-                    fm.addConnection(outlet[0], fm.getNode(self._firstNodeIndex + i), outlet[1])
-
-    @property
-    def firstNodeIndex(self):
-        """
-        Property to return first fluid node index.
-        """
-        return self._firstNodeIndex
-
-    @property
-    def lastNodeIndex(self):
-        """
-        Property to return last fluid node index.
-        """
-        return self._firstNodeIndex + self.nCell - 1
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:  # pylint:disable=unused-argument
         """
@@ -687,23 +612,6 @@ class Nozzle(Component):
         """
         raise NotImplementedError
 
-    def setupFluidMesh(self, fm, **kwargs):  # pylint:disable=arguments-differ
-        """
-        Method which adds nozzle component to the Fluid Mesh
-
-        Args:
-            fm : fluid mesh object, the fluid mesh object that the component will be added to
-            inlet: tuple of the components inlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            outlet: tuple of the components outlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-        """
-        # If nCell can be > 1, need to rewrite this routine as super method assumes constant area
-        assert self.nCell == 1
-        super().setupFluidMesh(fm, **kwargs)
-
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
         The getOutlet function calculates where the outlet of the nozzle will be
@@ -1159,68 +1067,11 @@ class ParallelComponents(Component):
             ncell += self._myComponents[cname].nCell
         return ncell
 
-    def getNodeGenerator(self):
-        """
-        Generator interface that returns all of the nodes in a component
-        """
-        for cname in self._centroids.keys():
-            yield from self._myComponents[cname].getNodeGenerator()
-
     def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         raise NotImplementedError
-
-    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
-        """
-        Method which adds all components in parallel component to the Fluid Mesh
-
-        Args:
-            fm : fluid mesh object, the fluid mesh object that the component will be added to
-            inlet: tuple of the components inlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            outlet: tuple of the components outlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            inlet_coords: tuple of inlet location of the component as a whole
-        """
-        self._firstNodeIndex = fm.nextNodeIndex
-        lowerPlenumIdx = fm.nextNodeIndex
-        # Set up the lower plenum fluid mesh first, its always the bottom so pass in inlet conditions
-        self._lowerPlenum.setupFluidMesh(fm, inlet_coords=inlet_coords, inlet=inlet)
-        lp_outlet = self._lowerPlenum.getOutlet(inlet_coords)
-        # Loop over all parallle components.  Connect those to the lower plenum as their inlet
-        for cname, centroid in self._centroids.items():
-            i = (lp_outlet[0] + centroid[0], lp_outlet[1] + centroid[1], lp_outlet[2])
-            self._myComponents[cname].setupFluidMesh(
-                fm, inlet=(Surface(self._myComponents[cname].flowArea), fm.getNode(lowerPlenumIdx)), inlet_coords=i
-            )
-        # Since annulus is an optional component, check if it exists and set it up
-        if self._annulus is not None:
-            self._annulus.setupFluidMesh(
-                fm, inlet=(Surface(self._annulus.flowArea), fm.getNode(lowerPlenumIdx)), inlet_coords=lp_outlet
-            )
-        # Set up the upper plenum
-        upperPlenumIdx = fm.nextNodeIndex
-        up_inlet = list(self._myComponents.items())[0][1].getOutlet(lp_outlet)
-        self._upperPlenum.setupFluidMesh(fm, inlet_coords=up_inlet)
-        compOutIdx = self._firstNodeIndex
-        # Connect all of the components to the upper plenum
-        for comp in self._myComponents.values():
-            compOutIdx += comp.nCell
-            fm.addConnection(Surface(comp.flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
-        # Since annulus is optional, set it up seperately
-        if self._annulus is not None:
-            compOutIdx += self._annulus.nCell
-            fm.addConnection(Surface(self._annulus.flowArea), fm.getNode(compOutIdx), fm.getNode(upperPlenumIdx))
-        # Now connect upper plenum to the outlet if its present.  Either as a boundary surface or by adding a connection
-        if outlet[0] is not None:
-            if outlet[1] is None:
-                fm.addBoundarySurface(fm.getNode(upperPlenumIdx), outsurf=outlet[0])
-            else:
-                fm.addConnection(outlet[0], fm.getNode(upperPlenumIdx), outlet[1])
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """
@@ -1479,51 +1330,11 @@ class SerialComponents(Component):
             ncell += self._myComponents[cname].nCell
         return ncell
 
-    def getNodeGenerator(self):
-        """
-        Gets the fluid node generator.
-        """
-        for cname in self._order:
-            yield self._myComponents[cname].getNodeGenerator()
-
     def getMomentumSource(self) -> float:
         """
         Gets the momentum source.
         """
         raise NotImplementedError
-
-    def setupFluidMesh(self, fm, inlet=(None, None), outlet=(None, None), inlet_coords=(0, 0, 0)):
-        """
-        Method which adds all components in serial component to the Fluid Mesh
-
-        Args:
-            fm : fluid mesh object, the fluid mesh object that the component will be added to
-            inlet: tuple of the components inlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-            outlet: tuple of the components outlet surface and the node on the other side of that surface.
-                None for surface means don't create a boundary surface or connection, None for the node on
-                the other side of the surface means it is a boundary surface
-        """
-        self._firstNodeIndex = fm.nextNodeIndex
-        compIdx = fm.nextNodeIndex
-        # Loop over all the sequential components, set up each component
-        for i, comp in enumerate(self._myComponents.values()):
-            # If the first component, pass in the inlet
-            if i == 0:
-                comp.setupFluidMesh(fm, inlet=inlet, inlet_coords=inlet_coords)
-            # if the last component, pass in the outlet
-            elif i == len(self._order) - 1:
-                comp.setupFluidMesh(fm, outlet=outlet, inlet_coords=inlet_coords)
-            # otherwise just set it up
-            else:
-                comp.setupFluidMesh(fm, inlet_coords=inlet_coords)
-            # connections are added for the bottom surface of the current component, only first node
-            # doesn't need this bottom surface set up (handled by passing in "inlet")
-            if i > 0:
-                fm.addConnection(Surface(comp.flowArea), fm.getNode(compIdx), fm.getNode(comp._firstNodeIndex))
-            compIdx = fm.prevNodeIndex
-            inlet_coords = comp.getOutlet(inlet_coords)
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         """

@@ -1,9 +1,4 @@
-import os
-import json
-import numpy as np
-import flowforge.meshing.FluidMesh as fm
 import flowforge.input.Components as comp
-from flowforge.input.System import System
 from flowforge.input.UnitConverter import UnitConverter
 
 _cm2m = 0.01
@@ -114,46 +109,3 @@ def test_serial():
         assert pipe in serial_dict["pipe"]
     assert s.nCell == 11
     assert s.getOutlet((0, 0, 0)) == (0, 0, 0.11)
-
-
-def testBoundingBox():
-    """
-    Abstract method which does any post-processing of the code output
-    """
-    inputfilename = str(os.path.dirname(__file__)) + "/testComponents/testBoundaryBox.json"
-    with open(inputfilename, "r") as rf:
-        input_dict = json.load(rf)
-        comp_0 = comp.component_factory(input_dict["components"])
-        sys = System(comp_0, input_dict.get("system", {}), input_dict.get("units", {}))
-        sys._fluidMesh = fm.FluidMesh()
-        inlet_coords = (0, 0, 0)
-        # setting up fluid mesh - copied from system.setUpMesh() because the component was needed to make the vtkmesh to compare within the mesh creation loops
-        for i, compo in enumerate(sys._components):
-            first_node = sys._fluidMesh.nextNodeIndex
-            if i == 0 and sys._inBoundComp is not None:
-                compo.setupFluidMesh(
-                    sys._fluidMesh, inlet=(fm.Surface(sys._inBoundComp.InletArea), None), inlet_coords=inlet_coords
-                )
-            else:
-                compo.setupFluidMesh(sys._fluidMesh, inlet_coords=inlet_coords)
-
-            # getting x, y and z arrays from vtk to compare
-            x = compo.getVTKMesh(inlet_coords)._x
-            y = compo.getVTKMesh(inlet_coords)._y
-            z = compo.getVTKMesh(inlet_coords)._z
-
-            # vtk lowest corner
-            lowest_corner = np.array([np.min(x), np.min(y), np.min(z)])
-
-            # vtk highest corner
-            highest_corner = np.array([np.max(x), np.max(y), np.max(z)])
-            for i in range(first_node, first_node + compo.nCell):
-                node = sys._fluidMesh.getNode(i)
-                for j in range(3):
-                    assert (
-                        lowest_corner[j] - node._boundingBox[j]
-                    ) < 1e-15  # asserting node bounding box be within vtk min to 1e-15
-                    assert (
-                        highest_corner[j] - node._boundingBox[j + 3]
-                    ) > -1e-15  # asserting node bounding box be within vtk max to 1e-15
-            inlet_coords = compo.getOutlet(inlet_coords)
