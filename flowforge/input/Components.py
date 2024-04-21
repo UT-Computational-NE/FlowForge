@@ -1064,28 +1064,43 @@ class ParallelComponents(Component):
         for cname in self._centroids.keys():
             ncell += self._myComponents[cname].nCell
         return ncell
-    
+
     @property
     def myComponents(self) -> List[Component]:
+        """
+        The components associated with this parallel component
+        """
         return self._myComponents
 
 
     @property
     def centroids(self) -> Dict[str, float]:
+        """
+        the x and y coordinates of the centroid of the parallel components
+        """
         return self._centroids
 
 
     @property
     def lowerPlenum(self) -> Component:
+        """
+        The lower plenum
+        """
         return self._lowerPlenum
 
 
     @property
     def upperPlenum(self) -> Component:
+        """
+        The upper plenum
+        """
         return self._upperPlenum
 
     @property
     def annulus(self) -> Component:
+        """
+        The annulus
+        """
         return self._annulus
 
 
@@ -1353,10 +1368,16 @@ class SerialComponents(Component):
 
     @property
     def myComponents(self) -> List[Component]:
+        """
+        The components associated with this serial component
+        """
         return self._myComponents
 
     @property
     def order(self) -> List[str]:
+        """
+        The ordering of the serial components
+        """
         return self._order
 
     def getMomentumSource(self) -> float:
