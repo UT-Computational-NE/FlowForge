@@ -116,7 +116,7 @@ class Component:
         outlet = self.getOutlet(inlet)
         return [(inlet[0] + outlet[0]) / 2, (inlet[1] + outlet[1]) / 2, (inlet[2] + outlet[1]) / 2]
 
-    def _rotate(self, d_x: float, d_y: float, d_z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
+    def rotate(self, d_x: float, d_y: float, d_z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
         """
         Method which rotates x, y, & z coordinates according to theta and alpha angles.
         As of now, it is only used for the node bounding box
@@ -1064,6 +1064,30 @@ class ParallelComponents(Component):
         for cname in self._centroids.keys():
             ncell += self._myComponents[cname].nCell
         return ncell
+    
+    @property
+    def myComponents(self) -> List[Component]:
+        return self._myComponents
+
+
+    @property
+    def centroids(self) -> Dict[str, float]:
+        return self._centroids
+
+
+    @property
+    def lowerPlenum(self) -> Component:
+        return self._lowerPlenum
+
+
+    @property
+    def upperPlenum(self) -> Component:
+        return self._upperPlenum
+
+    @property
+    def annulus(self) -> Component:
+        return self._annulus
+
 
     def getMomentumSource(self) -> float:
         """
@@ -1326,6 +1350,14 @@ class SerialComponents(Component):
         for cname in self._order:
             ncell += self._myComponents[cname].nCell
         return ncell
+
+    @property
+    def myComponents(self) -> List[Component]:
+        return self._myComponents
+
+    @property
+    def order(self) -> List[str]:
+        return self._order
 
     def getMomentumSource(self) -> float:
         """
