@@ -1,5 +1,4 @@
-from typing import Dict, List
-import flowforge.meshing.FluidMesh as fm
+from typing import Dict, List, Tuple
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
@@ -24,7 +23,6 @@ class System:
         self._connectivity = []
         self._inBoundComp = None
         self._outBoundComp = None
-        self._fluidMesh = fm.FluidMesh()
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
@@ -34,13 +32,6 @@ class System:
 
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
-
-    @property
-    def fluidMesh(self):
-        """
-        Returns the fluid mesh of the system.
-        """
-        return self._fluidMesh
 
     def _setupSimpleLoop(self, components: List[Component], loop: Dict[str, str]) -> None:
         """
@@ -86,46 +77,6 @@ class System:
         for comp in self._components:
             yield from comp.getNodeGenerator()
 
-    def getMesh(self):
-        """
-        Interface sets up the fluid mesh for the full system
-        """
-        # Loop over all of the compnents in the model and add the component fluid mesh to the systems fluid mesh
-        inlet_coords = (0, 0, 0)
-        for i, comp in enumerate(self._components):
-            # If the first component and a boundary component is defined, pass that boundary component in as a
-            # surface only inlet, otherwise don't define an inlet or outlet
-            if i == 0 and self._inBoundComp is not None:
-                comp.setupFluidMesh(
-                    self._fluidMesh, inlet=(fm.Surface(self._inBoundComp.inletArea), None), inlet_coords=inlet_coords
-                )
-
-            else:
-                comp.setupFluidMesh(self._fluidMesh, inlet_coords=inlet_coords)
-
-            inlet_coords = comp.getOutlet(inlet_coords)
-        # Glue components together with connections.  Test that the inlet and outlet areas are the same between
-        # components in the system.
-        # TODO: need to set up these connections as we setup FluidMesh...
-        # comp.setupFluidmesh, add intermediate surface, etc.
-        for c_down, c_up in self._connectivity:
-            if abs(1.0 - c_down.outletArea / c_up.inletArea) > 1e-2:
-                print(
-                    f"WARNING: Flow areas do not agree for adjacent components {type(c_down).__name__:s} \
-                      {type(c_up).__name__:s} with areas {c_down.outletArea:f} and {c_up.inletArea:f} respectively"
-                )
-            self._fluidMesh.addConnection(
-                fm.Surface(min(c_down.outletArea, c_up.inletArea)),
-                self._fluidMesh.getNode(c_down.lastNodeIndex),
-                self._fluidMesh.getNode(c_up.firstNodeIndex),
-            )
-
-        # if there is an outlet boundary condition, add a boundary surface to the last node in the
-        if self._outBoundComp is not None:
-            self._fluidMesh.addBoundarySurface(
-                self._fluidMesh.getNode(self._outBoundComp.lastNodeIndex), outsurf=fm.Surface(self._outBoundComp.outletArea)
-            )
-
     def getVTKMesh(self) -> VTKMesh:
         """
         The getVTKMesh function is a private function that starts with the
@@ -166,3 +117,31 @@ class System:
         for c in self._components:
             ncell += c.nCell
         return ncell
+
+    @property
+    def components(self) -> List[Component]:
+        """
+        Returns the system components
+        """
+        return self._components
+
+    @property
+    def connectivity(self) -> List[Tuple[Component, Component]]:
+        """
+        Returns the system component connectivities
+        """
+        return self._connectivity
+
+    @property
+    def inBoundComp(self) -> Component:
+        """
+        Returns the system inlet boundary component
+        """
+        return self._inBoundComp
+
+    @property
+    def outBoundComp(self) -> Component:
+        """
+        Returns the system outlet boundary component
+        """
+        return self._outBoundComp
