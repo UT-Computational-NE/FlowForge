@@ -33,6 +33,13 @@ assignees: ''
 ## Possible Solution or Workaround
 <!-- If you have a suggestion on how to fix the bug, or a temporary workaround, include it here -->
 
+## Definition of Done
+<!-- A checklist to define when this task can be marked as complete -->
+- [ ] All acceptance criteria are met
+- [ ] Task has been reviewed and approved by a supervisor/team lead
+- [ ] Any necessary documentation has been completed
+- [ ] Task outcomes have been tested and verified
+
 ## Additional Context
 <!-- Add any other context about the problem here -->
 
