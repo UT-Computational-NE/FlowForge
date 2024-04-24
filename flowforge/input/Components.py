@@ -1103,6 +1103,12 @@ class ParallelComponents(Component):
         """
         return self._annulus
 
+    def getNodeGenerator(self):
+        """
+        Generator interface that returns all of the nodes in a component
+        """
+        for cname in self._centroids.keys():
+            yield from self._myComponents[cname].getNodeGenerator()
 
     def getMomentumSource(self) -> float:
         """
@@ -1379,6 +1385,13 @@ class SerialComponents(Component):
         The ordering of the serial components
         """
         return self._order
+
+    def getNodeGenerator(self):
+        """
+        Gets the fluid node generator.
+        """
+        for cname in self._order:
+            yield self._myComponents[cname].getNodeGenerator()
 
     def getMomentumSource(self) -> float:
         """
