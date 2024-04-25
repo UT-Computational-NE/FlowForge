@@ -5,13 +5,23 @@ from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
 def genNozzle(L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTION) -> VTKMesh:
-    """
-    Generates mesh for a nozzle
-        Args:
-            L    : float, Length
-            Rin  : float, Inlet Radius
-            Rout : float, Outlet Radius
-            resolution : (OPTIONAL) int, number of sides the nozzle is approximated with
+    """ Function for generating a mesh for a nozzle
+
+    Parameters
+    ----------
+    L : float
+        Length
+    Rin : float
+        Inlet Radius
+    Rout : float
+        Outlet Radius
+    resolution : int
+        Number of sides the nozzle is approximated with
+    
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     nwedges = resolution
     nlayers = 1
