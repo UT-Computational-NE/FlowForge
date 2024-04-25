@@ -141,8 +141,9 @@ class Component:
             yield self
 
     @abc.abstractmethod
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         """ Method for retrieving the bounding box information of a component
 
         Parameters
@@ -339,8 +340,9 @@ class Pipe(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
@@ -460,8 +462,9 @@ class Pump(Component):
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         """ Method for retrieving the bounding box information of a component
 
         Pumps are assumed to have orientations inline with the cartesian grid
@@ -574,8 +577,9 @@ class Nozzle(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         if self._Rin >= self._Rout:
             big_r = self._Rin
@@ -672,8 +676,9 @@ class Annulus(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._Rout, self._Rout, self._L, self._theta, self._alpha]
 
@@ -752,8 +757,9 @@ class Tank(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
 
@@ -937,8 +943,9 @@ class ParallelComponents(Component):
         mesh += self._upperPlenum.getVTKMesh(inlet2)
         return mesh
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -1007,7 +1014,7 @@ class HexCore(ParallelComponents):
             self,
             pitch:float,
             components: Dict,
-            hexmap: List[List[int]], 
+            hexmap: List[List[int]],
             lower_plenum: Dict[str, Dict[str,float]],
             upper_plenum: Dict[str, Dict[str,float]],
             annulus: Dict[str, Dict[str,float]] = None,
@@ -1107,7 +1114,8 @@ class SerialComponents(Component):
     order : List[str]
         The ordering of the serial components from start to finish using the unique component names
     flowArea : float
-        The flow area of the serial components (currently assumed that components have constant flow areas from inlet to outlet)
+        The flow area of the serial components
+        (currently assumed that components have constant flow areas from inlet to outlet)
     length : float
         The total length of the serial components
     hydraulicDiameter : float
@@ -1193,10 +1201,11 @@ class SerialComponents(Component):
             inlet = self._myComponents[cname].getOutlet(inlet)
         return mesh
 
-    def getBoundingBox(self, inlet: Tuple[float, float, float]) -> Tuple[Tuple[float, float, float], Tuple[float, float, float],
-                                                                         float, float, float, float, float]:
+    def getBoundingBox(self,
+                       inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
-    
+
     def _convertUnits(self, uc: UnitConverter) -> None:
         for cname in self._order:
             self._myComponents[cname]._convertUnits(uc)
