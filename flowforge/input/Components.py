@@ -1,6 +1,7 @@
+from __future__ import annotations
 import abc
 from copy import deepcopy
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Generator
 from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
@@ -125,7 +126,7 @@ class Component:
         """
         return NotImplementedError
 
-    def getNodeGenerator(self):
+    def getNodeGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a component
         
         This method essentially allows one to march over the nodes of a component
@@ -134,7 +135,7 @@ class Component:
         Yields
         ------
         Component
-            The component associated with this node (i.e. self)
+            The component associated with the node the generator is currently on (i.e. self)
         """
         for _ in range(self.nCell):
             yield self
@@ -201,7 +202,7 @@ class Component:
         return new_vec
 
 
-def component_factory(indict: Dict) -> List[Component]:
+def component_factory(indict: Dict) -> Dict[str, Component]:
     """ Factory for building a collection of components
     
     Parameters
@@ -219,8 +220,9 @@ def component_factory(indict: Dict) -> List[Component]:
     
     Returns
     -------
-    List[Component]
+    Dict[str, Component]
         The collection of components built
+        (key: Component name, value: Component object)
     """
     components = {}
     for key, value in indict.items():
@@ -903,7 +905,7 @@ class ParallelComponents(Component):
     def annulus(self) -> Component:
         return self._annulus
 
-    def getNodeGenerator(self):
+    def getNodeGenerator(self) -> Generator[Component, None, None]:
         for cname in self._centroids.keys():
             yield from self._myComponents[cname].getNodeGenerator()
 
@@ -1172,7 +1174,7 @@ class SerialComponents(Component):
     def order(self) -> List[str]:
         return self._order
 
-    def getNodeGenerator(self):
+    def getNodeGenerator(self) -> Generator[Component, None, None]:
         for cname in self._order:
             yield self._myComponents[cname].getNodeGenerator()
 
