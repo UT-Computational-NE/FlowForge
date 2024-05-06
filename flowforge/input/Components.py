@@ -46,6 +46,7 @@ class Component:
 
     def __init__(self) -> None:
         self.uc = None
+        self._roughness = 0.0
 
     @property
     @abc.abstractmethod
