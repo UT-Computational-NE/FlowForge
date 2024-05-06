@@ -34,6 +34,8 @@ class Component:
         The height change of the fluid flowing from the inlet to the outlet of the component
     nCell : int
         The number of cells the component consists of
+    roughness : float
+        The roughness of the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -69,6 +71,10 @@ class Component:
     @abc.abstractmethod
     def nCell(self) -> int:
         raise NotImplementedError
+
+    @property
+    def roughness(self):
+        return self._roughness
 
     @property
     def volume(self) -> float:
@@ -266,6 +272,8 @@ class Pipe(Component):
         Orientation angle of the pipe in the aziumathal direction
     Kloss : float
         K-loss coefficient associated with pressure loss through the pipe
+    roughness : float
+        Pipe roughness
     """
 
     def __init__(
@@ -275,9 +283,10 @@ class Pipe(Component):
         Ac: float = None,
         Dh: float = None,
         n: int = 1,
-        theta: float = 0.0,
-        alpha: float = 0.0,
+        theta: float = 0.,
+        alpha: float = 0.,
         Kloss: float = 0,
+        roughness: float = 0.,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -288,6 +297,7 @@ class Pipe(Component):
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
         self._kloss = Kloss
+        self._roughness = roughness
         self._kwargs = kwargs
         if R is None:
             assert Dh is not None and Ac is not None
@@ -352,6 +362,7 @@ class Pipe(Component):
         self._Ac *= uc.areaConversion
         self._Dh *= uc.lengthConversion
         self._Pw *= uc.lengthConversion
+        self._roughness *= uc.lengthConversion
 
 
 component_list["pipe"] = Pipe
@@ -412,16 +423,19 @@ class Pump(Component):
         Change in height experienced by the fluid across the pump
     dP : float
         Change in pressure of the fluid caused by the pump
+    roughness : float
+        Pump roughness
     """
 
 
-    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, **kwargs) -> None:
+    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, roughness: float = 0., **kwargs) -> None:
         super().__init__()
         self._Ac = Ac
         self._Dh = Dh
         self._V = V
         self._h = height
         self._dP = dP
+        self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
@@ -491,6 +505,7 @@ class Pump(Component):
         self._V *= uc.volumeConversion
         self._h *= uc.lengthConversion
         self._dP *= uc.pressureConversion
+        self._roughness *= uc.lengthConversion
 
 
 component_list["pump"] = Pump
@@ -511,6 +526,8 @@ class Nozzle(Component):
         Orientation angle in the polar direction
     alpha : float
         Orientation angle in the azimuthal direction
+    roughness : float
+        Nozzle roughness
     """
 
     def __init__(
@@ -518,8 +535,9 @@ class Nozzle(Component):
         L: float,
         R_inlet: float,
         R_outlet: float,
-        theta: float = 0.0,
-        alpha: float = 0.0,
+        theta: float = 0.,
+        alpha: float = 0.,
+        roughness: float = 0.,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -532,8 +550,9 @@ class Nozzle(Component):
         self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
         self._Ac = 0.25 * np.pi * self._Dh * self._Dh
         self._res = resolution
+        self._roughness = roughness
         self._kwargs = kwargs
-        self._temps = np.ones(self.nCell)
+        self._temps = np.zeros(self.nCell)
 
     @property
     def flowArea(self) -> float:
@@ -593,6 +612,7 @@ class Nozzle(Component):
         self._Rout *= uc.lengthConversion
         self._Dh *= uc.lengthConversion
         self._Ac *= uc.areaConversion
+        self._roughness *= uc.lengthConversion
 
 
 component_list["nozzle"] = Nozzle
@@ -615,6 +635,8 @@ class Annulus(Component):
         Orientation angle in the polar direction
     alpha : float
         Orientation angle in the azimuthal direction
+    roughness : float
+        Annulus roughness
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
@@ -626,8 +648,9 @@ class Annulus(Component):
         R_inner: float,
         R_outer: float,
         n: int = 1,
-        theta: float = 0.0,
-        alpha: float = 0.0,
+        theta: float = 0.,
+        alpha: float = 0.,
+        roughness: float = 0.,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -639,6 +662,7 @@ class Annulus(Component):
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
         self._res = resolution
+        self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.ones(self.nCell)
 
@@ -686,6 +710,7 @@ class Annulus(Component):
         self._L *= uc.lengthConversion
         self._Rin *= uc.lengthConversion
         self._Rout *= uc.lengthConversion
+        self._roughness *= uc.lengthConversion
 
 
 component_list["annulus"] = Annulus
@@ -706,10 +731,21 @@ class Tank(Component):
         Orientation angle of the tank in the polar direction
     alpha : float
         Orientation angle of the tank in the aziumathal direction
+    roughness : float
+        Tank roughness
     """
 
 
-    def __init__(self, L: float, R: float, n: int = 1, theta: float = 0.0, alpha: float = 0.0, **kwargs) -> None:
+    def __init__(
+        self,
+        L: float,
+        R: float,
+        n: int = 1,
+        theta: float = 0.,
+        alpha: float = 0.,
+        roughness: float = 0.,
+        **kwargs
+    ) -> None:
         super().__init__()
         self._Ac = np.pi * R * R
         self._Pw = 2.0 * np.pi * R
@@ -720,6 +756,7 @@ class Tank(Component):
         self._R = R
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
+        self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
@@ -769,6 +806,7 @@ class Tank(Component):
         self._Dh *= uc.lengthConversion
         self._L *= uc.lengthConversion
         self._R *= uc.lengthConversion
+        self._roughness *= uc.lengthConversion
 
 
 component_list["tank"] = Tank
@@ -1128,6 +1166,9 @@ class SerialComponents(Component):
         The inlet area of the serial components
     outletArea : float
         The outlet area of the serial component
+    roughness :float
+        The roughness of the serial components
+        (currently assumed that components have constant roughness from inlet to outlet)
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
@@ -1166,6 +1207,10 @@ class SerialComponents(Component):
     @property
     def heightChange(self) -> float:
         raise NotImplementedError
+
+    @property
+    def roughness(self):
+        return self._myComponents[self._order[0]].roughness
 
     @property
     def nCell(self) -> int:
