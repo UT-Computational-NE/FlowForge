@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Generator
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
@@ -6,19 +6,38 @@ from flowforge.input.UnitConverter import UnitConverter
 
 
 class System:
-    """
-    Controls the whole system by initializing all components and writing vtk solution file.
+    """ A class for representing a whole system of components
+
+    Controls the whole system by initializing all components and writing vtk solution file
+
+    Parameters
+    ----------
+    components : Dict[str, Component]
+        Collection of initialized components with which to construct the system
+    sysdict : Dict
+        Dictionary of system settings describing how to initialize the system
+    unitdict : Dict[str, str]
+        Dictionary of units used for this system
+
+
+    Attributes
+    ----------
+    components : List[Component]
+        The collection of components which comprise the system
+    connectivity : List[Tuple[Component, Component]]
+        The connectivity map of the sections of the system.  The map is expressed as a list
+        of component pairs, with the first element in the pair being the 'from' component and
+        the second element the 'to' component.  The list is ordered from the 'starting segement'
+        to the 'ending segment'
+    inBoundComp : Component
+        The system inlet boundary component
+    outBoundComp : Component
+        The system outlet boundary component
+    nCells : int
+        The number of cells in the system
     """
 
-    def __init__(self, components: List[Component], sysdict: Dict[str, str], unitdict: Dict[str, str]) -> None:
-        """
-        Initialize system of components
-
-        Args:
-            components: List of initialized components
-            sysdict: Dictionary of system settings describing how to initialize
-            unitdict: Dictionary of units used to convert input
-        """
+    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._connectivity = []
         self._inBoundComp = None
@@ -33,13 +52,19 @@ class System:
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
 
-    def _setupSimpleLoop(self, components: List[Component], loop: Dict[str, str]) -> None:
-        """
-        Sets up a loop of components (last components outlet connects to first component input)
+    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[str]) -> None:
+        """ Private method for setting up a loop of components
 
-        Args:
-            components: List of initialized components
-            loop: Dictionary describing the loop
+        Here, a 'loop of components' means that the last component's outlet
+        connects to first component input
+
+        Parameters
+        ----------
+        components : Dict[str, Component]
+            Collection of initialized components with which to construct the loop with
+        loop : List[str]
+            List specifying the construction of loop via component names.  Ordering is
+            from the 'first' component of the loop to the 'last'.
         """
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, comp in enumerate(loop):
@@ -51,13 +76,18 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSection(self, components: List[Component], section: Dict[str, str]) -> None:
-        """
-        Sets up a section (this is a model with defined inlet and outlet boundary conditions)
+    def _setupSection(self, components: List[Component], section: List[str]) -> None:
+        """ Private method for setting up a section
 
-        Args:
-            components: List of initialized components
-            section: Dictionary describing the model
+        Here, a section refers to a model with defined inlet and outlet boundary conditions
+
+        Parameters
+        ----------
+        components : Dict[str, Component]
+            Collection of initialized components with which to construct the segment with
+        section : List[str]
+            List specifying the construction of segment via component names.  Ordering is
+            from the 'first' component of the segment to the 'last'.
         """
         # Define the component the inlet boundary condition is applied to
         self._inBoundComp = components[section[0]]
@@ -69,23 +99,28 @@ class System:
         # Define the component the outlet boundary condition is applied to
         self._outBoundComp = components[section[-1]]
 
-    def getCellGenerator(self):
-        """
-        Generator interface that returns all of the nodes in a model sequentially
-        Args:
+    def getCellGenerator(self) -> Generator[Component, None, None]:
+        """ Generator for marching over the nodes (i.e. cells) of a system
+
+        This method essentially allows one to march over the nodes of a system
+        and be able to reference / use the component said node belongs to
+
+        Yields
+        ------
+        Component
+            The component associated with the node the generator is currently on
+
         """
         for comp in self._components:
             yield from comp.getNodeGenerator()
 
     def getVTKMesh(self) -> VTKMesh:
-        """
-        The getVTKMesh function is a private function that starts with the
-        first inlet at the origin and adds the mesh of every component to the
-        system mesh. The system mesh is then stored as _sysMesh. The translation
-        of each component is taken care of within the getVTKMesh function in the
-        component classes.
+        """ Method for generating a VTK mesh of the system
 
-        Args: None
+        Returns
+        -------
+        VTKMesh
+            The generated VTK mesh
         """
         inlet = (0, 0, 0)
         mesh = VTKMesh()
@@ -94,25 +129,19 @@ class System:
             inlet = c.getOutlet(inlet)
         return mesh
 
-    def writeVTKFile(self, filename: str, time: float = None) -> None:  # pylint:disable=unused-argument
-        """
-        The write system file will be used to export the whole system mesh into
-        a VTK file to view in another program. This function calls the _getSystemMesh
-        function to loop through the components and generate the meshes for each one.
-        This function will then utilize the VTKFile class to create the exported file.
+    def writeVTKFile(self, filename: str) -> None:
+        """ Method for generating and writing VTK meshes to file
 
-        Args:
-            filename : str, name of the file to be exported
-            time     : TODO - Implement
+        Parameters
+        ----------
+        filename : str
+            The name of the file to write the VTK mesh to
         """
         sysFile = VTKFile(filename, self.getVTKMesh())
         sysFile.writeFile()
 
     @property
     def nCell(self) -> int:
-        """
-        Returns the number of cells in the system.
-        """
         ncell = 0
         for c in self._components:
             ncell += c.nCell
@@ -120,28 +149,16 @@ class System:
 
     @property
     def components(self) -> List[Component]:
-        """
-        Returns the system components
-        """
         return self._components
 
     @property
     def connectivity(self) -> List[Tuple[Component, Component]]:
-        """
-        Returns the system component connectivities
-        """
         return self._connectivity
 
     @property
     def inBoundComp(self) -> Component:
-        """
-        Returns the system inlet boundary component
-        """
         return self._inBoundComp
 
     @property
     def outBoundComp(self) -> Component:
-        """
-        Returns the system outlet boundary component
-        """
         return self._outBoundComp

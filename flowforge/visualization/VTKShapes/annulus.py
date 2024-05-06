@@ -7,15 +7,27 @@ from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 def genAnnulus(
     L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTION, nazimuthal: int = 1, nlayers: int = 1
 ) -> VTKMesh:
-    """
-    Generates mesh for an annulus (a hollow cylinder)
-        Args:
-            L    : float, Length
-            Rin  : float, Inner Radius
-            Rout : float, Outer Radius
-            resolution : int, (OPTIONAL) number of sides the annulus is approximated with
-            nazimuthal : int, (OPTIONAL) number of sections to split in the azimuthal direction for stored data.
-            nlayers    : int, (OPTIONAL) numbers of layers in the vertical direction
+    """  Function for generating a mesh for an annulus (a hollow cylinder)
+
+    Parameters
+    ----------
+    L : float
+        Length
+    Rin : float
+        Inner Radius
+    Rout : float
+        Outer Radius
+    resolution : int
+        Number of sides the annulus is approximated with
+    nazimuthal : int
+        Number of sections to split in the azimuthal direction for stored data.
+    nlayers : int
+        Numbers of layers in the vertical direction
+
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     resolution = int(np.ceil(resolution / nazimuthal) * nazimuthal)
     ncells = resolution * nlayers
