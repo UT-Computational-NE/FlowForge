@@ -4,15 +4,27 @@ from flowforge.visualization import VTKMesh
 
 
 def genUniformCube(L: float, W: float, H: float, nx: int = 1, ny: int = 1, nz: int = 1) -> VTKMesh:
-    """
-    Generates the vtk mesh for a cube with uniform cell division
-        Args:
-            L  : float, Length
-            W  : float, Width
-            H  : float, Height
-            nx : (OPTIONAL) int, Number of segments in x
-            ny : (OPTIONAL) int, Number of segments in y
-            nz : (OPTIONAL) int, Number of segments in z
+    """ Function for generating a mesh for a cube with uniform cell division
+
+    Parameters
+    ----------
+    L : float
+        Length
+    W : float
+        Width
+    H : float
+        Height
+    nx : int
+        Number of segments in :math:`x`
+    ny : int
+        Number of segments in :math:`y`
+    nz : int
+        Number of segments in :math:`z`
+
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     dx = L / nx
     dy = W / ny
@@ -27,23 +39,41 @@ def genUniformCube(L: float, W: float, H: float, nx: int = 1, ny: int = 1, nz: i
 
 
 def genNonuniformCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
-    """
-    Generates the vtk mesh for a cube with non-uniform cell division
-        Args:
-            mesh_x : float list, contains the x values for the non-uniform mesh
-            mesh_y : float list, contains the y values for the non-uniform mesh
-            mesh_z : float list, contains the z values for the non-uniform mesh
+    """ Function for generating a mesh for a cube with non-uniform cell division
+
+    Parameters
+    ----------
+    mesh_x : np.ndarray
+        The :math:`x-values` for the non-uniform mesh
+    mesh_y : np.ndarray
+        The :math:`y-values` for the non-uniform mesh
+    mesh_z : np.ndarray
+        The :math:`z-values` for the non-uniform mesh
+    
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     return _genCube(mesh_x, mesh_y, mesh_z)
 
 
 def _genCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
-    """
-    Generates the vtk mesh for a cube
-        Args:
-            mesh_x : float list, contains the x values for the non-uniform mesh
-            mesh_y : float list, contains the y values for the non-uniform mesh
-            mesh_z : float list, contains the z values for the non-uniform mesh
+    """ Private method for generating the VTK mesh for a cube
+
+    Parameters
+    ----------
+    mesh_x : np.ndarray
+        The :math:`x-values` for the non-uniform mesh
+    mesh_y : np.ndarray
+        The :math:`y-values` for the non-uniform mesh
+    mesh_z : np.ndarray
+        The :math:`z-values` for the non-uniform mesh
+    
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     nx = len(mesh_x) - 1
     ny = len(mesh_y) - 1

@@ -5,13 +5,23 @@ from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
 def genCyl(L: float, R: float, resolution: int = CYL_RESOLUTION, nlayers: int = 1) -> VTKMesh:
-    """
-    Generates mesh for a cylinder
-        Args:
-            L : float, Length
-            R : float, Radius
-            resolution : (OPTIONAL) int, number of sides the cylinder is approximated with
-            nlayers    : (OPTIONAL) int, the number of vertical layers the cylinder is comprised of
+    """ Function for generating a mesh
+
+    Parameters
+    ----------
+    L : float
+        Length
+    R : float
+        Radius
+    resolution : int
+        Number of sides the cylinder is approximated with
+    nlayers : int
+        Number of vertical layers the cylinder is comprised of
+
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     nwedges = resolution
     ncells = nwedges * nlayers

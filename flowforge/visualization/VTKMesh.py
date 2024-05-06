@@ -4,10 +4,28 @@ import numpy as np
 
 
 class VTKMesh:
-    """
-    The VTKMesh Class provides a way to store the mesh of the entire system.
+    """ A class for storing a VTK mesh of a FlowForge system.
+
     It provides the functions necessary to add meshes together as well as
     the function to translate the shapes in the coordinate system.
+
+    Attributes
+    ----------
+    points : Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Collection of all points in the VTK mesh.  Points are returned
+        as a Tuple of :math:`(x,y,z)` coordinate arrays, with the first element
+        corresponding to all :math:`x` values, second element the :math:`y` values,
+        and third element the :math:`z` values
+    connections : np.ndarray
+        Collection of point connections in the VTK mesh
+    offsets : np.ndarray
+        Collection of the offsets for each shape in the VTK mesh
+    ctypes : np.ndarray
+        Collection of object types of each cell.  The values are
+        imported from the :mod:`pyevtk` library
+    meshmap : np.ndarray
+        Collection of cells in the mesh for inserting data values
+        such as pressure and temperature
     """
 
     def __init__(
@@ -18,21 +36,6 @@ class VTKMesh:
         ctypes: np.ndarray = None,
         meshmap: np.ndarray = None,
     ) -> None:
-        """
-        Initializes an empty mesh by default or stores the values inputted.
-        The initialization of this class must either be empty or contain
-        all the numpy arrays of data. An error will be raised if the mesh
-        contains partial data.
-
-        Args:
-            points  : (OPTIONAL) np array, list of all points in the vtk mesh
-            conn    : (OPTIONAL) np array, list of the point connections in the vtk mesh
-            offsets : (OPTIONAL) np array, list of the offsets for each shape in the vtk mesh
-            ctypes  : (OPTIONAL) np array, list of the object type of each cell. the values in this
-                      list are imported from the pyevtk library
-            meshmap : (OPTIONAL) np array, list of the cells in the mesh for inserting data values
-                      such as pressure, temperature
-        """
         inp_none = [points is None, conn is None, offsets is None, ctypes is None, meshmap is None]
         if any(inp_none):
             assert all(inp_none)
@@ -54,50 +57,39 @@ class VTKMesh:
 
     @property
     def points(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        The 'points' property is a more convenient way to return the arrays of points
-        in the mesh. Using '.points' will return a tuple containing the x, y, and z coordinates.
-
-        Args: None
-        """
         return (self._x, self._y, self._z)
 
     @property
     def connections(self) -> np.ndarray:
-        """
-        Returns the connections array.
-        """
         return self._conn
 
     @property
     def offsets(self) -> np.ndarray:
-        """
-        Returns the offsets array.
-        """
         return self._offsets
 
     @property
     def ctypes(self) -> np.ndarray:
-        """
-        Returns the ctypes array.
-        """
         return self._ctypes
 
     @property
     def meshmap(self) -> np.ndarray:
-        """
-        Returns the meshmap array.
-        """
         return self._meshmap
 
     def __add__(self, newmesh: VTKMesh) -> VTKMesh:
-        """
-        The __add__ function is a function that will overload the addition operator to
-        add multiple meshes together. The most practical use of this operator would be
-        to initialize a mesh and then use '+=' to add meshes to the main mesh.
+        """ A method for defining an addition operator to add multiple meshes together
 
-        Args:
-            newmesh : VTKMesh, the mesh that will be added to the first mesh
+        The most practical use of this operator would be to initialize a mesh and then
+        use '+=' to add meshes to the main mesh.
+
+        Parameters
+        ----------
+        newmesh : VTKMesh
+            The mesh that will be added to the 'self' mesh
+
+        Returns
+        -------
+        VTKMesh
+            The new combined mesh of both newmesh and self
         """
         # concatenates the arrays inside the meshes to produce a single mesh to return
         combinedMesh = VTKMesh()
@@ -126,18 +118,24 @@ class VTKMesh:
         return combinedMesh
 
     def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> VTKMesh:
-        """
-        The translate function serves the purpose of moving the shapes within the coordinate frame.
+        """ Method for translating the shapes within the coordinate frame.
+
         This function has the ability to move the shapes in the x, y, and z axis and it also has
         the ability to rotate the shapes in the polar (theta) and azimuthal (alpha) directions.
         This will allow for the shape to be in any position and orientation desired.
 
-        Args:
-            x       : float, the desired x coordinate for the inlet
-            y       : float, the desired y coordinate for the inlet
-            z       : float, the desired z coordinate for the inlet
-            theta   : (OPTIONAL) float, the degree of rotation desired about the y axis (polar)
-            alpha   : (OPTIONAL) float, the degree of rotation desired about the z axis (azimuthal)
+        Parameters
+        ----------
+        x : float
+            The desired x coordinate for the inlet
+        y : float
+            The desired y coordinate for the inlet
+        z : float
+            The desired z coordinate for the inlet
+        theta : float
+            The degree of rotation desired about the y axis (polar)
+        alpha : float
+            The degree of rotation desired about the z axis (azimuthal)
         """
         # rotation matrices
         polar_rotate = np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
