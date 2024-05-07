@@ -1,5 +1,5 @@
 import flowforge.input.Components as comp
-from flowforge.input.UnitConverter import UnitConverter
+from flowforge import UnitConverter
 
 _cm2m = 0.01
 unitdict = {"length": "cm"}
