@@ -9,6 +9,14 @@ on:
     - cron: '0 3 * * *'
 
 jobs:
+  check-whitespace:
+    run:
+      whitespace=$(find . -type f -exec egrep -l " +$" {} \; | grep -v "\.git" | grep -v "build" | grep -v "\.egg-info" | grep -v "\.png" | grep -v "external" | grep -v "tribits" | grep -v "\_\_pycache\_\_" | grep -v "workspace" | grep -v "\.h5" | grep -v "\.pyc" | grep -v "\.pdf")
+      if [[ $whitespace ]]; then
+          echo "ERROR - Whitespace found:"
+          echo $whitespace
+          exit 1
+      fi
   build-linux:
     runs-on: ubuntu-latest
     strategy:
