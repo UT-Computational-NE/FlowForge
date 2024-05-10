@@ -92,7 +92,7 @@ class Component:
     @abc.abstractmethod
     def getMomentumSource(self) -> float:
         """ Method for getting the momentum source term of the component
-        
+
         Returns
         -------
         float
@@ -108,7 +108,7 @@ class Component:
         ----------
         inlet : Tuple[float, float, float]
             The component inlet :math:`(x,y,z)` coordinates from which to calculate the outlet coordinates from
-        
+
         Returns
         -------
         Tuple[float, float, float]
@@ -125,7 +125,7 @@ class Component:
         inlet : Tuple[float, float, float]
             The component inlet :math:`(x,y,z)` coordinates with which to provide a reference
             for the VTK mesh generation
-        
+
         Returns
         -------
         VTKMesh
@@ -135,7 +135,7 @@ class Component:
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a component
-        
+
         This method essentially allows one to march over the nodes of a component
         and be able to reference / use the component said node belongs to
 
@@ -212,20 +212,20 @@ class Component:
 
 def component_factory(indict: Dict) -> Dict[str, Component]:
     """ Factory for building a collection of components
-    
+
     Parameters
     ----------
     indict : Dict
         The input dictionary specifying the components to be instantiated.  This dictionary can be comprised
         of two forms of inputs:
-      
+
         1.) A Name-Component pair
-            (Dict[str, Component]) 
+            (Dict[str, Component])
         2.) A dictionary of component types, each type holding a dictionary of name-parameter_set pairs, with the
             name being the unique component's name, and the parameter_set another dictionary with key's corresponding
             to the __init__ signature of the associated component type
             (Dict[str, Dict[str, Dict[str, float]]])
-    
+
     Returns
     -------
     Dict[str, Component]
@@ -254,7 +254,7 @@ def component_factory(indict: Dict) -> Dict[str, Component]:
 
 class Pipe(Component):
     """ A pipe component
-    
+
     Parameters
     ----------
     L : float
@@ -371,7 +371,7 @@ component_list["pipe"] = Pipe
 
 class SquarePipe(Pipe):
     """ A square pipe component
-    
+
     Parameters
     ----------
     L : float
@@ -394,7 +394,7 @@ component_list["square_pipe"] = SquarePipe
 
 class Tee(Pipe):
     """ A Tee pipe component
-    
+
     To be implemented
 
     Parameters
@@ -411,7 +411,7 @@ component_list["tee"] = Tee
 
 class Pump(Component):
     """ A pump component
-    
+
     Parameters
     ----------
     Ac : float
@@ -514,7 +514,7 @@ component_list["pump"] = Pump
 
 class Nozzle(Component):
     """ A nozzle component
-    
+
     Parameters
     ----------
     L : float
@@ -621,7 +621,7 @@ component_list["nozzle"] = Nozzle
 
 class Annulus(Component):
     """ A annulua component
-    
+
     Parameters
     ----------
     L : float
@@ -719,7 +719,7 @@ component_list["annulus"] = Annulus
 
 class Tank(Component):
     """ A tank component
-    
+
     Parameters
     ----------
     L : float
@@ -815,7 +815,7 @@ component_list["tank"] = Tank
 
 class ParallelComponents(Component):
     """ A component for a collection of components through which flow passes in parallel
-    
+
     Parameters
     ----------
     components : Dict
@@ -1003,7 +1003,7 @@ component_list["parallel_components"] = ParallelComponents
 
 class HexCore(ParallelComponents):
     """ A hexagonal core component
-    
+
     Parameters
     ----------
     pitch : float
@@ -1024,7 +1024,7 @@ class HexCore(ParallelComponents):
         The component specifications for the annulus
         (key: component type, value: component parameters dictionary)
 
-        
+
     Attributes
     ----------
     myComponents : List[Component]
@@ -1137,7 +1137,7 @@ component_list["hex_core"] = HexCore
 class SerialComponents(Component):
 
     """ A component for a collection of components through which flow passes in serial (i.e. from one component into the next)
-    
+
     Parameters
     ----------
     components : Dict

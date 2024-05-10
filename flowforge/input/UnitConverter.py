@@ -192,7 +192,7 @@ class UnitConverter:
         ----------
         T : float
             Temperature to be converted
-        
+
         Returns
         -------
         float

@@ -3,6 +3,8 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.input.BoundaryConditions import FBC, MassTempBC, PressureTempBC
+import sys
 
 
 class System:
@@ -40,17 +42,22 @@ class System:
     def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._connectivity = []
-        self._inBoundComp = None
-        self._outBoundComp = None
+        self._inletBC = None
+        self._outletBC = None
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
-        elif "section" in sysdict:
-            self._setupSection(components, **sysdict["section"])
+        elif "segment" in sysdict:
+            self._setupSegment(components, **sysdict["segment"])
         # TODO add additional types of systems that can be set up
 
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
+        #convert BC units
+        if self._inletBC is not None:
+            self._inletBC._convertUnits(UnitConverter(unitdict))
+        if self._outletBC is not None:
+            self._outletBC._convertUnits(UnitConverter(unitdict))
 
     def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[str]) -> None:
         """ Private method for setting up a loop of components
@@ -76,28 +83,68 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSection(self, components: List[Component], section: List[str]) -> None:
-        """ Private method for setting up a section
+    def _setupSegment(self, components: List[Component], order: List[str], boundary_conditions: Dict =  {}) -> None:
+        """ Private method for setting up a segment
 
-        Here, a section refers to a model with defined inlet and outlet boundary conditions
+        Here, a segment refers to a model with defined inlet and outlet boundary conditions
 
         Parameters
         ----------
         components : Dict[str, Component]
             Collection of initialized components with which to construct the segment with
-        section : List[str]
+        order : List[str]
             List specifying the construction of segment via component names.  Ordering is
             from the 'first' component of the segment to the 'last'.
+        boundary_conditions : Dict
+            Dictionary of boudnary conditions for the segment
         """
-        # Define the component the inlet boundary condition is applied to
-        self._inBoundComp = components[section[0]]
-        # Loop over each entry in section, add the components, and connect the compnents to each other
-        for i, entry in enumerate(section):
+        # Loop over each entry in segment, add the components, and connect the compnents to each other
+        for i, entry in enumerate(order):
             self._components.append(components[entry])
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
-        # Define the component the outlet boundary condition is applied to
-        self._outBoundComp = components[section[-1]]
+        # Define the inlet boundary condition
+        if "inlet" in boundary_conditions:
+            bctemporary = boundary_conditions["inlet"]
+            #setup based on passed BCs
+            if "mass_temp" in bctemporary:
+                #check to make sure the first component is equal to the inlet BC component
+                if order[0] != bctemporary["mass_temp"]["component"]:
+                    raise TypeError(f"Segment inlet BC component does not equal first component!")
+                #actually setup the inlet bc
+                self._inletBC = MassTempBC(components[order[0]],**bctemporary["mass_temp"])
+            elif "pressure_temp" in bctemporary:
+                #check to make sure the first component is equal to the inlet BC component
+                if order[0] != bctemporary["pressure_temp"]["component"]:
+                    raise TypeError(f"Segment inlet BC component does not equal first component!")
+                #actually setup the inlet bc
+                self._inletBC = PressureTempBC(components[order[0]],**bctemporary["pressure_temp"])
+            else:
+              raise TypeError(f"Unknown inlet BC type: {list(bctemporary.keys())[0]}")
+        else:
+            #default inlet bc
+            self._inletBC = MassTempBC(components[order[0]])
+        # Define the outlet boundary condition
+        if "outlet" in boundary_conditions:
+            bctemporary = boundary_conditions["outlet"]
+            #setup based on passed BCs
+            if "mass_temp" in bctemporary:
+                #check to make sure the first component is equal to the outlet BC component
+                if order[-1] != bctemporary["mass_temp"]["component"]:
+                    raise TypeError(f"Segment outlet BC component does not equal first component!")
+                #actually setup the outlet bc
+                self._outletBC = MassTempBC(components[order[-1]],**bctemporary["mass_temp"])
+            elif "pressure_temp" in bctemporary:
+                #check to make sure the first component is equal to the outlet BC component
+                if order[-1] != bctemporary["pressure_temp"]["component"]:
+                    raise TypeError(f"Segment outlet BC component does not equal first component!")
+                #actually setup the outlet bc
+                self._outletBC = PressureTempBC(components[order[-1]],**bctemporary["pressure_temp"])
+            else:
+              raise TypeError(f"Unknown outlet BC type: {list(bctemporary.keys())[0]}")
+        else:
+            #default outlet bc
+            self._outletBC = PressureTempBC(components[order[-1]])
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a system
@@ -156,9 +203,9 @@ class System:
         return self._connectivity
 
     @property
-    def inBoundComp(self) -> Component:
-        return self._inBoundComp
+    def inletBC(self) -> FBC:
+        return self._inletBC
 
     @property
-    def outBoundComp(self) -> Component:
-        return self._outBoundComp
+    def outletBC(self) -> FBC:
+        return self._outletBC
