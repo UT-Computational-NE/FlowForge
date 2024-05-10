@@ -17,7 +17,7 @@ def genTriGrid(sideLength: float, layerHeights: List[float], pointsPerRow: List[
         Height of each layer in the mesh
     pointsPerRow : List[int]
         Number of points per row in the mesh
-    
+
     Returns
     -------
     VTKMesh
