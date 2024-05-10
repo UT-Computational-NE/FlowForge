@@ -9,14 +9,6 @@ on:
     - cron: '0 3 * * *'
 
 jobs:
-  check-whitespace:
-    run:
-      whitespace=$(find . -type f -exec egrep -l " +$" {} \; | grep -v "\.git" | grep -v "build" | grep -v "\.egg-info" | grep -v "\.png" | grep -v "external" | grep -v "tribits" | grep -v "\_\_pycache\_\_" | grep -v "workspace" | grep -v "\.h5" | grep -v "\.pyc" | grep -v "\.pdf")
-      if [[ $whitespace ]]; then
-          echo "ERROR - Whitespace found:"
-          echo $whitespace
-          exit 1
-      fi
   build-linux:
     runs-on: ubuntu-latest
     strategy:
@@ -32,6 +24,14 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
+    - name: Check for Trailing Whitespace
+      run: |
+        whitespace=$(find . -type f -exec egrep -l " +$" {} \; | grep -v "\.git" | grep -v "build" | grep -v "\.egg-info" | grep -v "\.png" | grep -v "external" | grep -v "tribits" | grep -v "\_\_pycache\_\_" | grep -v "workspace" | grep -v "\.h5" | grep -v "\.pyc" | grep -v "\.pdf")
+        if [[ $whitespace ]]; then
+            echo "ERROR - Trailing Whitespace found!"
+            echo $whitespace
+            exit 1
+        fi
     - name: Install dependencies and flowforge
       run: |
         python -m pip install --upgrade pip
