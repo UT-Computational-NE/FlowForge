@@ -1,6 +1,6 @@
 from flowforge.input.UnitConverter import UnitConverter
 
-class FBC:
+class FBC: 
     """
     Super class for the fluid boundary conditions- requires a component.
     """
