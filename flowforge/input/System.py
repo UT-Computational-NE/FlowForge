@@ -4,7 +4,6 @@ from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import FBC, MassTempBC, PressureTempBC
-import sys
 
 
 class System:
@@ -110,17 +109,17 @@ class System:
             if "mass_temp" in bctemporary:
                 #check to make sure the first component is equal to the inlet BC component
                 if order[0] != bctemporary["mass_temp"]["component"]:
-                    raise TypeError(f"Segment inlet BC component does not equal first component!")
+                    raise TypeError("Segment inlet BC component does not equal first component!")
                 #actually setup the inlet bc
                 self._inletBC = MassTempBC(components[order[0]],**bctemporary["mass_temp"])
             elif "pressure_temp" in bctemporary:
                 #check to make sure the first component is equal to the inlet BC component
                 if order[0] != bctemporary["pressure_temp"]["component"]:
-                    raise TypeError(f"Segment inlet BC component does not equal first component!")
+                    raise TypeError("Segment inlet BC component does not equal first component!")
                 #actually setup the inlet bc
                 self._inletBC = PressureTempBC(components[order[0]],**bctemporary["pressure_temp"])
             else:
-              raise TypeError(f"Unknown inlet BC type: {list(bctemporary.keys())[0]}")
+                raise TypeError(f"Unknown inlet BC type: {list(bctemporary.keys())[0]}")
         else:
             #default inlet bc
             self._inletBC = MassTempBC(components[order[0]])
@@ -131,17 +130,17 @@ class System:
             if "mass_temp" in bctemporary:
                 #check to make sure the first component is equal to the outlet BC component
                 if order[-1] != bctemporary["mass_temp"]["component"]:
-                    raise TypeError(f"Segment outlet BC component does not equal first component!")
+                    raise TypeError("Segment outlet BC component does not equal first component!")
                 #actually setup the outlet bc
                 self._outletBC = MassTempBC(components[order[-1]],**bctemporary["mass_temp"])
             elif "pressure_temp" in bctemporary:
                 #check to make sure the first component is equal to the outlet BC component
                 if order[-1] != bctemporary["pressure_temp"]["component"]:
-                    raise TypeError(f"Segment outlet BC component does not equal first component!")
+                    raise TypeError("Segment outlet BC component does not equal first component!")
                 #actually setup the outlet bc
                 self._outletBC = PressureTempBC(components[order[-1]],**bctemporary["pressure_temp"])
             else:
-              raise TypeError(f"Unknown outlet BC type: {list(bctemporary.keys())[0]}")
+                raise TypeError(f"Unknown outlet BC type: {list(bctemporary.keys())[0]}")
         else:
             #default outlet bc
             self._outletBC = PressureTempBC(components[order[-1]])
