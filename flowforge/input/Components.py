@@ -323,7 +323,7 @@ class Pipe(Component):
 
     @property
     def length(self) -> float:
-        return self._L / self._n
+        return self._L
 
     @property
     def hydraulicDiameter(self) -> float:
@@ -331,7 +331,7 @@ class Pipe(Component):
 
     @property
     def heightChange(self) -> float:
-        return self._costh * self._L / self._n
+        return self._costh * self._L
 
     @property
     def nCell(self) -> int:
@@ -673,7 +673,7 @@ class Annulus(Component):
 
     @property
     def length(self) -> float:
-        return self._L / self._n
+        return self._L
 
     @property
     def hydraulicDiameter(self) -> float:
@@ -681,7 +681,7 @@ class Annulus(Component):
 
     @property
     def heightChange(self) -> float:
-        return self._L * np.cos(self._theta) / self._n
+        return self._L * np.cos(self._theta)
 
     @property
     def nCell(self) -> int:
