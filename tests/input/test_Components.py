@@ -43,8 +43,8 @@ def test_annulus():
     a = comp.Annulus(L=10, R_inner=9, R_outer=10, n=10)
     a._convertUnits(uc)
     assert a.flowArea > 0.0
-    assert a.length == 0.01
-    assert a.heightChange == 0.01
+    assert a.length == 0.1
+    assert a.heightChange == 0.1
     assert a.nCell == 10
     assert a.getOutlet((0, 0, 0)) == (0, 0, 0.1)
 
@@ -69,7 +69,7 @@ def test_parallel():
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     p = comp.ParallelComponents(components, centroids, lplen, uplen, annulus)
     p._convertUnits(uc)
-    assert p._myComponents["p1"].length == 0.01
+    assert p._myComponents["p1"].length == 0.1
     assert p._myComponents["p1"].nCell == 10
     assert p._myComponents["p1"].hydraulicDiameter == 0.02
     for component in centroids:
@@ -99,7 +99,7 @@ def test_serial():
     order = ["p1", "p2"]
     s = comp.SerialComponents(serial_dict, order)
     s._convertUnits(uc)
-    assert s._myComponents["p1"].length == 0.01
+    assert s._myComponents["p1"].length == 0.1
     assert s._myComponents["p1"].nCell == 10
     assert s._myComponents["p1"].hydraulicDiameter == 0.02
     assert s._myComponents["p2"].length == 0.01
