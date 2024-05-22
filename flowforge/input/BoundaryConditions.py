@@ -1,113 +1,95 @@
 from flowforge.input.UnitConverter import UnitConverter
+from six import add_metaclass
+import abc
 
+@add_metaclass(abc.ABCMeta)
 class FBC:
-    """
-    Super class for the fluid boundary conditions- requires a component.
+    """ Super class for the fluid boundary conditions- requires a component.
+
+    Attributes
+    ----------
+    comp : Component
+        The component that the boundary condition is to be applied to
+    comp_name : string
+        The component name that the boundary condition is to be applied to
     """
     def __init__(self, comp, comp_name):
-        """
-        Initializes the class by storing the component.
-
-        Args:
-            - component : Component, component of the BC.
-        """
         self._comp = comp
         self._comp_name = comp_name
 
     @property
     def comp(self):
-        """
-        Returns the component.
-        """
         return self._comp
 
     @property
     def comp_name(self):
-        """
-        Returns the component.
-        """
         return self._comp_name
 
+    @abc.abstractmethod
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """ Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        return NotImplementedError
+
 class MassTempBC(FBC):
-    """
-    Represents the boundary condition using mass and temperature.
+    """ Class for representing the boundary condition using mass and temperature.
+
+    Attributes
+    ----------
+    mdot : float
+        Mass float rate [kg/s]
+    surfaceT : float
+        Surface temperature [K]
     """
     def __init__(self, comp_object, component = 'p1', mdot: float = 1.0, T: float = 873.15):
-        """
-        The MassTempBC subclass initializes by sending the node_id to the base
-        class for initialization and the surf_id to the SurfaceBC classes then stores all 2 of the property functions.
-
-        note: the fluidMesh function addBoundarySurface() was created for
-            the this boundary condition and is most likely needed
-            in all cases and should be the surface referenced by surf_id
-
-        Args:
-            - component : Component, component of the BC.
-            - surf_id : int, surface index (Boundary Surface)
-            - mdot    : float, mass float rate [kg/s]
-            - T       : float, surface temperature [K]
-        """
         super().__init__(comp_object,component)
         self._mdot = mdot
-        self._Tvalue = T
+        self._surfaceT = T
 
     @property
     def mdot(self):
-        """
-        Returns the mass float rate.
-        """
         return self._mdot
 
     @property
     def surfaceT(self):
-        """
-        Returns the surface temperature.
-        """
-        return self._Tvalue
+        return self._surfaceT
 
     def _convertUnits(self, uc: UnitConverter) -> None:
-        """
-        Converts the BC units.
-        """
         self._mdot *= uc.massFlowRateConversion
-        self._Tvalue = uc.temperatureConversion(self._Tvalue)
+        self._surfaceT = uc.temperatureConversion(self._surfaceT)
 
 class PressureTempBC(FBC):
-    """
-    Represents the boundary condition at the oulet
+    """ Class for representing the boundary condition using pressure and temperature.
+
+    Attributes
+    ----------
+    _surfaceP : float
+        The pressure at the surface [Pa]
+    surfaceT : float
+        Surface temperature [K]
     """
     def __init__(self, comp_object, component = '', P: float = 101325.0, T: float = 873.15):
-        """
-        The OutletFlowBC subclass initializes by sending the node_id to the base
-        class for initialization and the surf_id to the SurfaceBC classes then stores all 3 of the property functions.
-
-        Args:
-            - node_id : int, node index
-            - surf_id : int, surface index
-            - Pvalue  : float, pressure at surface [Pa]
-            - Tvalue  : float, surface temperature [K]
-        """
         super().__init__(comp_object,component)
-        self._Pvalue = P
-        self._Tvalue = T
+        self._surfaceP = P
+        self._surfaceT = T
 
     @property
     def surfaceP(self):
-        """
-        Returns the pressure at the surface.
-        """
-        return self._Pvalue
+        return self._surfaceP
 
     @property
     def surfaceT(self):
-        """
-        Returns the surface temperature.
-        """
-        return self._Tvalue
+        return self._surfaceT
 
     def _convertUnits(self, uc: UnitConverter) -> None:
-        """
-        Converts the BC units.
-        """
-        self._Pvalue *= uc.pressureConversion
-        self._Tvalue = uc.temperatureConversion(self._Tvalue)
+        self._surfaceP *= uc.pressureConversion
+        self._surfaceT = uc.temperatureConversion(self._surfaceT)
