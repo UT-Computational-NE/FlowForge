@@ -1,6 +1,6 @@
-from flowforge.input.UnitConverter import UnitConverter
-from six import add_metaclass
 import abc
+from six import add_metaclass
+from flowforge.input.UnitConverter import UnitConverter
 
 @add_metaclass(abc.ABCMeta)
 class FBC:
@@ -54,8 +54,8 @@ class MassTempBC(FBC):
         super().__init__(comp_object,component)
         self._mdot = mdot
         self._surfaceT = T
-        assert(T>0)
-        assert(mdot != 0)
+        assert T > 0
+        assert mdot != 0
 
     @property
     def mdot(self):
@@ -83,8 +83,8 @@ class PressureTempBC(FBC):
         super().__init__(comp_object,component)
         self._surfaceP = P
         self._surfaceT = T
-        assert(T>0)
-        assert(P > 0)
+        assert T > 0
+        assert P > 0
 
     @property
     def surfaceP(self):
