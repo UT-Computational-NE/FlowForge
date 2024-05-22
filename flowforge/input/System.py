@@ -95,7 +95,7 @@ class System:
             List specifying the construction of segment via component names.  Ordering is
             from the 'first' component of the segment to the 'last'.
         boundary_conditions : Dict
-            Dictionary of boudnary conditions for the segment
+            Dictionary of boundary conditions for the segment
         """
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
