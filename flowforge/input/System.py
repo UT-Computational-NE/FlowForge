@@ -1,11 +1,10 @@
 from typing import Dict, List, Tuple, Generator
+from copy import deepcopy
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
-import sys
-from copy import deepcopy
 
 class System:
     """ A class for representing a whole system of components
@@ -88,7 +87,8 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSegment(self, components: List[Component], order: List[str], boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
+    def _setupSegment(self, components: List[Component], order: List[str],
+                      boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a segment
 
         Here, a segment refers to a model with defined inlet and outlet boundary conditions

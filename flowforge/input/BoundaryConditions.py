@@ -1,5 +1,3 @@
-import abc
-from six import add_metaclass
 from flowforge.input.UnitConverter import UnitConverter
 
 class MassMomentumBC():
@@ -24,7 +22,7 @@ class MassMomentumBC():
             self._Pside = 'inlet'
             self._surfaceP = inlet['pressure']
         assert self.surfaceP > 0
-        assert self.Pside == 'inlet' or self.Pside == 'outlet'
+        assert self.Pside in('inlet', 'outlet')
         assert self.mdot != 0
 
     @property
@@ -58,24 +56,24 @@ class EnthalpyBC():
         The outlet BC type
     """
     def __init__(self, inlet: dict = {"temperature" : 873.15}, outlet: dict = {"temperature" : 873.15}):
-        if type(inlet) == dict:
-          for key in inlet.keys():
-              self._type_inlet = key
-          self._val_inlet = inlet[self.type_inlet]
+        if isinstance(inlet, dict):
+            for key in inlet.keys():
+                self._type_inlet = key
+            self._val_inlet = inlet[self.type_inlet]
         else:
             self._type_inlet = 'enthalpy'
             self._val_inlet = inlet
-        if type(outlet) == dict:
-          for key in outlet.keys():
-              self._type_outlet = key
-          self._val_outlet = outlet[self.type_outlet]
+        if isinstance(outlet, dict):
+            for key in outlet.keys():
+                self._type_outlet = key
+            self._val_outlet = outlet[self.type_outlet]
         else:
             self._type_outlet = 'enthalpy'
             self._val_outlet = outlet
         assert self.val_inlet > 0
         assert self.val_outlet > 0
-        assert self.type_inlet == 'temperature' or self.type_inlet == 'enthalpy'
-        assert self.type_outlet == 'temperature' or self.type_outlet == 'enthalpy'
+        assert self.type_inlet in('temperature', 'enthalpy')
+        assert self.type_outlet in('temperature', 'enthalpy')
 
     @property
     def val_inlet(self):
