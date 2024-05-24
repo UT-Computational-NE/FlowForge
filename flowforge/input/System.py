@@ -63,7 +63,7 @@ class System:
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
 
-    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[str]) -> None:
+    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict]) -> None:
         """ Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
@@ -73,13 +73,23 @@ class System:
         ----------
         components : Dict[str, Component]
             Collection of initialized components with which to construct the loop with
-        loop : List[str]
-            List specifying the construction of loop via component names.  Ordering is
+        loop : List[dict]
+            List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
         # Loop over each component in the loop, add those components to the list, define the connections between components
-        for i, comp in enumerate(loop):
-            self._components.append(components[comp])
+        for i, entry in enumerate(loop):
+            self._components.append(components[entry["component"]])
+            bftemp = []
+            wftemp = []
+            if "BodyForces" in entry:
+                bftemp = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wftemp = entry["WallFunctions"]
+            #add a body force for the component if present
+            self._bodyforces.append(bftemp)
+            #add a wall function for the component if present
+            self._wallfunctions.append(wftemp)
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
@@ -87,7 +97,7 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSegment(self, components: List[Component], order: List[str],
+    def _setupSegment(self, components: List[Component], order: List[dict],
                       boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a segment
 
@@ -98,7 +108,7 @@ class System:
         components : Dict[str, Component]
             Collection of initialized components with which to construct the segment with
         order : List[str]
-            List specifying the construction of segment via component names.  Ordering is
+            List specifying the construction of segment via component names and forces.  Ordering is
             from the 'first' component of the segment to the 'last'.
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
