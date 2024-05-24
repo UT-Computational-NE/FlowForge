@@ -2,98 +2,107 @@ import abc
 from six import add_metaclass
 from flowforge.input.UnitConverter import UnitConverter
 
-@add_metaclass(abc.ABCMeta)
-class FBC:
-    """ Super class for the fluid boundary conditions- requires a component.
-
-    Attributes
-    ----------
-    comp : Component
-        The component that the boundary condition is to be applied to
-    comp_name : string
-        The component name that the boundary condition is to be applied to
-    """
-    def __init__(self, comp, comp_name):
-        self._comp = comp
-        self._comp_name = comp_name
-
-    @property
-    def comp(self):
-        return self._comp
-
-    @property
-    def comp_name(self):
-        return self._comp_name
-
-    @abc.abstractmethod
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        """ Private method for converting units of the component's internal attribute
-
-        This method is especially useful for converting components to the expected units
-        of the application in which they will be used.
-
-        Parameters
-        ----------
-        uc : UnitConverter
-            A unit converter which holds the 'from' units and 'to' units for the conversion
-            and will ultimately provide the appropriate multipliers for unit conversion.
-        """
-        return NotImplementedError
-
-class MassTempBC(FBC):
-    """ Class for representing the boundary condition using mass and temperature.
+class MassMomentumBC():
+    """ Class for mass and momentum BC
 
     Attributes
     ----------
     mdot : float
         Mass float rate [kg/s]
-    surfaceT : float
-        Surface temperature [K]
+    surfaceP : float
+        Surface pressure [Pa]
+    Pside : str
+        Side that pressure is on. "inlet" or "outlet"
     """
-    def __init__(self, comp_object, component = 'p1', mdot: float = 1.0, T: float = 873.15):
-        super().__init__(comp_object,component)
-        self._mdot = mdot
-        self._surfaceT = T
-        assert T > 0
-        assert mdot != 0
+    def __init__(self, inlet: dict = {"mdot" : 1.0}, outlet: dict = {"pressure" : 101325.0}):
+        if 'mdot' in inlet:
+            self._mdot = inlet['mdot']
+            self._Pside = 'outlet'
+            self._surfaceP = outlet['pressure']
+        else:
+            self._mdot = outlet['mdot']
+            self._Pside = 'inlet'
+            self._surfaceP = inlet['pressure']
+        assert self.surfaceP > 0
+        assert self.Pside == 'inlet' or self.Pside == 'outlet'
+        assert self.mdot != 0
 
     @property
     def mdot(self):
         return self._mdot
 
     @property
-    def surfaceT(self):
-        return self._surfaceT
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        self._mdot *= uc.massFlowRateConversion
-        self._surfaceT = uc.temperatureConversion(self._surfaceT)
-
-class PressureTempBC(FBC):
-    """ Class for representing the boundary condition using pressure and temperature.
-
-    Attributes
-    ----------
-    _surfaceP : float
-        The pressure at the surface [Pa]
-    surfaceT : float
-        Surface temperature [K]
-    """
-    def __init__(self, comp_object, component = '', P: float = 101325.0, T: float = 873.15):
-        super().__init__(comp_object,component)
-        self._surfaceP = P
-        self._surfaceT = T
-        assert T > 0
-        assert P > 0
-
-    @property
     def surfaceP(self):
         return self._surfaceP
 
     @property
-    def surfaceT(self):
-        return self._surfaceT
+    def Pside(self):
+        return self._Pside
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._surfaceP *= uc.pressureConversion
-        self._surfaceT = uc.temperatureConversion(self._surfaceT)
+        self._mdot *= uc.massFlowRateConversion
+
+class EnthalpyBC():
+    """ Class for enthalpy BC.
+
+    Attributes
+    ----------
+    val_inlet : dict
+        The inlet BC value
+    type_inlet : dict
+        The inlet BC type
+    val_outlet : dict
+        The outlet BC value
+    type_outlet : dict
+        The outlet BC type
+    """
+    def __init__(self, inlet: dict = {"temperature" : 873.15}, outlet: dict = {"temperature" : 873.15}):
+        if type(inlet) == dict:
+          for key in inlet.keys():
+              self._type_inlet = key
+          self._val_inlet = inlet[self.type_inlet]
+        else:
+            self._type_inlet = 'enthalpy'
+            self._val_inlet = inlet
+        if type(outlet) == dict:
+          for key in outlet.keys():
+              self._type_outlet = key
+          self._val_outlet = outlet[self.type_outlet]
+        else:
+            self._type_outlet = 'enthalpy'
+            self._val_outlet = outlet
+        assert self.val_inlet > 0
+        assert self.val_outlet > 0
+        assert self.type_inlet == 'temperature' or self.type_inlet == 'enthalpy'
+        assert self.type_outlet == 'temperature' or self.type_outlet == 'enthalpy'
+
+    @property
+    def val_inlet(self):
+        return self._val_inlet
+
+    @property
+    def val_outlet(self):
+        return self._val_outlet
+
+    @property
+    def type_inlet(self):
+        return self._type_inlet
+
+    @property
+    def type_outlet(self):
+        return self._type_outlet
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        if self.type_inlet == 'temperature':
+            self._val_inlet = uc.temperatureConversion(self._val_inlet)
+        elif self.type_inlet == 'enthalpy':
+            self._val_inlet *= uc.enthalpyConversion
+        else:
+            raise Exception("Unknown enthalpy BC type: " + self.type_inlet)
+        if self.type_outlet == 'temperature':
+            self._val_outlet = uc.temperatureConversion(self._val_outlet)
+        elif self.type_outlet == 'enthalpy':
+            self._val_outlet *= uc.enthalpyConversion
+        else:
+            raise Exception("Unknown enthalpy BC type: " + self.type_outlet)

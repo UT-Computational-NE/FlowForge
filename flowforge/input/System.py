@@ -3,8 +3,9 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import FBC, MassTempBC, PressureTempBC
-
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
+import sys
+from copy import deepcopy
 
 class System:
     """ A class for representing a whole system of components
@@ -36,13 +37,18 @@ class System:
         The system outlet boundary component
     nCells : int
         The number of cells in the system
+    fluid : string
+        The fluid to be used
     """
 
     def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._connectivity = []
-        self._inletBC = None
-        self._outletBC = None
+        self._bodyforces = []
+        self._wallfunctions = []
+        self._MMBC = None
+        self._EBC = None
+        self._fluid = None
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
@@ -53,10 +59,10 @@ class System:
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
         #convert BC units
-        if self._inletBC is not None:
-            self._inletBC._convertUnits(UnitConverter(unitdict))
-        if self._outletBC is not None:
-            self._outletBC._convertUnits(UnitConverter(unitdict))
+        if self._MMBC is not None:
+            self._MMBC._convertUnits(UnitConverter(unitdict))
+        if self._EBC is not None:
+            self._EBC._convertUnits(UnitConverter(unitdict))
 
     def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[str]) -> None:
         """ Private method for setting up a loop of components
@@ -82,7 +88,7 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSegment(self, components: List[Component], order: List[str], boundary_conditions: Dict =  {}) -> None:
+    def _setupSegment(self, components: List[Component], order: List[str], boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a segment
 
         Here, a segment refers to a model with defined inlet and outlet boundary conditions
@@ -97,53 +103,32 @@ class System:
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
         """
+        self._fluidname = fluid.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
-            self._components.append(components[entry])
+            self._components.append(deepcopy(components[entry["component"]]))
+            bftemp = []
+            wftemp = []
+            if "BodyForces" in entry:
+                bftemp = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wftemp = entry["WallFunctions"]
+            #add a body force for the component if present
+            self._bodyforces.append(bftemp)
+            #add a wall function for the component if present
+            self._wallfunctions.append(wftemp)
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
-        # Define the inlet boundary condition
-        if "inlet" in boundary_conditions:
-            bctemporary = boundary_conditions["inlet"]
-            #setup based on passed BCs
-            if "mass_temp" in bctemporary:
-                #check to make sure the first component is equal to the inlet BC component
-                if order[0] != bctemporary["mass_temp"]["component"]:
-                    raise TypeError("Segment inlet BC component does not equal first component!")
-                #actually setup the inlet bc
-                self._inletBC = MassTempBC(components[order[0]],**bctemporary["mass_temp"])
-            elif "pressure_temp" in bctemporary:
-                #check to make sure the first component is equal to the inlet BC component
-                if order[0] != bctemporary["pressure_temp"]["component"]:
-                    raise TypeError("Segment inlet BC component does not equal first component!")
-                #actually setup the inlet bc
-                self._inletBC = PressureTempBC(components[order[0]],**bctemporary["pressure_temp"])
-            else:
-                raise TypeError(f"Unknown inlet BC type: {list(bctemporary.keys())[0]}")
+        #get the boundary conditions
+        if "mass_momentum" in boundary_conditions:
+            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
         else:
-            #default inlet bc
-            self._inletBC = MassTempBC(components[order[0]])
-        # Define the outlet boundary condition
-        if "outlet" in boundary_conditions:
-            bctemporary = boundary_conditions["outlet"]
-            #setup based on passed BCs
-            if "mass_temp" in bctemporary:
-                #check to make sure the first component is equal to the outlet BC component
-                if order[-1] != bctemporary["mass_temp"]["component"]:
-                    raise TypeError("Segment outlet BC component does not equal first component!")
-                #actually setup the outlet bc
-                self._outletBC = MassTempBC(components[order[-1]],**bctemporary["mass_temp"])
-            elif "pressure_temp" in bctemporary:
-                #check to make sure the first component is equal to the outlet BC component
-                if order[-1] != bctemporary["pressure_temp"]["component"]:
-                    raise TypeError("Segment outlet BC component does not equal first component!")
-                #actually setup the outlet bc
-                self._outletBC = PressureTempBC(components[order[-1]],**bctemporary["pressure_temp"])
-            else:
-                raise TypeError(f"Unknown outlet BC type: {list(bctemporary.keys())[0]}")
+            self._MMBC = MassMomentumBC()
+        if "enthalpy" in boundary_conditions:
+            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
         else:
-            #default outlet bc
-            self._outletBC = PressureTempBC(components[order[-1]])
+            self._EBC = EnthalpyBC()
+
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a system
@@ -202,9 +187,21 @@ class System:
         return self._connectivity
 
     @property
-    def inletBC(self) -> FBC:
-        return self._inletBC
+    def bodyforces(self) -> List[str]:
+        return self._bodyforces
 
     @property
-    def outletBC(self) -> FBC:
-        return self._outletBC
+    def wallfunctions(self) -> List[str]:
+        return self._wallfunctions
+
+    @property
+    def EBC(self) -> EnthalpyBC:
+        return self._EBC
+
+    @property
+    def MMBC(self) -> MassMomentumBC:
+        return self._MMBC
+
+    @property
+    def fluidname(self) -> str:
+        return self._fluidname
