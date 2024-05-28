@@ -79,7 +79,7 @@ class System:
         """
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
-            self._components.append(components[entry["component"]])
+            self._components.append(deepcopy(components[entry["component"]]))
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -87,9 +87,9 @@ class System:
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
             #add a body force for the component if present
-            self._bodyforces.append(bftemp)
+            self._bodyforces.append(deepcopy(bftemp))
             #add a wall function for the component if present
-            self._wallfunctions.append(wftemp)
+            self._wallfunctions.append(deepcopy(wftemp))
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
@@ -124,20 +124,18 @@ class System:
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
             #add a body force for the component if present
-            self._bodyforces.append(bftemp)
+            self._bodyforces.append(deepcopy(bftemp))
             #add a wall function for the component if present
-            self._wallfunctions.append(wftemp)
+            self._wallfunctions.append(deepcopy(wftemp))
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
         #get the boundary conditions
+        self._MMBC = MassMomentumBC()
         if "mass_momentum" in boundary_conditions:
             self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        else:
-            self._MMBC = MassMomentumBC()
+        self._EBC = EnthalpyBC()
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        else:
-            self._EBC = EnthalpyBC()
 
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
