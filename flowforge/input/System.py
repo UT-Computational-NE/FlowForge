@@ -1,9 +1,10 @@
 from typing import Dict, List, Tuple, Generator
+from copy import deepcopy
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component
 from flowforge.input.UnitConverter import UnitConverter
-
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
 
 class System:
     """ A class for representing a whole system of components
@@ -35,24 +36,34 @@ class System:
         The system outlet boundary component
     nCells : int
         The number of cells in the system
+    fluid : string
+        The fluid to be used
     """
 
     def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._connectivity = []
-        self._inBoundComp = None
-        self._outBoundComp = None
+        self._bodyforces = []
+        self._wallfunctions = []
+        self._MMBC = None
+        self._EBC = None
+        self._fluid = None
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
-        elif "section" in sysdict:
-            self._setupSection(components, **sysdict["section"])
+        elif "segment" in sysdict:
+            self._setupSegment(components, **sysdict["segment"])
         # TODO add additional types of systems that can be set up
 
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
+        #convert BC units
+        if self._MMBC is not None:
+            self._MMBC._convertUnits(UnitConverter(unitdict))
+        if self._EBC is not None:
+            self._EBC._convertUnits(UnitConverter(unitdict))
 
-    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[str]) -> None:
+    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict]) -> None:
         """ Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
@@ -62,13 +73,23 @@ class System:
         ----------
         components : Dict[str, Component]
             Collection of initialized components with which to construct the loop with
-        loop : List[str]
-            List specifying the construction of loop via component names.  Ordering is
+        loop : List[dict]
+            List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
         # Loop over each component in the loop, add those components to the list, define the connections between components
-        for i, comp in enumerate(loop):
-            self._components.append(components[comp])
+        for i, entry in enumerate(loop):
+            self._components.append(deepcopy(components[entry["component"]]))
+            bftemp = []
+            wftemp = []
+            if "BodyForces" in entry:
+                bftemp = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wftemp = entry["WallFunctions"]
+            #add a body force for the component if present
+            self._bodyforces.append(deepcopy(bftemp))
+            #add a wall function for the component if present
+            self._wallfunctions.append(deepcopy(wftemp))
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
@@ -76,28 +97,46 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-    def _setupSection(self, components: List[Component], section: List[str]) -> None:
-        """ Private method for setting up a section
+    def _setupSegment(self, components: List[Component], order: List[dict],
+                      boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
+        """ Private method for setting up a segment
 
-        Here, a section refers to a model with defined inlet and outlet boundary conditions
+        Here, a segment refers to a model with defined inlet and outlet boundary conditions
 
         Parameters
         ----------
         components : Dict[str, Component]
             Collection of initialized components with which to construct the segment with
-        section : List[str]
-            List specifying the construction of segment via component names.  Ordering is
+        order : List[str]
+            List specifying the construction of segment via component names and forces.  Ordering is
             from the 'first' component of the segment to the 'last'.
+        boundary_conditions : Dict
+            Dictionary of boundary conditions for the segment
         """
-        # Define the component the inlet boundary condition is applied to
-        self._inBoundComp = components[section[0]]
-        # Loop over each entry in section, add the components, and connect the compnents to each other
-        for i, entry in enumerate(section):
-            self._components.append(components[entry])
+        self._fluidname = fluid.lower()
+        # Loop over each entry in segment, add the components, and connect the compnents to each other
+        for i, entry in enumerate(order):
+            self._components.append(deepcopy(components[entry["component"]]))
+            bftemp = []
+            wftemp = []
+            if "BodyForces" in entry:
+                bftemp = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wftemp = entry["WallFunctions"]
+            #add a body force for the component if present
+            self._bodyforces.append(deepcopy(bftemp))
+            #add a wall function for the component if present
+            self._wallfunctions.append(deepcopy(wftemp))
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
-        # Define the component the outlet boundary condition is applied to
-        self._outBoundComp = components[section[-1]]
+        #get the boundary conditions
+        self._MMBC = MassMomentumBC()
+        if "mass_momentum" in boundary_conditions:
+            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
+        self._EBC = EnthalpyBC()
+        if "enthalpy" in boundary_conditions:
+            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a system
@@ -156,9 +195,21 @@ class System:
         return self._connectivity
 
     @property
-    def inBoundComp(self) -> Component:
-        return self._inBoundComp
+    def bodyforces(self) -> List[str]:
+        return self._bodyforces
 
     @property
-    def outBoundComp(self) -> Component:
-        return self._outBoundComp
+    def wallfunctions(self) -> List[str]:
+        return self._wallfunctions
+
+    @property
+    def EBC(self) -> EnthalpyBC:
+        return self._EBC
+
+    @property
+    def MMBC(self) -> MassMomentumBC:
+        return self._MMBC
+
+    @property
+    def fluidname(self) -> str:
+        return self._fluidname

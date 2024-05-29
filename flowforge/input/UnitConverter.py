@@ -1,5 +1,8 @@
 from typing import Dict
 
+# enthalpy to j/kg
+enthalpydict = {"j/kg": 1.0}
+
 # length to m
 lendict = {"in": 0.0254, "ft": 0.3048, "yd": 0.9144, "mm": 0.001, "cm": 0.01, "m": 1.0}
 
@@ -80,6 +83,8 @@ class UnitConverter:
         The multiplier to convert density to units of :math:`kg/(m^3)`
     powerConversion :float
         The multiplier to convert power to units of :math:`W`
+    enthalpyConversion :float
+        The multiplier to convert enthalpy to units of :math:`J/kg`
     """
 
     def __init__(self, unitdict: Dict[str, str]) -> None:
@@ -139,6 +144,14 @@ class UnitConverter:
             else:
                 raise Exception("Unknown power input type: " + unitdict["power"])
 
+        self._enthalpyconv = 1.0
+        if "enthalpy" in unitdict:
+            # converting to W
+            if unitdict["enthalpy"].lower() in enthalpydict:
+                self._enthalpyconv = enthalpydict[unitdict["enthalpy"].lower()]
+            else:
+                raise Exception("Unknown enthalpy input type: " + unitdict["enthalpy"])
+
         self._tempconv = lambda T: T
         if "temperature" in unitdict:
             # converting to K
@@ -185,6 +198,10 @@ class UnitConverter:
     def powerConversion(self) -> float:
         return self._powerconv
 
+    @property
+    def enthalpyConversion(self) -> float:
+        return self._enthalpyconv
+
     def temperatureConversion(self, T: float) -> float:
         """ Method for performing a temperature conversion to Kelvin
 
@@ -192,7 +209,7 @@ class UnitConverter:
         ----------
         T : float
             Temperature to be converted
-        
+
         Returns
         -------
         float
