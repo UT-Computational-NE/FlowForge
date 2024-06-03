@@ -804,15 +804,15 @@ component_list["tank"] = Tank
 
 
 class ComponentCollection(Component):
+    """An abstract class for a classes that manage multiple components
+
+    Parameters
+    ----------
+    components : Dict[str, Component]
+        Collection of already initialized components
+    """
 
     def __init__(self, components: Dict[str, Component]) -> None:
-        """Constructor for ComponentCollection
-
-        Parameters
-        ----------
-        components : Union[Dict[str, Component], Dict[str, float]]
-            Collection of already initialized components or a dictionary of component parameters
-        """
         super().__init__()
         self._myComponents = components
 
