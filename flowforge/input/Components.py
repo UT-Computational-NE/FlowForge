@@ -36,6 +36,8 @@ class Component:
         The number of cells the component consists of
     roughness : float
         The roughness of the component
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     volume : float
         The flow volume of the component
     inletArea : float
@@ -47,6 +49,7 @@ class Component:
     def __init__(self) -> None:
         self.uc = None
         self._roughness = 0.0
+        self._kloss = 0.0
 
     @property
     @abc.abstractmethod
@@ -76,6 +79,10 @@ class Component:
     @property
     def roughness(self):
         return self._roughness
+
+    @property
+    def kloss(self):
+        return self._kloss
 
     @property
     def volume(self) -> float:
@@ -430,6 +437,8 @@ class Pump(Component):
         Change in pressure of the fluid caused by the pump
     roughness : float
         Pump roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     """
 
 
@@ -533,6 +542,8 @@ class Nozzle(Component):
         Orientation angle in the azimuthal direction
     roughness : float
         Nozzle roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     """
 
     def __init__(
@@ -642,6 +653,8 @@ class Annulus(Component):
         Orientation angle in the azimuthal direction
     roughness : float
         Annulus roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
@@ -738,6 +751,8 @@ class Tank(Component):
         Orientation angle of the tank in the aziumathal direction
     roughness : float
         Tank roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     """
 
 
@@ -1174,6 +1189,8 @@ class SerialComponents(Component):
     roughness :float
         The roughness of the serial components
         (currently assumed that components have constant roughness from inlet to outlet)
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
