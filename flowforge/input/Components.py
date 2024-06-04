@@ -337,6 +337,10 @@ class Pipe(Component):
     def nCell(self) -> int:
         return self._n
 
+    @property
+    def kloss(self) -> float:
+        return self._kloss
+
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
