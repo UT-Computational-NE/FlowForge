@@ -63,7 +63,7 @@ class System:
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
 
-    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict]) -> None:
+    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict], fluid: str = "FLiBe") -> None:
         """ Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
@@ -77,6 +77,7 @@ class System:
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
+        self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
             self._components.append(deepcopy(components[entry["component"]]))
