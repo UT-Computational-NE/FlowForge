@@ -37,7 +37,7 @@ class Component:
     roughness : float
         The roughness of the component
     Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+        K-loss coefficient associated with pressure loss through the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -434,7 +434,7 @@ class Pump(Component):
     roughness : float
         Pump roughness
     Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+        K-loss coefficient associated with pressure loss through the pump
     """
 
 
@@ -539,7 +539,7 @@ class Nozzle(Component):
     roughness : float
         Nozzle roughness
     Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+        K-loss coefficient associated with pressure loss through the nozzle
     """
 
     def __init__(
@@ -650,7 +650,7 @@ class Annulus(Component):
     roughness : float
         Annulus roughness
     Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+        K-loss coefficient associated with pressure loss through the annulus
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
@@ -748,7 +748,7 @@ class Tank(Component):
     roughness : float
         Tank roughness
     Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+        K-loss coefficient associated with pressure loss through the tank
     """
 
 
@@ -1182,11 +1182,6 @@ class SerialComponents(Component):
         The inlet area of the serial components
     outletArea : float
         The outlet area of the serial component
-    roughness :float
-        The roughness of the serial components
-        (currently assumed that components have constant roughness from inlet to outlet)
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
@@ -1225,10 +1220,6 @@ class SerialComponents(Component):
     @property
     def heightChange(self) -> float:
         raise NotImplementedError
-
-    @property
-    def roughness(self):
-        return self._myComponents[self._order[0]].roughness
 
     @property
     def nCell(self) -> int:
