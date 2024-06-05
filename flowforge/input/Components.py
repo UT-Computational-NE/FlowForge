@@ -36,6 +36,8 @@ class Component:
         The number of cells the component consists of
     roughness : float
         The roughness of the component
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -47,6 +49,7 @@ class Component:
     def __init__(self) -> None:
         self.uc = None
         self._roughness = 0.0
+        self._kloss = 0.0
 
     @property
     @abc.abstractmethod
@@ -76,6 +79,10 @@ class Component:
     @property
     def roughness(self):
         return self._roughness
+
+    @property
+    def kloss(self) -> float:
+        return self._kloss
 
     @property
     def volume(self) -> float:
@@ -337,10 +344,6 @@ class Pipe(Component):
     def nCell(self) -> int:
         return self._n
 
-    @property
-    def kloss(self) -> float:
-        return self._kloss
-
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
@@ -430,6 +433,8 @@ class Pump(Component):
         Change in pressure of the fluid caused by the pump
     roughness : float
         Pump roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pump
     """
 
 
@@ -533,6 +538,8 @@ class Nozzle(Component):
         Orientation angle in the azimuthal direction
     roughness : float
         Nozzle roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the nozzle
     """
 
     def __init__(
@@ -642,6 +649,8 @@ class Annulus(Component):
         Orientation angle in the azimuthal direction
     roughness : float
         Annulus roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the annulus
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
@@ -738,6 +747,8 @@ class Tank(Component):
         Orientation angle of the tank in the aziumathal direction
     roughness : float
         Tank roughness
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the tank
     """
 
 
@@ -1171,9 +1182,6 @@ class SerialComponents(Component):
         The inlet area of the serial components
     outletArea : float
         The outlet area of the serial component
-    roughness :float
-        The roughness of the serial components
-        (currently assumed that components have constant roughness from inlet to outlet)
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
@@ -1212,10 +1220,6 @@ class SerialComponents(Component):
     @property
     def heightChange(self) -> float:
         raise NotImplementedError
-
-    @property
-    def roughness(self):
-        return self._myComponents[self._order[0]].roughness
 
     @property
     def nCell(self) -> int:
