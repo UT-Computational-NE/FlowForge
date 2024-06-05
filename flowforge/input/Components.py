@@ -81,7 +81,7 @@ class Component:
         return self._roughness
 
     @property
-    def kloss(self):
+    def kloss(self) -> float:
         return self._kloss
 
     @property
@@ -343,10 +343,6 @@ class Pipe(Component):
     @property
     def nCell(self) -> int:
         return self._n
-
-    @property
-    def kloss(self) -> float:
-        return self._kloss
 
     def getMomentumSource(self) -> float:
         raise NotImplementedError
