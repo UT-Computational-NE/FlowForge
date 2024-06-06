@@ -20,7 +20,7 @@ component_list = {}
 
 @add_metaclass(abc.ABCMeta)
 class Component:
-    """ Base class for all components of the system.
+    """Base class for all components of the system.
 
     Attributes
     ----------
@@ -98,7 +98,7 @@ class Component:
 
     @abc.abstractmethod
     def getMomentumSource(self) -> float:
-        """ Method for getting the momentum source term of the component
+        """Method for getting the momentum source term of the component
 
         Returns
         -------
@@ -109,7 +109,7 @@ class Component:
 
     @abc.abstractmethod
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:  # pylint:disable=unused-argument
-        """  Method for calculating the outlet coordinates of a components based on the coordinates of the component's inlet
+        """Method for calculating the outlet coordinates of a components based on the coordinates of the component's inlet
 
         Parameters
         ----------
@@ -125,7 +125,7 @@ class Component:
 
     @abc.abstractmethod
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
-        """ Method for generating a VTK mesh of the component
+        """Method for generating a VTK mesh of the component
 
         Parameters
         ----------
@@ -141,7 +141,7 @@ class Component:
         return NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
-        """ Generator for marching over the nodes (i.e. cells) of a component
+        """Generator for marching over the nodes (i.e. cells) of a component
 
         This method essentially allows one to march over the nodes of a component
         and be able to reference / use the component said node belongs to
@@ -155,10 +155,10 @@ class Component:
             yield self
 
     @abc.abstractmethod
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
-        """ Method for retrieving the bounding box information of a component
+        """Method for retrieving the bounding box information of a component
 
         Parameters
         ----------
@@ -177,7 +177,7 @@ class Component:
 
     @abc.abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
-        """ Private method for converting units of the component's internal attribute
+        """Private method for converting units of the component's internal attribute
 
         This method is especially useful for converting components to the expected units
         of the application in which they will be used.
@@ -191,7 +191,7 @@ class Component:
         return NotImplementedError
 
     def rotate(self, x: float, y: float, z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
-        """ Method for rotating a point about the :math:`y-axis` and :math:`z-axis`
+        """Method for rotating a point about the :math:`y-axis` and :math:`z-axis`
 
         Parameters
         ----------
@@ -218,7 +218,7 @@ class Component:
 
 
 def component_factory(indict: Dict) -> Dict[str, Component]:
-    """ Factory for building a collection of components
+    """Factory for building a collection of components
 
     Parameters
     ----------
@@ -260,7 +260,7 @@ def component_factory(indict: Dict) -> Dict[str, Component]:
 
 
 class Pipe(Component):
-    """ A pipe component
+    """A pipe component
 
     Parameters
     ----------
@@ -277,7 +277,7 @@ class Pipe(Component):
     theta : float
         Orientation angle of the pipe in the polar direction
     alpha : float
-        Orientation angle of the pipe in the aziumathal direction
+        Orientation angle of the pipe in the azimuthal direction
     Kloss : float
         K-loss coefficient associated with pressure loss through the pipe
     roughness : float
@@ -291,10 +291,10 @@ class Pipe(Component):
         Ac: float = None,
         Dh: float = None,
         n: int = 1,
-        theta: float = 0.,
-        alpha: float = 0.,
+        theta: float = 0.0,
+        alpha: float = 0.0,
         Kloss: float = 0,
-        roughness: float = 0.,
+        roughness: float = 0.0,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -358,8 +358,8 @@ class Pipe(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
@@ -377,7 +377,7 @@ component_list["pipe"] = Pipe
 
 
 class SquarePipe(Pipe):
-    """ A square pipe component
+    """A square pipe component
 
     Parameters
     ----------
@@ -400,7 +400,7 @@ component_list["square_pipe"] = SquarePipe
 
 
 class Tee(Pipe):
-    """ A Tee pipe component
+    """A Tee pipe component
 
     To be implemented
 
@@ -417,7 +417,7 @@ component_list["tee"] = Tee
 
 
 class Pump(Component):
-    """ A pump component
+    """A pump component
 
     Parameters
     ----------
@@ -437,8 +437,7 @@ class Pump(Component):
         K-loss coefficient associated with pressure loss through the pump
     """
 
-
-    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, roughness: float = 0., **kwargs) -> None:
+    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, roughness: float = 0.0, **kwargs) -> None:
         super().__init__()
         self._Ac = Ac
         self._Dh = Dh
@@ -486,10 +485,10 @@ class Pump(Component):
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         return genUniformCube(self._Dh, self._Dh, self._h, **self._kwargs).translate(inlet[0], inlet[1], inlet[2])
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
-        """ Method for retrieving the bounding box information of a component
+        """Method for retrieving the bounding box information of a component
 
         Pumps are assumed to have orientations inline with the cartesian grid
 
@@ -522,7 +521,7 @@ component_list["pump"] = Pump
 
 
 class Nozzle(Component):
-    """ A nozzle component
+    """A nozzle component
 
     Parameters
     ----------
@@ -547,9 +546,9 @@ class Nozzle(Component):
         L: float,
         R_inlet: float,
         R_outlet: float,
-        theta: float = 0.,
-        alpha: float = 0.,
-        roughness: float = 0.,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        roughness: float = 0.0,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -608,8 +607,8 @@ class Nozzle(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         if self._Rin >= self._Rout:
@@ -631,7 +630,7 @@ component_list["nozzle"] = Nozzle
 
 
 class Annulus(Component):
-    """ A annulua component
+    """A annulus component
 
     Parameters
     ----------
@@ -655,16 +654,15 @@ class Annulus(Component):
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
 
-
     def __init__(
         self,
         L: float,
         R_inner: float,
         R_outer: float,
         n: int = 1,
-        theta: float = 0.,
-        alpha: float = 0.,
-        roughness: float = 0.,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        roughness: float = 0.0,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -714,8 +712,8 @@ class Annulus(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._Rout, self._Rout, self._L, self._theta, self._alpha]
@@ -731,7 +729,7 @@ component_list["annulus"] = Annulus
 
 
 class Tank(Component):
-    """ A tank component
+    """A tank component
 
     Parameters
     ----------
@@ -751,16 +749,8 @@ class Tank(Component):
         K-loss coefficient associated with pressure loss through the tank
     """
 
-
     def __init__(
-        self,
-        L: float,
-        R: float,
-        n: int = 1,
-        theta: float = 0.,
-        alpha: float = 0.,
-        roughness: float = 0.,
-        **kwargs
+        self, L: float, R: float, n: int = 1, theta: float = 0.0, alpha: float = 0.0, roughness: float = 0.0, **kwargs
     ) -> None:
         super().__init__()
         self._Ac = np.pi * R * R
@@ -810,8 +800,8 @@ class Tank(Component):
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
         return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
@@ -828,8 +818,64 @@ class Tank(Component):
 component_list["tank"] = Tank
 
 
-class ParallelComponents(Component):
-    """ A component for a collection of components through which flow passes in parallel
+class ComponentCollection(Component):
+    """An abstract class for a classes that manage multiple components
+
+    Parameters
+    ----------
+    components : Dict[str, Component]
+        Collection of already initialized components
+    """
+
+    def __init__(self, components: Dict[str, Component]) -> None:
+        super().__init__()
+        self._myComponents = components
+
+    @property
+    def flowArea(self) -> float:
+        return NotImplementedError
+
+    @property
+    def volume(self) -> float:
+        return NotImplementedError
+
+    @property
+    def inletArea(self) -> float:
+        return NotImplementedError
+
+    @property
+    def outletArea(self) -> float:
+        return NotImplementedError
+
+    @property
+    def length(self) -> float:
+        return NotImplementedError
+
+    @property
+    def hydraulicDiameter(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def heightChange(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def myComponents(self) -> List[Component]:
+        return self._myComponents
+
+    def getNodeGenerator(self) -> Generator[Component, None, None]:
+        yield from [component.getNodeGenerator() for component in self._myComponents.values()]
+
+    def getMomentumSource(self) -> float:
+        raise NotImplementedError
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        for component in self._myComponents.values():
+            component._convertUnits(uc)
+
+
+class ParallelComponents(ComponentCollection):
+    """A component for a collection of components through which flow passes in parallel
 
     Parameters
     ----------
@@ -875,15 +921,14 @@ class ParallelComponents(Component):
 
     def __init__(
         self,
-        components: Dict,
+        parallel_components: Dict,
         centroids: Dict[str, List[float]],
-        lower_plenum: Dict[str, Dict[str,float]],
-        upper_plenum: Dict[str, Dict[str,float]],
-        annulus: Dict[str, Dict[str,float]] = None,
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Dict[str, Dict[str, float]] = None,
         **kwargs,
     ) -> None:
-        super().__init__()
-        self._myComponents = component_factory(components)
+        self._myParallelComponents = component_factory(parallel_components)
         self._centroids = centroids
 
         assert len(lower_plenum) == 1
@@ -894,14 +939,22 @@ class ParallelComponents(Component):
         comp_type, parameters = list(upper_plenum.items())[0]
         self._upperPlenum = component_list[comp_type](**parameters)
 
+        myComponents = {
+            **self._myParallelComponents,
+            "lower_plenum": self._lowerPlenum,
+            "upper_plenum": self._upperPlenum,
+        }
+
         if annulus is None:
             self._annulus = None
         else:
             assert len(annulus) == 1
             comp_type, parameters = list(annulus.items())[0]
             self._annulus = component_list[comp_type](**parameters)
+            myComponents["annulus"] = self._annulus
 
         self._kwargs = kwargs
+        super().__init__(myComponents)
 
     @property
     def flowArea(self) -> float:
@@ -922,7 +975,7 @@ class ParallelComponents(Component):
     @property
     def length(self) -> float:
         L = self._lowerPlenum.length + self._upperPlenum.length
-        L += self._myComponents[list(self._myComponents.keys())[0]].length
+        L += self._myParallelComponents[list(self._myParallelComponents.keys())[0]].length
         return L
 
     @property
@@ -939,23 +992,26 @@ class ParallelComponents(Component):
         if self._annulus is not None:
             ncell += self._annulus.nCell
         for cname in self._centroids.keys():
-            ncell += self._myComponents[cname].nCell
+            ncell += self._myParallelComponents[cname].nCell
         return ncell
 
     @property
-    def myComponents(self) -> List[Component]:
+    def myComponents(self) -> Dict[str, Component]:
+        """Returns all components, including the lower plenum, upper plenum, and annulus."""
         return self._myComponents
 
+    @property
+    def myParallelComponents(self) -> Dict[str, Component]:
+        """Returns only the parallel components (not including the lower plenum, upper plenum, or annulus)."""
+        return self._myParallelComponents
 
     @property
     def centroids(self) -> Dict[str, List[float]]:
         return self._centroids
 
-
     @property
     def lowerPlenum(self) -> Component:
         return self._lowerPlenum
-
 
     @property
     def upperPlenum(self) -> Component:
@@ -965,19 +1021,15 @@ class ParallelComponents(Component):
     def annulus(self) -> Component:
         return self._annulus
 
-    def getNodeGenerator(self) -> Generator[Component, None, None]:
-        for cname in self._centroids.keys():
-            yield from self._myComponents[cname].getNodeGenerator()
-
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         lower = self._lowerPlenum.getOutlet(inlet)
-        firstcomp = list(self._myComponents.items())[0][0]
-        outlet = self._myComponents[firstcomp].getOutlet(lower)
+        firstcomp = list(self._myParallelComponents.items())[0][0]
+        outlet = self._myParallelComponents[firstcomp].getOutlet(lower)
         outlet = (round(outlet[0], 5), round(outlet[1], 5), round(outlet[2], 5))
-        for comp in self._myComponents.values():
+        for comp in self._myParallelComponents.values():
             compOutlet = comp.getOutlet(lower)
             compOutletRounded = round(compOutlet[0], 5), round(compOutlet[1], 5), round(compOutlet[2], 5)
             assert compOutletRounded == outlet
@@ -992,32 +1044,22 @@ class ParallelComponents(Component):
             mesh += self._annulus.getVTKMesh(inlet2)
         for cname, centroid in self._centroids.items():
             i = (inlet2[0] + centroid[0], inlet2[1] + centroid[1], inlet2[2])
-            mesh += self._myComponents[cname].getVTKMesh(i)
-        inlet2 = list(self._myComponents.items())[0][1].getOutlet(inlet2)
+            mesh += self._myParallelComponents[cname].getVTKMesh(i)
+        inlet2 = list(self._myParallelComponents.items())[0][1].getOutlet(inlet2)
         mesh += self._upperPlenum.getVTKMesh(inlet2)
         return mesh
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        self._upperPlenum._convertUnits(uc)
-        self._lowerPlenum._convertUnits(uc)
-        if self._annulus is not None:
-            self._annulus._convertUnits(uc)
-        for c, comp in self._myComponents.items():
-            comp._convertUnits(uc)
-            self._centroids[c][0] *= uc.lengthConversion
-            self._centroids[c][1] *= uc.lengthConversion
 
 
 component_list["parallel_components"] = ParallelComponents
 
 
 class HexCore(ParallelComponents):
-    """ A hexagonal core component
+    """A hexagonal core component
 
     Parameters
     ----------
@@ -1065,14 +1107,14 @@ class HexCore(ParallelComponents):
     """
 
     def __init__(
-            self,
-            pitch:float,
-            components: Dict,
-            hexmap: List[List[int]],
-            lower_plenum: Dict[str, Dict[str,float]],
-            upper_plenum: Dict[str, Dict[str,float]],
-            annulus: Dict[str, Dict[str,float]] = None,
-            **kwargs
+        self,
+        pitch: float,
+        components: Dict,
+        hexmap: List[List[int]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Dict[str, Dict[str, float]] = None,
+        **kwargs,
     ) -> None:
         self._pitch = pitch
         self._map = hexmap
@@ -1103,7 +1145,7 @@ class HexCore(ParallelComponents):
         return mesh
 
     def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
-        """  Private method which returns the calculated coordinates of map locations
+        """Private method which returns the calculated coordinates of map locations
 
         This method returns the :math:`x-y` coordinates of the particular location in the map,
         which is determined by r (row) and c (col).  This method is called repeatedly from the
@@ -1149,9 +1191,8 @@ class HexCore(ParallelComponents):
 component_list["hex_core"] = HexCore
 
 
-class SerialComponents(Component):
-
-    """ A component for a collection of components through which flow passes in serial (i.e. from one component into the next)
+class SerialComponents(ComponentCollection):
+    """A component for a collection of components through which flow passes in serial (i.e. from one component into the next)
 
     Parameters
     ----------
@@ -1185,8 +1226,7 @@ class SerialComponents(Component):
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
-        super().__init__()
-        self._myComponents = component_factory(components)
+        super().__init__(component_factory(components))
         self._order = order
         self._kwargs = kwargs
 
@@ -1229,16 +1269,8 @@ class SerialComponents(Component):
         return ncell
 
     @property
-    def myComponents(self) -> List[Component]:
-        return self._myComponents
-
-    @property
     def order(self) -> List[str]:
         return self._order
-
-    def getNodeGenerator(self) -> Generator[Component, None, None]:
-        for cname in self._order:
-            yield self._myComponents[cname].getNodeGenerator()
 
     def getMomentumSource(self) -> float:
         raise NotImplementedError
@@ -1255,14 +1287,10 @@ class SerialComponents(Component):
             inlet = self._myComponents[cname].getOutlet(inlet)
         return mesh
 
-    def getBoundingBox(self,
-                       inlet: Tuple[float, float, float]
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        for cname in self._order:
-            self._myComponents[cname]._convertUnits(uc)
 
 
 component_list["serial_components"] = SerialComponents
