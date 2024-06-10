@@ -96,6 +96,12 @@ class Component:
     def outletArea(self) -> float:
         return self.flowArea
 
+    @property
+    def baseComponents(self) -> List[Component]:
+        """Method for retrieving the base components of a component.
+        For components that are not collections, this will be itself"""
+        return [self]
+
     @abc.abstractmethod
     def getMomentumSource(self) -> float:
         """Method for getting the momentum source term of the component
@@ -548,6 +554,7 @@ class Nozzle(Component):
         R_outlet: float,
         theta: float = 0.0,
         alpha: float = 0.0,
+        kloss: float = 0.0,
         roughness: float = 0.0,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
@@ -561,6 +568,7 @@ class Nozzle(Component):
         self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
         self._Ac = 0.25 * np.pi * self._Dh * self._Dh
         self._res = resolution
+        self._kloss = kloss
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
@@ -592,6 +600,11 @@ class Nozzle(Component):
     @property
     def nCell(self) -> int:
         return 1
+
+    @property
+    def kloss(self) -> float:
+        # TODO Either define this in the Component class or transition the component class to a true Leaf class.
+        return self._kloss
 
     def getMomentumSource(self) -> float:
         raise NotImplementedError
@@ -863,6 +876,31 @@ class ComponentCollection(Component):
     def myComponents(self) -> List[Component]:
         return self._myComponents
 
+    @property
+    def baseComponents(self) -> List[Component]:
+        """Method for retrieving the base components (components that are not Component collections)
+        of a component collection"""
+        base_components = []
+        for component in self.myComponents.values():
+            base_components.extend(component.baseComponents)
+        return base_components
+
+    @property
+    @abc.abstractmethod
+    def firstComponent(self) -> Component:
+        """Return the first component in the collection.
+        Implemented in the derived class.
+        """
+        return NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def lastComponent(self) -> Component:
+        """Return the last component in the collection.
+        Implemented in the derived class.
+        """
+        return NotImplementedError
+
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         yield from [component.getNodeGenerator() for component in self._myComponents.values()]
 
@@ -957,6 +995,14 @@ class ParallelComponents(ComponentCollection):
         super().__init__(myComponents)
 
     @property
+    def firstComponent(self) -> Component:
+        return self._lowerPlenum
+
+    @property
+    def lastComponent(self) -> Component:
+        return self._upperPlenum
+
+    @property
     def flowArea(self) -> float:
         return NotImplementedError
 
@@ -994,11 +1040,6 @@ class ParallelComponents(ComponentCollection):
         for cname in self._centroids.keys():
             ncell += self._myParallelComponents[cname].nCell
         return ncell
-
-    @property
-    def myComponents(self) -> Dict[str, Component]:
-        """Returns all components, including the lower plenum, upper plenum, and annulus."""
-        return self._myComponents
 
     @property
     def myParallelComponents(self) -> Dict[str, Component]:
@@ -1229,6 +1270,29 @@ class SerialComponents(ComponentCollection):
         super().__init__(component_factory(components))
         self._order = order
         self._kwargs = kwargs
+
+    @property
+    def firstComponent(self) -> Component:
+        """Always returns the first component.
+        If the first component is a collection, it will return the first component of that collection recursively"""
+        first_component = self._myComponents[self._order[0]]
+        if isinstance(first_component, ComponentCollection):
+            return first_component.firstComponent
+        return first_component
+
+    @property
+    def lastComponent(self) -> Component:
+        """Always returns the last component.
+        If the last component is a collection, it will return the last component of that collection recursively"""
+        last_component = self._myComponents[self._order[-1]]
+        if isinstance(last_component, ComponentCollection):
+            return last_component.lastComponent
+        return last_component
+
+    @property
+    def orderedComponentsList(self) -> List[Component]:
+        """Returns a list of the components in the order they are listed in the order attribute."""
+        return [self._myComponents[comp_key] for comp_key in self.order]
 
     @property
     def flowArea(self) -> float:
