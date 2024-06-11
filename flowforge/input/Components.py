@@ -601,11 +601,6 @@ class Nozzle(Component):
     def nCell(self) -> int:
         return 1
 
-    @property
-    def kloss(self) -> float:
-        # TODO Either define this in the Component class or transition the component class to a true Leaf class.
-        return self._kloss
-
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
