@@ -14,7 +14,7 @@ python -m pip install .
 ```
 ### Developer Installation
 ```bash
-python3 -m pip install -e .[dev] 
+python3 -m pip install -e .[dev]
 ```
 ### Testing Installation (Primarily for CI)
 ```bash
