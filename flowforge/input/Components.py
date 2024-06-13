@@ -135,7 +135,7 @@ class Component:
         kloss : float
             The value added to klossInlet
         """
-        self._klossInlet +=kloss
+        self._klossInlet += kloss
 
     @abc.abstractmethod
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:  # pylint:disable=unused-argument
@@ -1248,13 +1248,16 @@ class HexCore(ParallelComponents):
         self.tmpComponents = component_factory(components)
         extended_comps = {}
         centroids = {}
-
+        if self._orificing is not None: #making sure shape of map == shape of orficing
+            assert(len( self._map)== len(self._orificing))
+            for row in range(len(self._map)):
+                assert(len( self._map[row])== len(self._orificing[row]))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
                 cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
                 yc, xc = self._getChannelCoords(r, c)
                 centroids[cname] = [xc, yc]
-                if self._orificing !=  None:
+                if self._orificing is not None:
                     self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
                 extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
