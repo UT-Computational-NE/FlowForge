@@ -1249,8 +1249,8 @@ class HexCore(ParallelComponents):
         extended_comps = {}
         centroids = {}
         if self._orificing is not None: #making sure shape of map == shape of orficing
-            assert(len( self._map)== len(self._orificing))
-            for row in range(len(self._map)):
+            assert(len( self._map) == len(self._orificing))
+            for row in range(len(self._map)): #pylint-disable C0200 using len and range here is fine
                 assert(len( self._map[row])== len(self._orificing[row]))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
