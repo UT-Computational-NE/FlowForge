@@ -36,8 +36,12 @@ class Component:
         The number of cells the component consists of
     roughness : float
         The roughness of the component
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the component
+    klossInlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the component
+    klossOutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the component
+    klossAvg : float
+        K-loss coefficient associated with pressure losss across the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -49,7 +53,9 @@ class Component:
     def __init__(self) -> None:
         self.uc = None
         self._roughness = 0.0
-        self._kloss = 0.0
+        self._klossInlet = 0.0
+        self._klossOutlet = 0.0
+        self._klossAvg = 0.0
 
     @property
     @abc.abstractmethod
@@ -86,8 +92,16 @@ class Component:
         return self._roughness
 
     @property
-    def kloss(self) -> float:
-        return self._kloss
+    def klossInlet(self) -> float:
+        return self._klossInlet
+
+    @property
+    def klossOutlet(self) -> float:
+        return self._klossOutlet
+
+    @property
+    def klossAvg(self) -> float:
+        return self._klossAvg
 
     @property
     def volume(self) -> float:
@@ -118,6 +132,16 @@ class Component:
         """
         raise NotImplementedError
 
+    def addKlossInlet(self, kloss: float) -> None:
+        """Method for adding to kloss inlet. Does not overwrite.
+
+        Parameters
+        ----------
+        kloss : float
+            The value added to klossInlet
+        """
+        self._klossInlet += kloss
+
     @abc.abstractmethod
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:  # pylint:disable=unused-argument
         """Method for calculating the outlet coordinates of a components based on the coordinates of the component's inlet
@@ -132,7 +156,7 @@ class Component:
         Tuple[float, float, float]
             The calculated component outlet :math:`(x,y,z)` coordinates
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @abc.abstractmethod
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
@@ -149,7 +173,7 @@ class Component:
         VTKMesh
             The generated VTK mesh
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a component
@@ -184,7 +208,7 @@ class Component:
             (inlet_coordinate, outlet_coordinate, :math:`x-width/2`, :math:`y-width/2`, :math:`z-length`,
             :math:`\theta-angle`, :math:`\alpha-angle`)
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -199,7 +223,7 @@ class Component:
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def rotate(self, x: float, y: float, z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
         """Method for rotating a point about the :math:`y-axis` and :math:`z-axis`
@@ -289,8 +313,12 @@ class Pipe(Component):
         Orientation angle of the pipe in the polar direction
     alpha : float
         Orientation angle of the pipe in the azimuthal direction
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the pipe
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the pipe
+    Klossavg : float
+        K-loss coefficient associated with pressure losss across the pipe
     roughness : float
         Pipe roughness
     pctHeated: float
@@ -307,7 +335,9 @@ class Pipe(Component):
         n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
-        Kloss: float = 0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
         roughness: float = 0.0,
         pctHeated: float = 1,
         **kwargs,
@@ -319,7 +349,9 @@ class Pipe(Component):
 
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
-        self._kloss = Kloss
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
         if R is None:
@@ -490,10 +522,14 @@ class Pump(Component):
         Change in pressure of the fluid caused by the pump
     roughness : float
         Pump roughness
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the pump
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the pump
+    Klossavg : float
+        K-loss coefficient associated with pressure losss across the pump
     ptcHeated : float
         Fraction of the pump perimeter that is heated. Uses Dh to determine wetted perimeter
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the pump
     """
 
     def __init__(
@@ -504,8 +540,11 @@ class Pump(Component):
         height: float,
         dP: float,
         roughness: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
         ptcHeated: float = 1.0,
-        **kwargs,
+        **kwargs
     ) -> None:
         super().__init__()
         self._Ac = Ac
@@ -513,6 +552,9 @@ class Pump(Component):
         self._V = V
         self._h = height
         self._dP = dP
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
@@ -614,8 +656,12 @@ class Nozzle(Component):
         Orientation angle in the azimuthal direction
     roughness : float
         Nozzle roughness
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the nozzle
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the nozzle
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the nozzle
+    Klossavg : float
+        K-loss coefficient associated with pressure losss across the nozzle
     ptcHeated : float
         Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
     """
@@ -627,7 +673,9 @@ class Nozzle(Component):
         R_outlet: float,
         theta: float = 0.0,
         alpha: float = 0.0,
-        kloss: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
         roughness: float = 0.0,
         ptcHeated: float = 1,
         resolution: int = _CYL_RESOLUTION,
@@ -642,7 +690,9 @@ class Nozzle(Component):
         self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
         self._Ac = 0.25 * np.pi * self._Dh * self._Dh
         self._res = resolution
-        self._kloss = kloss
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
@@ -736,10 +786,14 @@ class Annulus(Component):
         Orientation angle in the polar direction
     alpha : float
         Orientation angle in the azimuthal direction
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the annulus
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the annulus
+    Klossavg : float
+        K-loss coefficient associated with pressure losss across the annulus
     roughness : float
         Annulus roughness
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the annulus
     ptcHeated : float
         Fraction of the annulus wetted perimeter that is heated. Used for calculating heated perimeter.
     resolution : int
@@ -754,6 +808,9 @@ class Annulus(Component):
         n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
         roughness: float = 0.0,
         ptcHeated: float = 1,
         resolution: int = _CYL_RESOLUTION,
@@ -767,6 +824,9 @@ class Annulus(Component):
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
         self._res = resolution
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.ones(self.nCell)
@@ -844,10 +904,14 @@ class Tank(Component):
         Orientation angle of the tank in the polar direction
     alpha : float
         Orientation angle of the tank in the azimuthal direction
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the tank
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the tank
+    Klossavg : float
+        K-loss coefficient associated with pressure losss across the tank
     roughness : float
         Tank roughness
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the tank
     ptcHeated : float
         Fraction of the tank perimeter that is heated. Used for calculating heated perimeter.
     """
@@ -859,9 +923,12 @@ class Tank(Component):
         n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
         roughness: float = 0.0,
         ptcHeated: float = 1.0,
-        **kwargs,
+        **kwargs
     ) -> None:
         super().__init__()
         self._Ac = np.pi * R * R
@@ -873,6 +940,9 @@ class Tank(Component):
         self._R = R
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
@@ -951,23 +1021,23 @@ class ComponentCollection(Component):
 
     @property
     def flowArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def volume(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def inletArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def outletArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def length(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def hydraulicDiameter(self) -> float:
@@ -1000,7 +1070,7 @@ class ComponentCollection(Component):
         """Return the first component in the collection.
         Implemented in the derived class.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     @abc.abstractmethod
@@ -1008,7 +1078,7 @@ class ComponentCollection(Component):
         """Return the last component in the collection.
         Implemented in the derived class.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         yield from [component.getNodeGenerator() for component in self._myComponents.values()]
@@ -1020,6 +1090,8 @@ class ComponentCollection(Component):
         for component in self._myComponents.values():
             component._convertUnits(uc)
 
+    def addKlossInlet(self, kloss: float) -> None:
+        self.firstComponent.addKlossInlet(kloss)
 
 class ParallelComponents(ComponentCollection):
     """A component for a collection of components through which flow passes in parallel
@@ -1113,11 +1185,11 @@ class ParallelComponents(ComponentCollection):
 
     @property
     def flowArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def volume(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def inletArea(self) -> float:
@@ -1221,6 +1293,9 @@ class HexCore(ParallelComponents):
     hexmap : List[List[int]]
         list containing the serial components in the corresponding rows and
         columns of the hex map
+    orificing : List[List[float]]
+        list containing the kloss values associated with serial components in the corresponding rows and
+        columns of the hex map - should have the same shape as hexmap
     lower_plenum : Dict[str, Dict[str,float]]
         The component specifications for the lower plenum
         (key: component type, value: component parameters dictionary)
@@ -1264,23 +1339,29 @@ class HexCore(ParallelComponents):
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
+        orificing: List[List[float]] = None,
         **kwargs,
     ) -> None:
         self._pitch = pitch
         self._map = hexmap
-
+        self._orificing = orificing
         self.tmpComponents = component_factory(components)
         extended_comps = {}
         centroids = {}
-
+        if self._orificing is not None: #making sure shape of map == shape of orficing
+            assert(len( self._map) == len(self._orificing))
+            assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
                 cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
                 yc, xc = self._getChannelCoords(r, c)
                 centroids[cname] = [xc, yc]
+                if self._orificing is not None:
+                    self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
                 extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
         super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
 
