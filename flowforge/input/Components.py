@@ -843,7 +843,7 @@ class Tank(Component):
     theta : float
         Orientation angle of the tank in the polar direction
     alpha : float
-        Orientation angle of the tank in the aziumathal direction
+        Orientation angle of the tank in the azimuthal direction
     roughness : float
         Tank roughness
     Kloss : float
@@ -851,7 +851,15 @@ class Tank(Component):
     """
 
     def __init__(
-        self, L: float, R: float, n: int = 1, theta: float = 0.0, alpha: float = 0.0, roughness: float = 0.0, **kwargs
+        self,
+        L: float,
+        R: float,
+        n: int = 1,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        roughness: float = 0.0,
+        ptcHeated: float = 1.0,
+        **kwargs,
     ) -> None:
         super().__init__()
         self._Ac = np.pi * R * R
@@ -867,6 +875,8 @@ class Tank(Component):
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
+        self._heatedPerimeter = ptcHeated * self._Pw
+
     @property
     def flowArea(self) -> float:
         return self._Ac
@@ -878,6 +888,10 @@ class Tank(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
