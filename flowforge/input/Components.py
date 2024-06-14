@@ -9,7 +9,7 @@ from flowforge.input.UnitConverter import UnitConverter
 
 _CYL_RESOLUTION = 50
 
-# pragma pylint: disable=protected-access, abstract-method
+# pragma pylint: disable=protected-access, abstract-method, too-many-public-methods
 
 """
 The components dictionary provides a key, value pair of each type of component.
@@ -41,7 +41,7 @@ class Component:
     klossOutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the component
     klossAvg : float
-        K-loss coefficient associated with pressure losss across the component
+        K-loss coefficient associated with pressure loss across the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -318,7 +318,7 @@ class Pipe(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the pipe
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the pipe
+        K-loss coefficient associated with pressure loss across the pipe
     roughness : float
         Pipe roughness
     pctHeated: float
@@ -527,7 +527,7 @@ class Pump(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the pump
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the pump
+        K-loss coefficient associated with pressure loss across the pump
     ptcHeated : float
         Fraction of the pump perimeter that is heated. Uses Dh to determine wetted perimeter
     """
@@ -661,7 +661,7 @@ class Nozzle(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the nozzle
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the nozzle
+        K-loss coefficient associated with pressure loss across the nozzle
     ptcHeated : float
         Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
     """
@@ -791,7 +791,7 @@ class Annulus(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the annulus
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the annulus
+        K-loss coefficient associated with pressure loss across the annulus
     roughness : float
         Annulus roughness
     ptcHeated : float
@@ -909,7 +909,7 @@ class Tank(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the tank
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the tank
+        K-loss coefficient associated with pressure loss across the tank
     roughness : float
         Tank roughness
     ptcHeated : float
