@@ -928,6 +928,7 @@ class Tank(Component):
         self._L *= uc.lengthConversion
         self._R *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["tank"] = Tank
