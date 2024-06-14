@@ -151,7 +151,7 @@ class Component:
         Tuple[float, float, float]
             The calculated component outlet :math:`(x,y,z)` coordinates
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @abc.abstractmethod
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:  # pylint:disable=unused-argument
@@ -168,7 +168,7 @@ class Component:
         VTKMesh
             The generated VTK mesh
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a component
@@ -203,7 +203,7 @@ class Component:
             (inlet_coordinate, outlet_coordinate, :math:`x-width/2`, :math:`y-width/2`, :math:`z-length`,
             :math:`\theta-angle`, :math:`\alpha-angle`)
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -218,7 +218,7 @@ class Component:
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def rotate(self, x: float, y: float, z: float, theta: float = 0.0, alpha: float = 0.0) -> np.ndarray:
         """Method for rotating a point about the :math:`y-axis` and :math:`z-axis`
@@ -927,23 +927,23 @@ class ComponentCollection(Component):
 
     @property
     def flowArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def volume(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def inletArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def outletArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def length(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def hydraulicDiameter(self) -> float:
@@ -972,7 +972,7 @@ class ComponentCollection(Component):
         """Return the first component in the collection.
         Implemented in the derived class.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     @abc.abstractmethod
@@ -980,7 +980,7 @@ class ComponentCollection(Component):
         """Return the last component in the collection.
         Implemented in the derived class.
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         yield from [component.getNodeGenerator() for component in self._myComponents.values()]
@@ -1087,11 +1087,11 @@ class ParallelComponents(ComponentCollection):
 
     @property
     def flowArea(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def volume(self) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def inletArea(self) -> float:
