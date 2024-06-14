@@ -848,6 +848,8 @@ class Tank(Component):
         Tank roughness
     Kloss : float
         K-loss coefficient associated with pressure loss through the tank
+    ptcHeated : float
+        Fraction of the tank perimeter that is heated. Used for calculating heated perimeter.
     """
 
     def __init__(
