@@ -992,6 +992,8 @@ class ComponentCollection(Component):
         for component in self._myComponents.values():
             component._convertUnits(uc)
 
+    def addKlossInlet(self, kloss: float) -> None:
+        self.firstComponent.addKlossInlet(kloss)
 
 class ParallelComponents(ComponentCollection):
     """A component for a collection of components through which flow passes in parallel
@@ -1250,8 +1252,7 @@ class HexCore(ParallelComponents):
         centroids = {}
         if self._orificing is not None: #making sure shape of map == shape of orficing
             assert(len( self._map) == len(self._orificing))
-            for row in range(len(self._map)): #pylint: disable=C0200
-                assert(len( self._map[row])== len(self._orificing[row]))
+            assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
                 cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
@@ -1441,9 +1442,6 @@ class SerialComponents(ComponentCollection):
             mesh += self._myComponents[cname].getVTKMesh(inlet)
             inlet = self._myComponents[cname].getOutlet(inlet)
         return mesh
-
-    def addKlossInlet(self, kloss: float) -> None:
-        self.firstComponent.addKlossInlet(kloss)
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
