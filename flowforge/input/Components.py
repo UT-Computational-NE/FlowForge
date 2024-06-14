@@ -496,7 +496,17 @@ class Pump(Component):
         K-loss coefficient associated with pressure loss through the pump
     """
 
-    def __init__(self, Ac: float, Dh: float, V: float, height: float, dP: float, roughness: float = 0.0, ptcHeated : float = 1.0,  **kwargs) -> None:
+    def __init__(
+        self,
+        Ac: float,
+        Dh: float,
+        V: float,
+        height: float,
+        dP: float,
+        roughness: float = 0.0,
+        ptcHeated: float = 1.0,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self._Ac = Ac
         self._Dh = Dh
