@@ -17,8 +17,8 @@ def make_continuous(components: List[Component], order: List[dict]):
         for i, entry in enumerate(order):
             if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
                 print(f'Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
-                print('MAKING A NOZZLE CONNECTION!')
-                tempnozzle=Nozzle(L=1.0E-12,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
+                print(f'MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-components[entry["component"]].inletArea)})')
+                tempnozzle=Nozzle(L=1.0E-64,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
                                   math.sqrt(components[entry["component"]].inletArea/math.pi),
                                   theta=components[entry["component"]]._theta,alpha=components[entry["component"]]._alpha,
                                   Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
