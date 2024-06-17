@@ -10,19 +10,24 @@ from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
 def make_continuous(components: List[Component], order: List[dict]):
     num_connects=0
     #initialize the previous area as the first area
-    prev_area = components[order[0]["component"]].inletArea
-    for i, entry in enumerate(order):
-        if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
-            print(f'Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
-            print('MAKING A NOZZLE CONNECTION!')
-            tempnozzle=Nozzle(L=1.0E-12,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
-                              math.sqrt(components[entry["component"]].inletArea/math.pi),
-                              theta=components[entry["component"]]._theta,alpha=components[entry["component"]]._alpha,
-                              Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
-            components[f'temp_nozzle_for_make_continuous_creation_in_system_4575463ngbvxzfg_{num_connects}'] = deepcopy(tempnozzle)
-            order = order[0:i] + [{'component' : f'temp_nozzle_for_make_continuous_creation_in_system_4575463ngbvxzfg_{num_connects}'}] + order[i:len(order)]
-            num_connects += 1
-        prev_area = components[entry["component"]].outletArea
+    discont_found = True
+    while discont_found:
+        discont_found=False
+        prev_area = components[order[0]["component"]].inletArea
+        for i, entry in enumerate(order):
+            if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
+                print(f'Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
+                print('MAKING A NOZZLE CONNECTION!')
+                tempnozzle=Nozzle(L=1.0E-12,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
+                                  math.sqrt(components[entry["component"]].inletArea/math.pi),
+                                  theta=components[entry["component"]]._theta,alpha=components[entry["component"]]._alpha,
+                                  Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
+                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] = deepcopy(tempnozzle)
+                order = order[0:i] + [{'component' : f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'}] + order[i:len(order)]
+                num_connects += 1
+                discont_found = True
+                break
+            prev_area = components[entry["component"]].outletArea
     return components, order
 
 class System:
