@@ -1067,6 +1067,16 @@ class ParallelComponents(ComponentCollection):
             "upper_plenum": self._upperPlenum,
         }
 
+        if self._lowerPlenum._theta != self._upperPlenum._theta:
+            raise Exception('Parallel component theta for lower and upper plenums must match!')
+        if self._lowerPlenum._alpha != self._upperPlenum._alpha:
+            raise Exception('Parallel component alpha for lower and upper plenums must match!')
+
+        self._theta = self._lowerPlenum._theta
+        self._alpha = self._lowerPlenum._alpha
+
+        parallel_in_area = 0.0
+        parallel_out_area = 0.0
         if annulus is None:
             self._annulus = None
         else:
@@ -1074,8 +1084,29 @@ class ParallelComponents(ComponentCollection):
             comp_type, parameters = list(annulus.items())[0]
             self._annulus = component_list[comp_type](**parameters)
             myComponents["annulus"] = self._annulus
+            parallel_in_area += self._annulus.inletArea
+            parallel_out_area += self._annulus.outletArea
 
+        #check if the inlet and outlet match
+        for tkey in self._myParallelComponents.keys():
+            parallel_in_area += self._myParallelComponents[tkey].inletArea
+            parallel_out_area += self._myParallelComponents[tkey].outletArea
         self._kwargs = kwargs
+        inout_matches = True
+        if np.abs(parallel_in_area-self._lowerPlenum.outletArea) > 1.0E-12*parallel_in_area:
+            print(f"ERROR: Lower plenum outlet area is {self._lowerPlenum.outletArea} (equivalent radius "
+                  +f"{np.sqrt(self._lowerPlenum.outletArea/math.pi)}) but parallel components inlet area is "
+                  +f"{parallel_in_area} (equivalent radius {np.sqrt(parallel_in_area/math.pi)})")
+            inout_matches = False
+        if np.abs(parallel_out_area-self._upperPlenum.inletArea) > 1.0E-12*parallel_out_area:
+            print(f"ERROR: Upper plenum outlet area is {self._upperPlenum.inletArea} (equivalent radius "
+                  +f"{np.sqrt(self._upperPlenum.inletArea/math.pi)}) but parallel components inlet area is "
+                  +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/math.pi)})")
+            inout_matches = False
+        if not inout_matches:
+          raise Exception(f'FATAL ERROR: Parallel component lower plenum outlet area must match sum of inlet areas of '
+                          +f'the parallel components and upper plenum inlet area must match sum of outlet areas of the '
+                          +f'parallel components')
         super().__init__(myComponents)
 
     @property
@@ -1365,6 +1396,13 @@ class SerialComponents(ComponentCollection):
         super().__init__(cont_components)
         self._order = order
         self._kwargs = kwargs
+        if cont_components[order[0]]._theta != cont_components[order[-1]]._theta:
+            raise Exception('Serial component theta for first and last components must match!')
+        if cont_components[order[0]]._alpha != cont_components[order[-1]]._alpha:
+            raise Exception('Serial component alpha for first and last components must match!')
+
+        self._theta = cont_components[order[0]]._theta
+        self._alpha = cont_components[order[0]]._alpha
 
     @property
     def firstComponent(self) -> Component:
