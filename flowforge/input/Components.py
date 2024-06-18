@@ -6,6 +6,7 @@ from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
+import math
 
 _CYL_RESOLUTION = 50
 
@@ -1359,7 +1360,9 @@ class SerialComponents(ComponentCollection):
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
-        super().__init__(component_factory(components))
+        cont_components = component_factory(components)
+        cont_components, order = cont_factory(cont_components,order)
+        super().__init__(cont_components)
         self._order = order
         self._kwargs = kwargs
 
@@ -1448,5 +1451,27 @@ class SerialComponents(ComponentCollection):
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
 
+def cont_factory(cont_components, order):
+    num_connects=0
+    discont_found = True
+    while discont_found:
+        discont_found=False
+        #initialize the previous area as the first area
+        prev_area = cont_components[order[0]].inletArea
+        for i, entry in enumerate(order):
+            if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*(prev_area+cont_components[entry].inletArea)/2:
+                print(f'[In Serial]: Warning: Adjacent components have different areas {prev_area} and {cont_components[entry].inletArea}')
+                print(f'[In Serial]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-cont_components[entry].inletArea)})')
+                tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
+                                  math.sqrt(cont_components[entry].inletArea/math.pi),
+                                  theta=cont_components[entry]._theta,alpha=cont_components[entry]._alpha,
+                                  Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
+                cont_components[f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] = deepcopy(tempnozzle)
+                order = order[0:i] + [f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] + order[i:len(order)]
+                num_connects += 1
+                discont_found = True
+                break
+            prev_area = cont_components[entry].outletArea
+    return cont_components, order
 
 component_list["serial_components"] = SerialComponents

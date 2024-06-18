@@ -9,15 +9,15 @@ from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
 
 def make_continuous(components: List[Component], order: List[dict]):
     num_connects=0
-    #initialize the previous area as the first area
     discont_found = True
     while discont_found:
         discont_found=False
+        #initialize the previous area as the first area
         prev_area = components[order[0]["component"]].inletArea
         for i, entry in enumerate(order):
             if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
-                print(f'Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
-                print(f'MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-components[entry["component"]].inletArea)})')
+                print(f'[In system]: Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
+                print(f'[In system]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-components[entry["component"]].inletArea)})')
                 tempnozzle=Nozzle(L=1.0E-64,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
                                   math.sqrt(components[entry["component"]].inletArea/math.pi),
                                   theta=components[entry["component"]]._theta,alpha=components[entry["component"]]._alpha,
