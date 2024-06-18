@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple, Generator
 from copy import deepcopy
-import math
+import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle
@@ -18,9 +18,9 @@ def make_continuous(components: List[Component], order: List[dict]):
             if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
                 print(f'[In system]: Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
                 print(f'[In system]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-components[entry["component"]].inletArea)})')
-                tempnozzle=Nozzle(L=1.0E-64,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
-                                  math.sqrt(components[entry["component"]].inletArea/math.pi),
-                                  theta=components[entry["component"]]._theta,alpha=components[entry["component"]]._alpha,
+                tempnozzle=Nozzle(L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
+                                  np.sqrt(components[entry["component"]].inletArea/np.pi),
+                                  theta=components[entry["component"]]._theta*180/np.pi,alpha=components[entry["component"]]._alpha,
                                   Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
                 components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] = deepcopy(tempnozzle)
                 order = order[0:i] + [{'component' : f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'}] + order[i:len(order)]

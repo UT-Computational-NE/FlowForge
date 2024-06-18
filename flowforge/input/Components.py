@@ -6,7 +6,6 @@ from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
-import math
 
 _CYL_RESOLUTION = 50
 
@@ -1095,13 +1094,13 @@ class ParallelComponents(ComponentCollection):
         inout_matches = True
         if np.abs(parallel_in_area-self._lowerPlenum.outletArea) > 1.0E-12*parallel_in_area:
             print(f"ERROR: Lower plenum outlet area is {self._lowerPlenum.outletArea} (equivalent radius "
-                  +f"{np.sqrt(self._lowerPlenum.outletArea/math.pi)}) but parallel components inlet area is "
-                  +f"{parallel_in_area} (equivalent radius {np.sqrt(parallel_in_area/math.pi)})")
+                  +f"{np.sqrt(self._lowerPlenum.outletArea/np.pi)}) but parallel components inlet area is "
+                  +f"{parallel_in_area} (equivalent radius {np.sqrt(parallel_in_area/np.pi)})")
             inout_matches = False
         if np.abs(parallel_out_area-self._upperPlenum.inletArea) > 1.0E-12*parallel_out_area:
             print(f"ERROR: Upper plenum outlet area is {self._upperPlenum.inletArea} (equivalent radius "
-                  +f"{np.sqrt(self._upperPlenum.inletArea/math.pi)}) but parallel components inlet area is "
-                  +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/math.pi)})")
+                  +f"{np.sqrt(self._upperPlenum.inletArea/np.pi)}) but parallel components inlet area is "
+                  +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/np.pi)})")
             inout_matches = False
         if not inout_matches:
           raise Exception(f'FATAL ERROR: Parallel component lower plenum outlet area must match sum of inlet areas of '
@@ -1497,12 +1496,13 @@ def cont_factory(cont_components, order):
         #initialize the previous area as the first area
         prev_area = cont_components[order[0]].inletArea
         for i, entry in enumerate(order):
+            # print(cont_components[entry]._alpha)
             if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*(prev_area+cont_components[entry].inletArea)/2:
                 print(f'[In Serial]: Warning: Adjacent components have different areas {prev_area} and {cont_components[entry].inletArea}')
                 print(f'[In Serial]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-cont_components[entry].inletArea)})')
-                tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=math.sqrt(prev_area/math.pi),R_outlet=
-                                  math.sqrt(cont_components[entry].inletArea/math.pi),
-                                  theta=cont_components[entry]._theta,alpha=cont_components[entry]._alpha,
+                tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
+                                  np.sqrt(cont_components[entry].inletArea/np.pi),
+                                  theta=cont_components[entry]._theta*180/np.pi,alpha=cont_components[entry]._alpha,
                                   Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
                 cont_components[f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] = deepcopy(tempnozzle)
                 order = order[0:i] + [f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] + order[i:len(order)]
