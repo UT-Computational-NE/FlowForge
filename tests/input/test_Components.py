@@ -64,8 +64,8 @@ def test_tank():
 def test_parallel():
     components = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}}}
     centroids = {"p1": [0, 0]}
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
+    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.1090536506409416}}
+    uplen = {"nozzle": {"L": 1, "R_inlet": 1.1090536506409416, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     p = ParallelComponents(components, centroids, lplen, uplen, annulus)
     p._convertUnits(uc)
@@ -83,8 +83,8 @@ def test_parallel():
 def test_hexcore():
     components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
     hexmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
+    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 0.648074069840786}}
+    uplen = {"nozzle": {"L": 1, "R_inlet": 0.648074069840786, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     hc = HexCore(pitch=3, components=components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
     hc._convertUnits(uc)
@@ -107,7 +107,7 @@ def test_serial():
     assert s._myComponents["p2"].hydraulicDiameter == 0.04
     for pipe in order:
         assert pipe in serial_dict["pipe"]
-    assert s.nCell == 11
+    assert s.nCell == 12
     assert s.getOutlet((0, 0, 0)) == (0, 0, 0.11)
 
 
@@ -123,16 +123,16 @@ def generate_components():
 
     parallel_components = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}}}
     centroids = {"p1": [0, 0]}
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
+    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.1090536506409416}}
+    uplen = {"nozzle": {"L": 1, "R_inlet": 1.1090536506409416, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     p = ParallelComponents(parallel_components, centroids, lplen, uplen, annulus)
     components["parallel"] = p
 
     hexcore_components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
     hexmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
+    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 0.648074069840786}}
+    uplen = {"nozzle": {"L": 1, "R_inlet": 0.648074069840786, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     hc = HexCore(
         pitch=3, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
@@ -161,8 +161,8 @@ def generate_components():
     }
 
     hexmap = [[1, 2], [1, 1, 1], [1, 1]]
-    lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0}}
-    uplen = {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949}}
+    lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 13.228756555322954}}
+    uplen = {"nozzle": {"L": 2.5, "R_inlet": 4.162257079998783, "R_outlet": 2.949}}
     hc = HexCore(pitch=0.1016, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen)
     components["hexcore2"] = hc
 
