@@ -1112,8 +1112,8 @@ class ParallelComponents(ComponentCollection):
                   +f"{parallel_in_area} (equivalent radius {np.sqrt(parallel_in_area/np.pi)})")
             inout_matches = False
         if np.abs(parallel_out_area-self._upperPlenum.inletArea) > 1.0E-12*parallel_out_area:
-            print(f"ERROR: Upper plenum outlet area is {self._upperPlenum.inletArea} (equivalent radius "
-                  +f"{np.sqrt(self._upperPlenum.inletArea/np.pi)}) but parallel components inlet area is "
+            print(f"ERROR: Upper plenum inlet area is {self._upperPlenum.inletArea} (equivalent radius "
+                  +f"{np.sqrt(self._upperPlenum.inletArea/np.pi)}) but parallel components outlet area is "
                   +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/np.pi)})")
             inout_matches = False
         if not inout_matches:
