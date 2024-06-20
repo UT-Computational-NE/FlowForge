@@ -15,15 +15,17 @@ def make_continuous(components: List[Component], order: List[dict]):
         #initialize the previous area as the first area
         prev_area = components[order[0]["component"]].inletArea
         for i, entry in enumerate(order):
-            if abs(prev_area-components[entry["component"]].inletArea) > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
-                print(f'[In system]: Warning: Adjacent components have different areas {prev_area} and {components[entry["component"]].inletArea}')
-                print(f'[In system]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-components[entry["component"]].inletArea)})')
+            if abs(prev_area-components[entry["component"]].inletArea) \
+              > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
                 tempnozzle=Nozzle(L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
                                   np.sqrt(components[entry["component"]].inletArea/np.pi),
-                                  theta=components[entry["component"]]._theta*180/np.pi,alpha=components[entry["component"]]._alpha,
+                                  theta=components[entry["component"]].theta*180/np.pi,\
+                                    alpha = components[entry["component"]].alpha,
                                   Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
-                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] = deepcopy(tempnozzle)
-                order = order[0:i] + [{'component' : f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'}] + order[i:len(order)]
+                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] \
+                  = deepcopy(tempnozzle)
+                order = order[0:i] + [{'component' : 'temp_nozzle_for_make_continuous_creation_in_system_' \
+                                       + f'{entry["component"]}_{num_connects}'}] + order[i:len(order)]
                 num_connects += 1
                 discont_found = True
                 break
@@ -101,6 +103,7 @@ class System:
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
+        components, loop = make_continuous(components,loop)
         self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):

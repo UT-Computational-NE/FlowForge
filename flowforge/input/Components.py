@@ -17,7 +17,7 @@ This can be used in a factory to build each component in a system.
 """
 component_list = {}
 
-
+# pylint: disable=too-many-public-methods
 @add_metaclass(abc.ABCMeta)
 class Component:
     """Base class for all components of the system.
@@ -48,6 +48,10 @@ class Component:
         The inlet area of the component
     outletArea : float
         The outlet area of the component
+    theta : float
+        Orientation angle of the component in the polar direction
+    alpha : float
+        Orientation angle of the component in the azimuthal direction
     """
 
     def __init__(self) -> None:
@@ -56,6 +60,8 @@ class Component:
         self._klossInlet = 0.0
         self._klossOutlet = 0.0
         self._klossAvg = 0.0
+        self._theta = 0.0
+        self._alpha = 0.0
 
     @property
     @abc.abstractmethod
@@ -109,6 +115,14 @@ class Component:
     @property
     def outletArea(self) -> float:
         return self.flowArea
+
+    @property
+    def theta(self) -> int:
+        return self._theta
+
+    @property
+    def alpha(self) -> int:
+        return self._alpha
 
     @property
     def baseComponents(self) -> List[Component]:
@@ -1087,9 +1101,9 @@ class ParallelComponents(ComponentCollection):
             parallel_out_area += self._annulus.outletArea
 
         #check if the inlet and outlet match
-        for tkey in self._myParallelComponents.keys():
-            parallel_in_area += self._myParallelComponents[tkey].inletArea
-            parallel_out_area += self._myParallelComponents[tkey].outletArea
+        for tname, titem in self._myParallelComponents.items():
+            parallel_in_area += titem.inletArea
+            parallel_out_area += titem.outletArea
         self._kwargs = kwargs
         inout_matches = True
         if np.abs(parallel_in_area-self._lowerPlenum.outletArea) > 1.0E-12*parallel_in_area:
@@ -1103,9 +1117,9 @@ class ParallelComponents(ComponentCollection):
                   +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/np.pi)})")
             inout_matches = False
         if not inout_matches:
-          raise Exception(f'FATAL ERROR: Parallel component lower plenum outlet area must match sum of inlet areas of '
-                          +f'the parallel components and upper plenum inlet area must match sum of outlet areas of the '
-                          +f'parallel components')
+            raise Exception('FATAL ERROR: Parallel component lower plenum outlet area must match sum of inlet areas of '
+                            +'the parallel components and upper plenum inlet area must match sum of outlet areas of the '
+                            +'parallel components')
         super().__init__(myComponents)
 
     @property
@@ -1498,14 +1512,14 @@ def cont_factory(cont_components, order):
         for i, entry in enumerate(order):
             # print(cont_components[entry]._alpha)
             if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*(prev_area+cont_components[entry].inletArea)/2:
-                print(f'[In Serial]: Warning: Adjacent components have different areas {prev_area} and {cont_components[entry].inletArea}')
-                print(f'[In Serial]: MAKING A NOZZLE CONNECTION! (area diff {abs(prev_area-cont_components[entry].inletArea)})')
                 tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
                                   np.sqrt(cont_components[entry].inletArea/np.pi),
                                   theta=cont_components[entry]._theta*180/np.pi,alpha=cont_components[entry]._alpha,
                                   Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
-                cont_components[f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] = deepcopy(tempnozzle)
-                order = order[0:i] + [f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] + order[i:len(order)]
+                cont_components[f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] \
+                  = deepcopy(tempnozzle)
+                order = order[0:i] + [f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] \
+                  + order[i:len(order)]
                 num_connects += 1
                 discont_found = True
                 break
