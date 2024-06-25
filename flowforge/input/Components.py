@@ -1058,35 +1058,18 @@ class ParallelComponents(ComponentCollection):
         self,
         parallel_components: Dict,
         centroids: Dict[str, List[float]],
-        lower_plenum: Dict[str, Dict[str, float]],
-        upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         **kwargs,
     ) -> None:
         self._myParallelComponents = component_factory(parallel_components)
         self._centroids = centroids
 
-        assert len(lower_plenum) == 1
-        comp_type, parameters = list(lower_plenum.items())[0]
-        self._lowerPlenum = component_list[comp_type](**parameters)
-
-        assert len(upper_plenum) == 1
-        comp_type, parameters = list(upper_plenum.items())[0]
-        self._upperPlenum = component_list[comp_type](**parameters)
-
-        myComponents = {
-            **self._myParallelComponents,
-            "lower_plenum": self._lowerPlenum,
-            "upper_plenum": self._upperPlenum,
-        }
-
-        if self._lowerPlenum._theta != self._upperPlenum._theta:
-            raise Exception('Parallel component theta for lower and upper plenums must match!')
-        if self._lowerPlenum._alpha != self._upperPlenum._alpha:
-            raise Exception('Parallel component alpha for lower and upper plenums must match!')
+        myComponents = {**self._myParallelComponents}
 
         parallel_in_area = 0.0
         parallel_out_area = 0.0
+        parallel_theta = myComponents[next(iter(myComponents))].theta
+        parallel_alpha = myComponents[next(iter(myComponents))].alpha
         if annulus is None:
             self._annulus = None
         else:
@@ -1096,31 +1079,36 @@ class ParallelComponents(ComponentCollection):
             myComponents["annulus"] = self._annulus
             parallel_in_area += self._annulus.inletArea
             parallel_out_area += self._annulus.outletArea
+            parallel_theta = self._annulus.theta
+            parallel_alpha = self._annulus.alpha
 
-        #check if the inlet and outlet match
+        #compute the inlet and outlet area
         for tname, titem in self._myParallelComponents.items():
             parallel_in_area += titem.inletArea
             parallel_out_area += titem.outletArea
+            if parallel_theta != titem.theta:
+                raise Exception('ERROR: All parallel items must have same theta')
+            if parallel_alpha != titem.alpha:
+                raise Exception('ERROR: All parallel items must have same alpha')
+            parallel_theta = titem.theta
+            parallel_alpha = titem.alpha
+
+        self._lowerPlenum = component_list["pipe"](R = np.sqrt(parallel_in_area/np.pi), L = 1.0E-64,
+                                                   theta = parallel_theta*180/np.pi,
+                                                   alpha = parallel_alpha)
+        myComponents['lower_plenum'] = self._lowerPlenum
+
+        self._upperPlenum = component_list["pipe"](R = np.sqrt(parallel_out_area/np.pi), L = 1.0E-64,
+                                                   theta = parallel_theta*180/np.pi,
+                                                   alpha = parallel_alpha)
+        myComponents['upper_plenum'] = self._upperPlenum
+
         self._kwargs = kwargs
-        inout_matches = True
-        if np.abs(parallel_in_area-self._lowerPlenum.outletArea) > 1.0E-12*parallel_in_area:
-            print(f"ERROR: Lower plenum outlet area is {self._lowerPlenum.outletArea} (equivalent radius "
-                  +f"{np.sqrt(self._lowerPlenum.outletArea/np.pi)}) but parallel components inlet area is "
-                  +f"{parallel_in_area} (equivalent radius {np.sqrt(parallel_in_area/np.pi)})")
-            inout_matches = False
-        if np.abs(parallel_out_area-self._upperPlenum.inletArea) > 1.0E-12*parallel_out_area:
-            print(f"ERROR: Upper plenum inlet area is {self._upperPlenum.inletArea} (equivalent radius "
-                  +f"{np.sqrt(self._upperPlenum.inletArea/np.pi)}) but parallel components outlet area is "
-                  +f"{parallel_out_area} (equivalent radius {np.sqrt(parallel_out_area/np.pi)})")
-            inout_matches = False
-        if not inout_matches:
-            raise Exception('FATAL ERROR: Parallel component lower plenum outlet area must match sum of inlet areas of '
-                            +'the parallel components and upper plenum inlet area must match sum of outlet areas of the '
-                            +'parallel components')
+
         super().__init__(myComponents)
 
-        self._theta = deepcopy(self._lowerPlenum._theta)
-        self._alpha = deepcopy(self._lowerPlenum._alpha)
+        self._theta = self._lowerPlenum.theta
+        self._alpha = self._lowerPlenum.alpha
 
     @property
     def firstComponent(self) -> Component:
@@ -1283,8 +1271,6 @@ class HexCore(ParallelComponents):
         pitch: float,
         components: Dict,
         hexmap: List[List[int]],
-        lower_plenum: Dict[str, Dict[str, float]],
-        upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
         **kwargs,
@@ -1307,7 +1293,7 @@ class HexCore(ParallelComponents):
                     self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
                 extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
-        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+        super().__init__(extended_comps, centroids, annulus, **kwargs)
 
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
