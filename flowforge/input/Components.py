@@ -117,11 +117,11 @@ class Component:
         return self.flowArea
 
     @property
-    def theta(self) -> int:
+    def theta(self) -> float:
         return self._theta
 
     @property
-    def alpha(self) -> int:
+    def alpha(self) -> float:
         return self._alpha
 
     @property
@@ -1085,9 +1085,6 @@ class ParallelComponents(ComponentCollection):
         if self._lowerPlenum._alpha != self._upperPlenum._alpha:
             raise Exception('Parallel component alpha for lower and upper plenums must match!')
 
-        self._theta = self._lowerPlenum._theta
-        self._alpha = self._lowerPlenum._alpha
-
         parallel_in_area = 0.0
         parallel_out_area = 0.0
         if annulus is None:
@@ -1121,6 +1118,9 @@ class ParallelComponents(ComponentCollection):
                             +'the parallel components and upper plenum inlet area must match sum of outlet areas of the '
                             +'parallel components')
         super().__init__(myComponents)
+
+        self._theta = deepcopy(self._lowerPlenum._theta)
+        self._alpha = deepcopy(self._lowerPlenum._alpha)
 
     @property
     def firstComponent(self) -> Component:
