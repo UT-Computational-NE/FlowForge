@@ -1036,6 +1036,14 @@ class ParallelComponents(ComponentCollection):
         The collection of parallel components
     centroids : Dict[str, List[float]]
         The centroids of the parallel components
+    lowerManifold : Component
+        The lower manifold of the parallel components
+    upperManifold : Component
+        The upper manifold of the parallel components
+    lowerNozzle : Component
+        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
+    upperNozzle : Component
+        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
     lowerPlenum : Component
         The lower plenum of the parallel components
     upperPlenum : Component
@@ -1058,18 +1066,22 @@ class ParallelComponents(ComponentCollection):
         self,
         parallel_components: Dict,
         centroids: Dict[str, List[float]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         **kwargs,
     ) -> None:
+        #parallel components first
         self._myParallelComponents = component_factory(parallel_components)
         self._centroids = centroids
-
+        #add parallel components to my components
         myComponents = {**self._myParallelComponents}
 
         parallel_in_area = 0.0
         parallel_out_area = 0.0
         parallel_theta = myComponents[next(iter(myComponents))].theta
         parallel_alpha = myComponents[next(iter(myComponents))].alpha
+        #add an anulus if present
         if annulus is None:
             self._annulus = None
         else:
@@ -1086,22 +1098,46 @@ class ParallelComponents(ComponentCollection):
         for tname, titem in self._myParallelComponents.items():
             parallel_in_area += titem.inletArea
             parallel_out_area += titem.outletArea
-            if parallel_theta != titem.theta:
-                raise Exception('ERROR: All parallel items must have same theta')
-            if parallel_alpha != titem.alpha:
-                raise Exception('ERROR: All parallel items must have same alpha')
+            assert(parallel_theta == titem.theta)
+            assert(parallel_alpha == titem.alpha)
             parallel_theta = titem.theta
             parallel_alpha = titem.alpha
 
-        self._lowerPlenum = component_list["pipe"](R = np.sqrt(parallel_in_area/np.pi), L = 1.0E-64,
+        #create the manifolds
+        self._lowerManifold = component_list["pipe"](R = np.sqrt(parallel_in_area/np.pi), L = 1.0E-64,
                                                    theta = parallel_theta*180/np.pi,
                                                    alpha = parallel_alpha)
-        myComponents['lower_plenum'] = self._lowerPlenum
+        myComponents['lower_manifold'] = self._lowerManifold
+        self._upperManifold = component_list["pipe"](R = np.sqrt(parallel_out_area/np.pi), L = 1.0E-64,
+                                                   theta = parallel_theta*180/np.pi,
+                                                   alpha = parallel_alpha)
+        myComponents['upper_manifold'] = self._upperManifold
 
-        self._upperPlenum = component_list["pipe"](R = np.sqrt(parallel_out_area/np.pi), L = 1.0E-64,
-                                                   theta = parallel_theta*180/np.pi,
-                                                   alpha = parallel_alpha)
+        #add the upper and lower plenums
+        assert len(lower_plenum) == 1
+        comp_type, parameters = list(lower_plenum.items())[0]
+        self._lowerPlenum = component_list[comp_type](**parameters)
+        myComponents['lower_plenum'] = self._lowerPlenum
+        assert(parallel_theta == self._lowerPlenum.theta)
+        assert(parallel_alpha == self._lowerPlenum.alpha)
+        assert len(upper_plenum) == 1
+        comp_type, parameters = list(upper_plenum.items())[0]
+        self._upperPlenum = component_list[comp_type](**parameters)
         myComponents['upper_plenum'] = self._upperPlenum
+        assert(parallel_theta == self._upperPlenum.theta)
+        assert(parallel_alpha == self._upperPlenum.alpha)
+
+        #create the nozzles connecting manifolds to plenums
+        self._lowerNozzle = component_list["nozzle"](R_inlet=np.sqrt(self._lowerPlenum.outletArea/np.pi),
+                                                     R_outlet = np.sqrt(self._lowerManifold.inletArea/np.pi),
+                                                     L = 1.0E-64, theta = parallel_theta*180/np.pi,
+                                                     alpha = parallel_alpha)
+        myComponents['lower_nozzle'] = self._lowerNozzle
+        self._upperNozzle = component_list["nozzle"](R_inlet=np.sqrt(self._upperPlenum.inletArea/np.pi),
+                                                     R_outlet = np.sqrt(self._upperManifold.outletArea/np.pi),
+                                                     L = 1.0E-64, theta = parallel_theta*180/np.pi,
+                                                     alpha = parallel_alpha)
+        myComponents['upper_nozzle'] = self._upperNozzle
 
         self._kwargs = kwargs
 
@@ -1137,6 +1173,8 @@ class ParallelComponents(ComponentCollection):
     @property
     def length(self) -> float:
         L = self._lowerPlenum.length + self._upperPlenum.length
+        L += self._lowerManifold.length + self._upperManifold.length
+        L += self._lowerNozzle.length + self._upperNozzle.length
         L += self._myParallelComponents[list(self._myParallelComponents.keys())[0]].length
         return L
 
@@ -1151,6 +1189,8 @@ class ParallelComponents(ComponentCollection):
     @property
     def nCell(self) -> int:
         ncell = self._lowerPlenum.nCell + self._upperPlenum.nCell
+        ncell += self._lowerManifold.nCell + self._upperManifold.nCell
+        ncell += self._lowerNozzle.nCell + self._upperNozzle.nCell
         if self._annulus is not None:
             ncell += self._annulus.nCell
         for cname in self._centroids.keys():
@@ -1173,6 +1213,22 @@ class ParallelComponents(ComponentCollection):
     @property
     def upperPlenum(self) -> Component:
         return self._upperPlenum
+
+    @property
+    def lowerManifold(self) -> Component:
+        return self._lowerManifold
+
+    @property
+    def upperManifold(self) -> Component:
+        return self._upperManifold
+
+    @property
+    def lowerNozzle(self) -> Component:
+        return self._lowerNozzle
+
+    @property
+    def upperNozzle(self) -> Component:
+        return self._upperNozzle
 
     @property
     def annulus(self) -> Component:
@@ -1248,6 +1304,14 @@ class HexCore(ParallelComponents):
         The collection of parallel components
     centroids : Dict[str, List[float]]
         The centroids of the parallel components
+    lowerManifold : Component
+        The lower manifold of the parallel components
+    upperManifold : Component
+        The upper manifold of the parallel components
+    lowerNozzle : Component
+        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
+    upperNozzle : Component
+        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
     lowerPlenum : Component
         The lower plenum of the parallel components
     upperPlenum : Component
@@ -1271,6 +1335,8 @@ class HexCore(ParallelComponents):
         pitch: float,
         components: Dict,
         hexmap: List[List[int]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
         **kwargs,
@@ -1293,7 +1359,7 @@ class HexCore(ParallelComponents):
                     self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
                 extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
-        super().__init__(extended_comps, centroids, annulus, **kwargs)
+        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
 
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
