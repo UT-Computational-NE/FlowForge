@@ -1098,8 +1098,8 @@ class ParallelComponents(ComponentCollection):
         for tname, titem in self._myParallelComponents.items():
             parallel_in_area += titem.inletArea
             parallel_out_area += titem.outletArea
-            assert(parallel_theta == titem.theta)
-            assert(parallel_alpha == titem.alpha)
+            assert parallel_theta == titem.theta
+            assert parallel_alpha == titem.alpha
             parallel_theta = titem.theta
             parallel_alpha = titem.alpha
 
@@ -1118,14 +1118,14 @@ class ParallelComponents(ComponentCollection):
         comp_type, parameters = list(lower_plenum.items())[0]
         self._lowerPlenum = component_list[comp_type](**parameters)
         myComponents['lower_plenum'] = self._lowerPlenum
-        assert(parallel_theta == self._lowerPlenum.theta)
-        assert(parallel_alpha == self._lowerPlenum.alpha)
+        assert parallel_theta == self._lowerPlenum.theta
+        assert parallel_alpha == self._lowerPlenum.alpha
         assert len(upper_plenum) == 1
         comp_type, parameters = list(upper_plenum.items())[0]
         self._upperPlenum = component_list[comp_type](**parameters)
         myComponents['upper_plenum'] = self._upperPlenum
-        assert(parallel_theta == self._upperPlenum.theta)
-        assert(parallel_alpha == self._upperPlenum.alpha)
+        assert parallel_theta == self._upperPlenum.theta
+        assert parallel_alpha == self._upperPlenum.alpha
 
         #create the nozzles connecting manifolds to plenums
         self._lowerNozzle = component_list["nozzle"](R_inlet=np.sqrt(self._lowerPlenum.outletArea/np.pi),
@@ -1348,7 +1348,7 @@ class HexCore(ParallelComponents):
         extended_comps = {}
         centroids = {}
         if self._orificing is not None: #making sure shape of map == shape of orficing
-            assert(len( self._map) == len(self._orificing))
+            assert len( self._map) == len(self._orificing)
             assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
