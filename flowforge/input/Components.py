@@ -1555,6 +1555,23 @@ class SerialComponents(ComponentCollection):
         raise NotImplementedError
 
 def cont_factory(cont_components, order):
+    """Private method makes serial components continuous with respect to area change
+
+    This method takes in a list of components and their order and inserts infitesimal nozzles between them
+    that make the area change transitions continuous
+
+    Parameters
+    ----------
+    cont_components : list
+        list of components
+    order : list
+        order of those components
+
+    Returns
+    -------
+    list, list
+        The new component list and order with the inserted nozzles
+    """
     num_connects=0
     discont_found = True
     while discont_found:
