@@ -1579,7 +1579,7 @@ def cont_factory(cont_components, order):
         #initialize the previous area as the first area
         prev_area = cont_components[order[0]].inletArea
         for i, entry in enumerate(order):
-            if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*(prev_area+cont_components[entry].inletArea)/2:
+            if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*min(prev_area,cont_components[entry].inletArea):
                 tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
                                   np.sqrt(cont_components[entry].inletArea/np.pi),
                                   theta=cont_components[entry]._theta*180/np.pi,alpha=cont_components[entry]._alpha,

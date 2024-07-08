@@ -33,7 +33,7 @@ def make_continuous(components: List[Component], order: List[dict]):
         prev_area = components[order[0]["component"]].inletArea
         for i, entry in enumerate(order):
             if abs(prev_area-components[entry["component"]].inletArea) \
-              > 1.0E-12*(prev_area+components[entry["component"]].inletArea)/2:
+              > 1.0E-12*min(prev_area,components[entry["component"]].inletArea):
                 tempnozzle=Nozzle(L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
                                   np.sqrt(components[entry["component"]].inletArea/np.pi),
                                   theta=components[entry["component"]].theta*180/np.pi,\
