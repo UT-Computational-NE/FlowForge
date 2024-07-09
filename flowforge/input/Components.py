@@ -520,14 +520,14 @@ class Pump(Component):
         Change in height experienced by the fluid across the pump
     dP : float
         Change in pressure of the fluid caused by the pump
-    roughness : float
-        Pump roughness
     Klossinlet : float
         K-loss coefficient associated with pressure loss at the inlet of the pump
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the pump
     Klossavg : float
         K-loss coefficient associated with pressure loss across the pump
+    roughness : float
+        Pump roughness
     ptcHeated : float
         Fraction of the pump perimeter that is heated. Uses Dh to determine wetted perimeter
     """
@@ -539,12 +539,12 @@ class Pump(Component):
         V: float,
         height: float,
         dP: float,
-        roughness: float = 0.0,
         Klossinlet: float = 0.0,
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
+        roughness: float = 0.0,
         ptcHeated: float = 1.0,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__()
         self._Ac = Ac
