@@ -74,7 +74,7 @@ def test_parallel():
     assert p._myComponents["p1"].hydraulicDiameter == 0.02
     for component in centroids:
         assert component in components["pipe"] or components["annulus"]
-    assert p.nCell == 22
+    assert p.nCell == 26
     assert p._myComponents["p1"].getOutlet((0, 0, 0)) == p._annulus.getOutlet((0, 0, 0))
     assert p._upperPlenum.getOutlet((0, 0, 0)) == (0, 0, 0.01)
     assert p.getOutlet((0, 0, 0)) == (0, 0, 0.12)
@@ -88,7 +88,7 @@ def test_hexcore():
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     hc = HexCore(pitch=3, components=components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
     hc._convertUnits(uc)
-    assert hc.nCell == 69
+    assert hc.nCell == 73
     assert hc._pitch == 0.03
     assert hc._map == hexmap
     assert hc.getOutlet((0, 0, 0)) == (0, 0, 12 * _cm2m)
@@ -107,7 +107,7 @@ def test_serial():
     assert s._myComponents["p2"].hydraulicDiameter == 0.04
     for pipe in order:
         assert pipe in serial_dict["pipe"]
-    assert s.nCell == 11
+    assert s.nCell == 12
     assert s.getOutlet((0, 0, 0)) == (0, 0, 0.11)
 
 

@@ -1,10 +1,53 @@
 from typing import Dict, List, Tuple, Generator
 from copy import deepcopy
+import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
-from flowforge.input.Components import Component
+from flowforge.input.Components import Component, Nozzle
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
+
+def make_continuous(components: List[Component], order: List[dict]):
+    """Private method makes serial components continuous with respect to area change
+
+    This method takes in a list of components and their order and inserts infitesimal nozzles between them
+    that make the area change transitions continuous
+
+    Parameters
+    ----------
+    cont_components : list
+        list of components
+    order : list
+        order of those components
+
+    Returns
+    -------
+    list, list
+        The new component list and order with the inserted nozzles
+    """
+    num_connects=0
+    discont_found = True
+    while discont_found:
+        discont_found=False
+        #initialize the previous area as the first area
+        prev_area = components[order[0]["component"]].inletArea
+        for i, entry in enumerate(order):
+            if abs(prev_area-components[entry["component"]].inletArea) \
+              > 1.0E-12*min(prev_area,components[entry["component"]].inletArea):
+                tempnozzle=Nozzle(L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
+                                  np.sqrt(components[entry["component"]].inletArea/np.pi),
+                                  theta=components[entry["component"]].theta*180/np.pi,\
+                                    alpha = components[entry["component"]].alpha,
+                                  Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
+                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] \
+                  = deepcopy(tempnozzle)
+                order = order[0:i] + [{'component' : 'temp_nozzle_for_make_continuous_creation_in_system_' \
+                                       + f'{entry["component"]}_{num_connects}'}] + order[i:len(order)]
+                num_connects += 1
+                discont_found = True
+                break
+            prev_area = components[entry["component"]].outletArea
+    return components, order
 
 class System:
     """ A class for representing a whole system of components
@@ -77,6 +120,7 @@ class System:
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
+        components, loop = make_continuous(components,loop)
         self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
@@ -114,6 +158,7 @@ class System:
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
         """
+        components, order = make_continuous(components,order)
         self._fluidname = fluid.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):

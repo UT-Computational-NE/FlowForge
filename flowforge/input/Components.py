@@ -17,7 +17,7 @@ This can be used in a factory to build each component in a system.
 """
 component_list = {}
 
-
+# pylint: disable=too-many-public-methods
 @add_metaclass(abc.ABCMeta)
 class Component:
     """Base class for all components of the system.
@@ -48,6 +48,10 @@ class Component:
         The inlet area of the component
     outletArea : float
         The outlet area of the component
+    theta : float
+        Orientation angle of the component in the polar direction
+    alpha : float
+        Orientation angle of the component in the azimuthal direction
     """
 
     def __init__(self) -> None:
@@ -56,6 +60,8 @@ class Component:
         self._klossInlet = 0.0
         self._klossOutlet = 0.0
         self._klossAvg = 0.0
+        self._theta = 0.0
+        self._alpha = 0.0
 
     @property
     @abc.abstractmethod
@@ -109,6 +115,14 @@ class Component:
     @property
     def outletArea(self) -> float:
         return self.flowArea
+
+    @property
+    def theta(self) -> float:
+        return self._theta
+
+    @property
+    def alpha(self) -> float:
+        return self._alpha
 
     @property
     def baseComponents(self) -> List[Component]:
@@ -1022,6 +1036,14 @@ class ParallelComponents(ComponentCollection):
         The collection of parallel components
     centroids : Dict[str, List[float]]
         The centroids of the parallel components
+    lowerManifold : Component
+        The lower manifold of the parallel components
+    upperManifold : Component
+        The upper manifold of the parallel components
+    lowerNozzle : Component
+        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
+    upperNozzle : Component
+        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
     lowerPlenum : Component
         The lower plenum of the parallel components
     upperPlenum : Component
@@ -1049,23 +1071,17 @@ class ParallelComponents(ComponentCollection):
         annulus: Dict[str, Dict[str, float]] = None,
         **kwargs,
     ) -> None:
+        #parallel components first
         self._myParallelComponents = component_factory(parallel_components)
         self._centroids = centroids
+        #add parallel components to my components
+        myComponents = {**self._myParallelComponents}
 
-        assert len(lower_plenum) == 1
-        comp_type, parameters = list(lower_plenum.items())[0]
-        self._lowerPlenum = component_list[comp_type](**parameters)
-
-        assert len(upper_plenum) == 1
-        comp_type, parameters = list(upper_plenum.items())[0]
-        self._upperPlenum = component_list[comp_type](**parameters)
-
-        myComponents = {
-            **self._myParallelComponents,
-            "lower_plenum": self._lowerPlenum,
-            "upper_plenum": self._upperPlenum,
-        }
-
+        parallel_in_area = 0.0
+        parallel_out_area = 0.0
+        parallel_theta = myComponents[next(iter(myComponents))].theta
+        parallel_alpha = myComponents[next(iter(myComponents))].alpha
+        #add an anulus if present
         if annulus is None:
             self._annulus = None
         else:
@@ -1073,9 +1089,62 @@ class ParallelComponents(ComponentCollection):
             comp_type, parameters = list(annulus.items())[0]
             self._annulus = component_list[comp_type](**parameters)
             myComponents["annulus"] = self._annulus
+            parallel_in_area += self._annulus.inletArea
+            parallel_out_area += self._annulus.outletArea
+            parallel_theta = self._annulus.theta
+            parallel_alpha = self._annulus.alpha
+
+        #compute the inlet and outlet area
+        for tname, titem in self._myParallelComponents.items():
+            parallel_in_area += titem.inletArea
+            parallel_out_area += titem.outletArea
+            assert parallel_theta == titem.theta
+            assert parallel_alpha == titem.alpha
+            parallel_theta = titem.theta
+            parallel_alpha = titem.alpha
+
+        #create the manifolds
+        self._lowerManifold = component_list["pipe"](R = np.sqrt(parallel_in_area/np.pi), L = 1.0E-64,
+                                                   theta = parallel_theta*180/np.pi,
+                                                   alpha = parallel_alpha)
+        myComponents['lower_manifold'] = self._lowerManifold
+        self._upperManifold = component_list["pipe"](R = np.sqrt(parallel_out_area/np.pi), L = 1.0E-64,
+                                                   theta = parallel_theta*180/np.pi,
+                                                   alpha = parallel_alpha)
+        myComponents['upper_manifold'] = self._upperManifold
+
+        #add the upper and lower plenums
+        assert len(lower_plenum) == 1
+        comp_type, parameters = list(lower_plenum.items())[0]
+        self._lowerPlenum = component_list[comp_type](**parameters)
+        myComponents['lower_plenum'] = self._lowerPlenum
+        assert parallel_theta == self._lowerPlenum.theta
+        assert parallel_alpha == self._lowerPlenum.alpha
+        assert len(upper_plenum) == 1
+        comp_type, parameters = list(upper_plenum.items())[0]
+        self._upperPlenum = component_list[comp_type](**parameters)
+        myComponents['upper_plenum'] = self._upperPlenum
+        assert parallel_theta == self._upperPlenum.theta
+        assert parallel_alpha == self._upperPlenum.alpha
+
+        #create the nozzles connecting manifolds to plenums
+        self._lowerNozzle = component_list["nozzle"](R_inlet=np.sqrt(self._lowerPlenum.outletArea/np.pi),
+                                                     R_outlet = np.sqrt(self._lowerManifold.inletArea/np.pi),
+                                                     L = 1.0E-64, theta = parallel_theta*180/np.pi,
+                                                     alpha = parallel_alpha)
+        myComponents['lower_nozzle'] = self._lowerNozzle
+        self._upperNozzle = component_list["nozzle"](R_inlet=np.sqrt(self._upperPlenum.inletArea/np.pi),
+                                                     R_outlet = np.sqrt(self._upperManifold.outletArea/np.pi),
+                                                     L = 1.0E-64, theta = parallel_theta*180/np.pi,
+                                                     alpha = parallel_alpha)
+        myComponents['upper_nozzle'] = self._upperNozzle
 
         self._kwargs = kwargs
+
         super().__init__(myComponents)
+
+        self._theta = self._lowerPlenum.theta
+        self._alpha = self._lowerPlenum.alpha
 
     @property
     def firstComponent(self) -> Component:
@@ -1104,6 +1173,8 @@ class ParallelComponents(ComponentCollection):
     @property
     def length(self) -> float:
         L = self._lowerPlenum.length + self._upperPlenum.length
+        L += self._lowerManifold.length + self._upperManifold.length
+        L += self._lowerNozzle.length + self._upperNozzle.length
         L += self._myParallelComponents[list(self._myParallelComponents.keys())[0]].length
         return L
 
@@ -1118,6 +1189,8 @@ class ParallelComponents(ComponentCollection):
     @property
     def nCell(self) -> int:
         ncell = self._lowerPlenum.nCell + self._upperPlenum.nCell
+        ncell += self._lowerManifold.nCell + self._upperManifold.nCell
+        ncell += self._lowerNozzle.nCell + self._upperNozzle.nCell
         if self._annulus is not None:
             ncell += self._annulus.nCell
         for cname in self._centroids.keys():
@@ -1140,6 +1213,22 @@ class ParallelComponents(ComponentCollection):
     @property
     def upperPlenum(self) -> Component:
         return self._upperPlenum
+
+    @property
+    def lowerManifold(self) -> Component:
+        return self._lowerManifold
+
+    @property
+    def upperManifold(self) -> Component:
+        return self._upperManifold
+
+    @property
+    def lowerNozzle(self) -> Component:
+        return self._lowerNozzle
+
+    @property
+    def upperNozzle(self) -> Component:
+        return self._upperNozzle
 
     @property
     def annulus(self) -> Component:
@@ -1215,6 +1304,14 @@ class HexCore(ParallelComponents):
         The collection of parallel components
     centroids : Dict[str, List[float]]
         The centroids of the parallel components
+    lowerManifold : Component
+        The lower manifold of the parallel components
+    upperManifold : Component
+        The upper manifold of the parallel components
+    lowerNozzle : Component
+        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
+    upperNozzle : Component
+        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
     lowerPlenum : Component
         The lower plenum of the parallel components
     upperPlenum : Component
@@ -1251,7 +1348,7 @@ class HexCore(ParallelComponents):
         extended_comps = {}
         centroids = {}
         if self._orificing is not None: #making sure shape of map == shape of orficing
-            assert(len( self._map) == len(self._orificing))
+            assert len( self._map) == len(self._orificing)
             assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
@@ -1359,9 +1456,18 @@ class SerialComponents(ComponentCollection):
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
-        super().__init__(component_factory(components))
+        cont_components = component_factory(components)
+        cont_components, order = cont_factory(cont_components,order)
+        super().__init__(cont_components)
         self._order = order
         self._kwargs = kwargs
+        if cont_components[order[0]]._theta != cont_components[order[-1]]._theta:
+            raise Exception('Serial component theta for first and last components must match!')
+        if cont_components[order[0]]._alpha != cont_components[order[-1]]._alpha:
+            raise Exception('Serial component alpha for first and last components must match!')
+
+        self._theta = cont_components[order[0]]._theta
+        self._alpha = cont_components[order[0]]._alpha
 
     @property
     def firstComponent(self) -> Component:
@@ -1448,5 +1554,44 @@ class SerialComponents(ComponentCollection):
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
 
+def cont_factory(cont_components, order):
+    """Private method makes serial components continuous with respect to area change
+
+    This method takes in a list of components and their order and inserts infitesimal nozzles between them
+    that make the area change transitions continuous
+
+    Parameters
+    ----------
+    cont_components : list
+        list of components
+    order : list
+        order of those components
+
+    Returns
+    -------
+    list, list
+        The new component list and order with the inserted nozzles
+    """
+    num_connects=0
+    discont_found = True
+    while discont_found:
+        discont_found=False
+        #initialize the previous area as the first area
+        prev_area = cont_components[order[0]].inletArea
+        for i, entry in enumerate(order):
+            if abs(prev_area-cont_components[entry].inletArea) > 1.0E-12*min(prev_area,cont_components[entry].inletArea):
+                tempnozzle=component_list['nozzle'](L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
+                                  np.sqrt(cont_components[entry].inletArea/np.pi),
+                                  theta=cont_components[entry]._theta*180/np.pi,alpha=cont_components[entry]._alpha,
+                                  Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
+                cont_components[f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] \
+                  = deepcopy(tempnozzle)
+                order = order[0:i] + [f'temp_nozzle_for_make_continuous_creation_in_serialcomp_{entry}_{num_connects}'] \
+                  + order[i:len(order)]
+                num_connects += 1
+                discont_found = True
+                break
+            prev_area = cont_components[entry].outletArea
+    return cont_components, order
 
 component_list["serial_components"] = SerialComponents
