@@ -9,7 +9,7 @@ from flowforge.input.UnitConverter import UnitConverter
 
 _CYL_RESOLUTION = 50
 
-# pragma pylint: disable=protected-access, abstract-method
+# pragma pylint: disable=protected-access, abstract-method, too-many-public-methods
 
 """
 The components dictionary provides a key, value pair of each type of component.
@@ -41,7 +41,7 @@ class Component:
     klossOutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the component
     klossAvg : float
-        K-loss coefficient associated with pressure losss across the component
+        K-loss coefficient associated with pressure loss across the component
     volume : float
         The flow volume of the component
     inletArea : float
@@ -76,6 +76,11 @@ class Component:
     @property
     @abc.abstractmethod
     def hydraulicDiameter(self) -> float:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def heatedPerimeter(self) -> float:
         raise NotImplementedError
 
     @property
@@ -327,9 +332,12 @@ class Pipe(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the pipe
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the pipe
+        K-loss coefficient associated with pressure loss across the pipe
     roughness : float
         Pipe roughness
+    pctHeated: float
+        Fraction of the pipe that is heated. Used for calculating heated perimeter.
+        Defaults to 1 (i.e. the entire pipe is heated)
     """
 
     def __init__(
@@ -345,6 +353,7 @@ class Pipe(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
+        pctHeated: float = 1,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -374,6 +383,9 @@ class Pipe(Component):
         else:
             self._Dh = Dh
             self._Pw = 4.0 * self._Ac / self._Dh
+
+        self._heatedPerimeter = pctHeated * self._Pw
+
         self._temps = np.zeros(self.nCell)
 
     @property
@@ -387,6 +399,10 @@ class Pipe(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
@@ -423,6 +439,7 @@ class Pipe(Component):
         self._Dh *= uc.lengthConversion
         self._Pw *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["pipe"] = Pipe
@@ -468,6 +485,40 @@ class Tee(Pipe):
 component_list["tee"] = Tee
 
 
+class SimpleTank(Pipe):
+    """
+    The SimpleTank class is a de facto tee component that contains two nodes
+
+    The primary node connects east, west, and transverse surfaces.
+    The transverse node is connected to the primary node and enforces a pressure and scalar
+    boundary condition at the outer surface.
+
+    NOTE : The number of cells is 1 for this component, but it actually contains a second node
+    corresponding to the transverse element. In the future, this transverse node will be associated
+    with the transverse component instance (i.e., the transverse pipe connected to the tee junction)
+    instead.
+
+    Parameters
+    ----------
+    transverse_area : float
+        The cross sectional area of the transverse component/node/surface
+    transverse_height : float
+        The height of the transverse component/node
+    """
+
+    def __init__(self, transverse_area : float, transverse_height : float, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.transverseArea = transverse_area
+        self.transverseHeight = transverse_height
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        super()._convertUnits(uc)
+        self.transverseArea *= uc.areaConversion
+        self.transverseHeight *= uc.lengthConversion
+
+
+component_list["simple_tank"] = SimpleTank
+
 class Pump(Component):
     """A pump component
 
@@ -483,14 +534,16 @@ class Pump(Component):
         Change in height experienced by the fluid across the pump
     dP : float
         Change in pressure of the fluid caused by the pump
-    roughness : float
-        Pump roughness
     Klossinlet : float
         K-loss coefficient associated with pressure loss at the inlet of the pump
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the pump
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the pump
+        K-loss coefficient associated with pressure loss across the pump
+    roughness : float
+        Pump roughness
+    ptcHeated : float
+        Fraction of the pump perimeter that is heated. Uses Dh to determine wetted perimeter
     """
 
     def __init__(
@@ -504,7 +557,8 @@ class Pump(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
-        **kwargs
+        ptcHeated: float = 1.0,
+        **kwargs,
     ) -> None:
         super().__init__()
         self._Ac = Ac
@@ -519,6 +573,9 @@ class Pump(Component):
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
+        wettedPerimeter = np.pi * Dh
+        self._heatedPerimeter = ptcHeated * wettedPerimeter
+
     @property
     def flowArea(self) -> float:
         return self._Ac
@@ -530,6 +587,10 @@ class Pump(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
@@ -586,6 +647,7 @@ class Pump(Component):
         self._h *= uc.lengthConversion
         self._dP *= uc.pressureConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["pump"] = Pump
@@ -613,7 +675,9 @@ class Nozzle(Component):
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the nozzle
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the nozzle
+        K-loss coefficient associated with pressure loss across the nozzle
+    ptcHeated : float
+        Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
     """
 
     def __init__(
@@ -627,6 +691,7 @@ class Nozzle(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
+        ptcHeated: float = 1,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -645,6 +710,9 @@ class Nozzle(Component):
         self._roughness = roughness
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
+
+        wetted_perimeter = np.pi * (self._Rin + self._Rout) # 2 pi r and 1/2 from average also cancels
+        self._heatedPerimeter = ptcHeated * wetted_perimeter
 
     @property
     def flowArea(self) -> float:
@@ -665,6 +733,10 @@ class Nozzle(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
@@ -705,6 +777,7 @@ class Nozzle(Component):
         self._Dh *= uc.lengthConversion
         self._Ac *= uc.areaConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["nozzle"] = Nozzle
@@ -727,14 +800,16 @@ class Annulus(Component):
         Orientation angle in the polar direction
     alpha : float
         Orientation angle in the azimuthal direction
-    roughness : float
-        Annulus roughness
     Klossinlet : float
         K-loss coefficient associated with pressure loss at the inlet of the annulus
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the annulus
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the annulus
+        K-loss coefficient associated with pressure loss across the annulus
+    roughness : float
+        Annulus roughness
+    ptcHeated : float
+        Fraction of the annulus wetted perimeter that is heated. Used for calculating heated perimeter.
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
     """
@@ -751,6 +826,7 @@ class Annulus(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
+        ptcHeated: float = 1,
         resolution: int = _CYL_RESOLUTION,
         **kwargs,
     ) -> None:
@@ -769,6 +845,9 @@ class Annulus(Component):
         self._kwargs = kwargs
         self._temps = np.ones(self.nCell)
 
+        wettedPerimeter = 2 * np.pi * (self._Rout + self._Rin)
+        self._heatedPerimeter = ptcHeated * wettedPerimeter
+
     @property
     def flowArea(self) -> float:
         return np.pi * (self._Rout * self._Rout - self._Rin * self._Rin)
@@ -780,6 +859,10 @@ class Annulus(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return 2 * self.flowArea / (np.pi * (self._Rin + self._Rout))
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
@@ -814,6 +897,7 @@ class Annulus(Component):
         self._Rin *= uc.lengthConversion
         self._Rout *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["annulus"] = Annulus
@@ -833,15 +917,17 @@ class Tank(Component):
     theta : float
         Orientation angle of the tank in the polar direction
     alpha : float
-        Orientation angle of the tank in the aziumathal direction
-    roughness : float
-        Tank roughness
+        Orientation angle of the tank in the azimuthal direction
     Klossinlet : float
         K-loss coefficient associated with pressure loss at the inlet of the tank
     Klossoutlet : float
         K-loss coefficient associated with pressure loss at the outlet of the tank
     Klossavg : float
-        K-loss coefficient associated with pressure losss across the tank
+        K-loss coefficient associated with pressure loss across the tank
+    roughness : float
+        Tank roughness
+    ptcHeated : float
+        Fraction of the tank perimeter that is heated. Used for calculating heated perimeter.
     """
 
     def __init__(
@@ -855,6 +941,7 @@ class Tank(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
+        ptcHeated: float = 1.0,
         **kwargs
     ) -> None:
         super().__init__()
@@ -874,6 +961,8 @@ class Tank(Component):
         self._kwargs = kwargs
         self._temps = np.zeros(self.nCell)
 
+        self._heatedPerimeter = ptcHeated * self._Pw
+
     @property
     def flowArea(self) -> float:
         return self._Ac
@@ -885,6 +974,10 @@ class Tank(Component):
     @property
     def hydraulicDiameter(self) -> float:
         return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:
@@ -921,6 +1014,7 @@ class Tank(Component):
         self._L *= uc.lengthConversion
         self._R *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
 
 
 component_list["tank"] = Tank
@@ -961,6 +1055,10 @@ class ComponentCollection(Component):
 
     @property
     def hydraulicDiameter(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def heatedPerimeter(self) -> float:
         raise NotImplementedError
 
     @property

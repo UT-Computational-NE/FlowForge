@@ -106,7 +106,8 @@ class System:
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
 
-    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict], fluid: str = "FLiBe") -> None:
+    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict],
+                         boundary_conditions: Dict = {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
@@ -142,6 +143,13 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
+        self._MMBC = None
+        self._EBC = None
+        if "mass_momentum" in boundary_conditions:
+            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
+        if "enthalpy" in boundary_conditions:
+            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+
     def _setupSegment(self, components: List[Component], order: List[dict],
                       boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a segment
@@ -176,10 +184,10 @@ class System:
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
         #get the boundary conditions
-        self._MMBC = MassMomentumBC()
+        self._MMBC = None
         if "mass_momentum" in boundary_conditions:
             self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        self._EBC = EnthalpyBC()
+        self._EBC = None
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
 
