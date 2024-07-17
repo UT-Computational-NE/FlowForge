@@ -6,6 +6,7 @@ from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
+from flowforge.parsers.OutputParser import OutputParser
 
 def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
@@ -81,10 +82,16 @@ class System:
         The number of cells in the system
     fluid : string
         The fluid to be used
+    output_parsers : Dict[str, OutputParser]
+        The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
+    def __init__(self,
+                 components: Dict[str, Component],
+                 sysdict: Dict,
+                 unitdict: Dict[str, str]) -> None:
         self._components = []
+        self._output_parsers = {}
         self._connectivity = []
         self._bodyforces = []
         self._wallfunctions = []
@@ -97,6 +104,9 @@ class System:
         elif "segment" in sysdict:
             self._setupSegment(components, **sysdict["segment"])
         # TODO add additional types of systems that can be set up
+
+        if "parsers" in sysdict:
+            self._setupParsers(sysdict["parsers"])
 
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
@@ -183,6 +193,17 @@ class System:
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
 
+    def _setupParsers(self, parser_dict: Dict) -> None:
+        """ Private method for setting up output parsers
+
+        Parameters
+        ----------
+        parser_dict : Dict
+            The input dictionary specifying the parsers to be setup
+        """
+
+        raise NotImplementedError("To Be Implemented")
+
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a system
@@ -239,6 +260,14 @@ class System:
     @property
     def connectivity(self) -> List[Tuple[Component, Component]]:
         return self._connectivity
+
+    @property
+    def output_parsers(self) -> Dict[str, OutputParser]:
+        return self._output_parsers
+
+    @output_parsers.setter
+    def output_parsers(self, output_parsers: Dict[str, OutputParser]) -> None:
+        self._output_parsers = output_parsers
 
     @property
     def bodyforces(self) -> List[str]:

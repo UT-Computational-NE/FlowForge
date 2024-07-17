@@ -1,0 +1,69 @@
+{
+    "components": {
+        "pipe": {
+            "p1": {"R": 2.0, "L": 20.0, "n": 100, "theta":  90},
+            "p2": {"R": 2.0, "L": 20.0, "n": 100, "theta": 180},
+            "p3": {"R": 2.0, "L": 20.0, "n": 100, "theta": -90}
+        },
+        "pump": {
+            "pump": {"Ac": 16.0, "Dh": 4.0, "V": 64.0, "height": 4.0, "dP": 50000.0}
+        },
+        "hex_core": {
+            "hcore": {
+                "pitch": 10.16,
+                "components": {
+                    "serial_components": {
+                        "1": {
+                            "components": {
+                                "pipe": {
+                                    "c1": {"L": 140.84, "R": 1.508, "n": 50},
+                                    "plate": {"L": 10, "R": 5.0, "n": 1, "resolution": 6, "Kloss": 0.8}
+                                }
+                            },
+                            "order": ["plate", "c1"]
+                        },
+                        "2": {
+                            "components": {
+                                "pipe": {
+                                    "plate": {"L": 10, "R": 5.0, "n": 1, "resolution": 6, "Kloss": 0.8}
+                                },
+                                "annulus": {
+                                    "c2": {"L": 140.84, "R_inner": 1.9, "R_outer": 2.7, "n": 50}
+                                }
+                            },
+                            "order": ["plate", "c2"]
+                        }
+                    }
+                },
+                "hexmap":  [[1,2],
+                           [1,1,1],
+                            [1,1]],
+                "lower_plenum": {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0, "resolution": 120}},
+                "upper_plenum": {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949, "resolution": 120}}
+            }
+        }
+    },
+    "system": {
+        "simple_loop": {
+            "loop": ["pump", "hcore", "p1", "p2", "p3"]
+        },
+        "parsers": {
+            "OpenFoam": {
+                "rho_foam" : {"variable": "rho", "path_to_output": "testOpenFoamParser/single_segment/openfoam.out"}
+            },
+            "Syth": {
+                "rho_syth" : {"variable": "rho", "path_to_output": "testOpenFoamParser/single_segment/syth.h5"}
+            }
+        }
+    },
+    "units": {
+        "length": "cm",
+        "volume": "cm3",
+        "time"  : "s",
+        "pressure": "pa",
+        "massFlowRate": "kg/s",
+        "density": "kg/m3",
+        "power": "w",
+        "temperature": "K"
+    }
+    }
