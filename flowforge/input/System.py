@@ -265,10 +265,6 @@ class System:
     def output_parsers(self) -> Dict[str, OutputParser]:
         return self._output_parsers
 
-    @output_parsers.setter
-    def output_parsers(self, output_parsers: Dict[str, OutputParser]) -> None:
-        self._output_parsers = output_parsers
-
     @property
     def bodyforces(self) -> List[str]:
         return self._bodyforces
