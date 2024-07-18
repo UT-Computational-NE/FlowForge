@@ -789,6 +789,14 @@ class Annulus(Component):
     def nCell(self) -> int:
         return self._n
 
+    @property
+    def Rout(self) -> float:
+        return self._Rout
+
+    @property
+    def Rin(self) -> float:
+        return self._Rin
+
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
