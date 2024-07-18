@@ -1258,7 +1258,8 @@ class ParallelComponents(ComponentCollection):
         for cname, centroid in self._centroids.items():
             #TODO this doesn't do anything with alpha...
             comp = self._myParallelComponents[cname]
-            i = (inlet2[0] + centroid[0]*np.cos(comp.theta), inlet2[1] + centroid[1], inlet2[2] - centroid[0]*np.sin(comp.theta))
+            i = (inlet2[0] + centroid[0]*np.cos(comp.theta), inlet2[1] + centroid[1],
+                 inlet2[2] - centroid[0]*np.sin(comp.theta))
             mesh += self._myParallelComponents[cname].getVTKMesh(i)
         inlet2 = list(self._myParallelComponents.items())[0][1].getOutlet(inlet2)
         mesh += self._upperPlenum.getVTKMesh(inlet2)
