@@ -872,6 +872,14 @@ class Annulus(Component):
     def nCell(self) -> int:
         return self._n
 
+    @property
+    def Rout(self) -> float:
+        return self._Rout
+
+    @property
+    def Rin(self) -> float:
+        return self._Rin
+
     def getMomentumSource(self) -> float:
         raise NotImplementedError
 
@@ -1354,7 +1362,10 @@ class ParallelComponents(ComponentCollection):
         if self._annulus is not None:
             mesh += self._annulus.getVTKMesh(inlet2)
         for cname, centroid in self._centroids.items():
-            i = (inlet2[0] + centroid[0], inlet2[1] + centroid[1], inlet2[2])
+            #TODO this doesn't do anything with alpha...
+            comp = self._myParallelComponents[cname]
+            i = (inlet2[0] + centroid[0]*np.cos(comp.theta), inlet2[1] + centroid[1],
+                 inlet2[2] - centroid[0]*np.sin(comp.theta))
             mesh += self._myParallelComponents[cname].getVTKMesh(i)
         inlet2 = list(self._myParallelComponents.items())[0][1].getOutlet(inlet2)
         mesh += self._upperPlenum.getVTKMesh(inlet2)
