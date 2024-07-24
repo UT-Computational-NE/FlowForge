@@ -106,6 +106,17 @@ class System:
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
 
+    @property
+    def core(self):
+        """
+        Returns the core component of the system.
+        """
+        for comp in self._components:
+            if comp.__class__.__name__ == "HexCore":
+                return comp
+
+        return Exception
+
     def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict],
                          boundary_conditions: Dict = {}, fluid: str = "FLiBe") -> None:
         """ Private method for setting up a loop of components

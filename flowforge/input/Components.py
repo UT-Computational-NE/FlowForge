@@ -1461,12 +1461,13 @@ class HexCore(ParallelComponents):
             assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
         for r, col in enumerate(self._map):
             for c, val in enumerate(col):
-                cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
-                yc, xc = self._getChannelCoords(r, c)
-                centroids[cname] = [xc, yc]
-                if self._orificing is not None:
-                    self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
-                extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
+                if val != 0:
+                    cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
+                    yc, xc = self._getChannelCoords(r, c)
+                    centroids[cname] = [xc, yc]
+                    if self._orificing is not None:
+                        self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
+                    extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
         super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
 
@@ -1508,9 +1509,9 @@ class HexCore(ParallelComponents):
         dy = self._pitch * np.sqrt(3) / 2
 
         rc = len(self._map) / 2
-        yoffset = 0.5 * (0.5 * self._pitch * np.tan(np.pi / 6) - 0.5 * self._pitch / np.cos(np.pi / 6))
+        yoffset = 0.0
         if len(self._map) % 2 == 0:
-            yoffset += -0.5 * dy  # even rows
+            yoffset = -0.5 * dy  # even number of rows
         yc = dy * (rc - r) + yoffset
 
         cc = np.floor(len(self._map[r]) / 2)
@@ -1625,7 +1626,7 @@ class SerialComponents(ComponentCollection):
         names = list(self._myComponents.keys())
         for c in names:
             if c[0] == "c":
-                return round(self._myComponents[c]._R * 2, 6)
+                return round(self._myComponents[c].hydraulicDiameter, 6)
         raise Exception("Component with hydraulic diameter not found.")
 
     @property

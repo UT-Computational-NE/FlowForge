@@ -61,18 +61,30 @@ class VTKMesh:
 
     @property
     def connections(self) -> np.ndarray:
+        """
+        Returns the VTK point connections.
+        """
         return self._conn
 
     @property
     def offsets(self) -> np.ndarray:
+        """
+        Returns the VTK offsets.
+        """
         return self._offsets
 
     @property
     def ctypes(self) -> np.ndarray:
+        """
+        Returns the VTK ctypes.
+        """
         return self._ctypes
 
     @property
     def meshmap(self) -> np.ndarray:
+        """
+        Returns the VTK mesh map.
+        """
         return self._meshmap
 
     def __add__(self, newmesh: VTKMesh) -> VTKMesh:
