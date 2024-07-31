@@ -1376,6 +1376,12 @@ class ParallelComponents(ComponentCollection):
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         raise NotImplementedError
 
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        self.uc = uc
+        for cname, centroid in self._centroids.items():
+            self._centroids[cname] = [cval*uc.lengthConversion for cval in centroid]
+        super()._convertUnits(uc)
+
 
 component_list["parallel_components"] = ParallelComponents
 
@@ -1477,7 +1483,6 @@ class HexCore(ParallelComponents):
         core_inlet = self._lowerPlenum.getOutlet(inlet)
         channels = self.tmpComponents[list(self.tmpComponents.keys())[0]]._myComponents
         for c in channels.keys():
-            channels[c]._convertUnits(self.uc)
             if c == "plate":
                 core_inlet = channels[c].getOutlet(core_inlet)
         mesh = VTKMesh()
@@ -1521,11 +1526,6 @@ class HexCore(ParallelComponents):
         xc = dx * (c - cc) + xoffset
 
         return xc, yc
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        self.uc = uc
-        self._pitch *= uc.lengthConversion
-        super()._convertUnits(uc)
 
 
 component_list["hex_core"] = HexCore
