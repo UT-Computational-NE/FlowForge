@@ -84,26 +84,14 @@ class VTKFile:
         This function makes use of the :func:`unstructuredGridToVTK` function from the
         pyevtk library.
         """
-        print('writeFile1',self.vtkmesh)
+
         assert self.vtkmesh is not None
-        print('writeFile1',self.filepath,
-            *self.vtkmesh.points,
-            self.vtkmesh.connections,
-            self.vtkmesh.offsets,
-            self.vtkmesh.ctypes,
-            self.data)
-        print('writeFile sizes',self.filepath)
-        print([len(x) for x in self.vtkmesh.points])
-        print(len(self.vtkmesh.connections))
-        print(len(self.vtkmesh.offsets))
-        print(len(self.vtkmesh.ctypes))
-        print(len(self.data))
+
         unstructuredGridToVTK(
             self.filepath,
             *self.vtkmesh.points,
             connectivity=self.vtkmesh.connections,
             offsets=self.vtkmesh.offsets,
             cell_types=self.vtkmesh.ctypes,
-            # cellData=self.data,
+            cellData=self.data,
         )
-        raise Exception('testing nums')

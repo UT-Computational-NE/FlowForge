@@ -1527,6 +1527,11 @@ class HexCore(ParallelComponents):
 
         return xc, yc
 
+    def _convertUnits(self, uc: UnitConverter) -> None:
+      self.uc = uc
+      self._pitch *= uc.lengthConversion
+      super()._convertUnits(uc)
+
 
 component_list["hex_core"] = HexCore
 
