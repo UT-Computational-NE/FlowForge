@@ -17,7 +17,7 @@ def genNozzle(L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTIO
         Outlet Radius
     resolution : int
         Number of sides the nozzle is approximated with
-    
+
     Returns
     -------
     VTKMesh

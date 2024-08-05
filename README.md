@@ -7,14 +7,14 @@
 ## Installation Instructions
 Installing flowforge using the following instructions will install the package along with the required dependencies.
 
-### End User Installation 
+### End User Installation
 > This will change to PyPI installation once flowforge is open source.
 ```bash
 python -m pip install .
 ```
 ### Developer Installation
 ```bash
-python -m pip install .[dev]
+python3 -m pip install -e .[dev]
 ```
 ### Testing Installation (Primarily for CI)
 ```bash

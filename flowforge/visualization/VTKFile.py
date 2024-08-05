@@ -49,7 +49,7 @@ class VTKFile:
             Label for the data being entered.  This is the label that will
             be used in the exported file for the data
         data : np.ndarray
-            Data values for the cells in the mesh, such as pressure or 
+            Data values for the cells in the mesh, such as pressure or
             temperature values of that cell
         """
         self.data[key] = self._unroll_data(data)

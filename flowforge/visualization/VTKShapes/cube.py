@@ -49,7 +49,7 @@ def genNonuniformCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray
         The :math:`y-values` for the non-uniform mesh
     mesh_z : np.ndarray
         The :math:`z-values` for the non-uniform mesh
-    
+
     Returns
     -------
     VTKMesh
@@ -69,7 +69,7 @@ def _genCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKM
         The :math:`y-values` for the non-uniform mesh
     mesh_z : np.ndarray
         The :math:`z-values` for the non-uniform mesh
-    
+
     Returns
     -------
     VTKMesh

@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24.0",
+    "scipy",
     "h5py",
     "pyevtk",
     "vtk",
