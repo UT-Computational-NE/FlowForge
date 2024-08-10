@@ -3,7 +3,7 @@
 ## Table of Contents
 1. [Installation Instructions](#installation-instructions)
 2. [Developer Tools](#developer-tools)
-3. [License](#license)
+3. [Contributing](#contributing)
 
 ## Installation Instructions
 Installing flowforge using the following instructions will install the package along with the required dependencies.
@@ -37,5 +37,5 @@ Execute this line from the `~/FlowForge` directory to automatically format the c
 black ./flowforge
 ```
 
-# License #
-[BSD 3-Clause](https://github.com/ut-Computational-NE/FlowForge/blob/master/LICENSE)
+# Contributing #
+FlowForge is distributed under the terms of the [BSD 3-Clause](https://github.com/ut-Computational-NE/FlowForge/blob/master/LICENSE) license. If you propose or make a contribution to this repository, you hereby license your contribution to anyone under this same license.
