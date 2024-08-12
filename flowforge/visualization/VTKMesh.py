@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Tuple
 import numpy as np
-import flowforge.visualization as vtk
+from pyevtk import vtk
 
 
 class VTKMesh:
@@ -209,15 +209,19 @@ class VTKMesh:
         """
         if cell_idx1 > cell_idx2:
             cell_idx1, cell_idx2 = cell_idx2, cell_idx1
+
         if self.ctypes[cell_idx1] == vtk.VtkHexahedron.tid and self.ctypes[cell_idx2] == vtk.VtkHexahedron.tid:
             return self._combine_hexahedrons(cell_idx1, cell_idx2)
-        # if self.ctypes[cell_idx1] == vtk.VtkHexahedron.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
-        #     return self._combine_wedge_hexahedron(cell_idx2, cell_idx1)
-        # if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkHexahedron.tid:
-        #     return self._combine_wedge_hexahedron(cell_idx1, cell_idx2)
-        # if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
-        #     return self._combine_wedges(cell_idx1, cell_idx2)
-        raise TypeError(f"No function exists to merge the two cell types: {self.ctypes[cell_idx1]} and {self.ctypes[cell_idx2]}")
+        if self.ctypes[cell_idx1] == vtk.VtkHexahedron.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
+            raise TypeError("Support for combining a VtkHexahedron and a VtkWedge is not yet implemented.")
+        if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkHexahedron.tid:
+            raise TypeError("Support for combining a VtkHexahedron and a VtkWedge is not yet implemented.")
+        if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
+            raise TypeError("Support for combining two VtkWedges is not yet implemented.")
+
+        raise TypeError(
+            f"No function exists to merge the two cell types: {self.ctypes[cell_idx1]} and {self.ctypes[cell_idx2]}"
+        )
 
     def _combine_hexahedrons(self, hexahedron_idx1: int, hexahedron_idx2: int) -> VTKMesh:
         """Method for combining two hexahedrons into one quadratic hexahedron
@@ -290,7 +294,7 @@ class VTKMesh:
                 )
             )
         else:
-            raise NotImplementedError(f"Merging between the selected faces is not supported yet.")
+            raise NotImplementedError("Merging between the selected faces is not supported yet.")
 
         new_x = np.zeros((8), dtype=float)
         new_y = np.zeros((8), dtype=float)
