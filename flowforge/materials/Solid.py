@@ -1,18 +1,17 @@
-import abc
+from abc import ABC, abstractmethod
 import h5py
-from six import add_metaclass
 from scipy.interpolate import interp1d
 from flowforge.materials.Material import Material
 
-@add_metaclass(abc.ABCMeta)
-class Solid(Material):
+
+class Solid(Material, ABC):
     """
     The Solid class inherits from the base Material class. The purpose of this class is to store material
     properties that are relevant to the solid domain calculations. The solid material properties that are stored
     are thermal conductivity, density, and specific heat of the material.
     """
 
-    @abc.abstractmethod
+    @abstractmethod
     def conductivity(self, T):
         """
         Thermal conductivity [W/m-K]
@@ -22,7 +21,7 @@ class Solid(Material):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def density(self, T):
         """
         Density [kg/m^3]
@@ -32,7 +31,7 @@ class Solid(Material):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def specific_heat(self, T):
         """
         Specific heat [kJ/kg-K]
@@ -68,6 +67,7 @@ class Solid(Material):
         solid.create_dataset("density/temps",        data=rho_temps, dtype=float)
         solid.create_dataset("density/values",       data=rho_vals,  dtype=float)
         h5file.close()
+
 
 class Graphite(Solid):
     """
@@ -114,6 +114,7 @@ class Graphite(Solid):
         Cp *= 4.184
         return Cp
 
+
 class SS316H(Solid):
     """
     The stainless steel 316H Solid subclass is specific to the properties from "Atlas Steels.
@@ -156,6 +157,7 @@ class SS316H(Solid):
             print(f"WARNING: Temperature {T:.2f} K ({T-273.15:.2f} C) is outside of manufacturer specifications \
                   for specific heat of 0-100 C.")
         return 0.500
+
 
 class User_Solid(Solid):
     """
@@ -215,6 +217,7 @@ class User_Solid(Solid):
         Units : kJ/kg-K
         """
         return self.cp_funct(T)
+
 
 class Solid_table(User_Solid):
     """

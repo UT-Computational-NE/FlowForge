@@ -1,4 +1,4 @@
-from flowforge.parsers.OutputParser import OutputParser
+from flowforge.parsers import OutputParser
 
 class SythParser(OutputParser):
     """ A class for Syth output parsing
