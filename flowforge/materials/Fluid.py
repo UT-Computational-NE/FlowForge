@@ -118,6 +118,7 @@ class Fluid(Material):
             prop.create_dataset("enthalpy", data=h_array)
         h5file.close()
 
+
 class FLiBe_UF4(Fluid):
     """
     Sub class with specific FLiBe_UF4 fluid properties enumerated
@@ -163,6 +164,7 @@ class FLiBe_UF4(Fluid):
         Specific enthalpy [J/kg]
         """
         return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
+
 
 class Hitec(Fluid):
     """
@@ -269,6 +271,58 @@ class Hitec(Fluid):
         # Integrated specific heat from _Tref to T
         return b*(T-self._Tref)+((c/2)*((T**2)-(self._Tref**2)))+((d/3)*((T**3)-(self._Tref**3)))
 
+
+class Helium(Fluid):
+    """
+    Sub class with specific properties of helium.
+
+    References
+    -----
+
+    [1]
+
+    """
+    def __init__(self, name):
+        super().__init__(name)
+        self._Tref = 273.15 # K, temperature where enthalpy is 0
+
+    def conductivity(self, h):
+        """
+        Thermal conductivity [W/m-K]
+        """
+        return 0.1735
+
+    def density(self, h):
+        """
+        Density [kg/m^3]
+        """
+        return 0.0732
+
+    def viscosity(self, h):
+        """
+        Dynamic viscosity [kg/m-s]
+        """
+        return 27.15e-6
+
+    def specific_heat(self, h):
+        """
+        Specific heat capacity [J/kg-K] (Isobaric)
+        """
+        return 5193.0
+
+    def temperature(self, h):
+        """
+        Temperature [K]
+        """
+        temp = h/self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        assert np.all(temp >= 0)
+        return temp
+
+    def enthalpy(self, T):
+        """
+        Specific enthalpy [J/kg]
+        """
+        return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
 
 
 class User_Fluid(Fluid):
