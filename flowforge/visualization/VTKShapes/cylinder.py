@@ -61,7 +61,7 @@ def genNonUniformCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np
     return _genCylinder(mesh_r, mesh_z, mesh_theta)
 
 
-def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) -> VTKMesh:
+def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
     """Generates the vtk mesh for a cylinder.
 
     Parameters
@@ -73,6 +73,9 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
     mesh_theta : ndarray of float
         Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
         and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
@@ -80,14 +83,16 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
         Object containing the vtk mesh data for a cylinder.
     """
 
+    nazimuthal_data = kwargs.get("nazimuthal_data", 1)
+
     # pre-calculations
     naxial_layers = mesh_z.size - 1
     nradial_layers = mesh_r.size - 1
-    nwedges = mesh_theta.size - 1
-    ncell = nwedges * nradial_layers * naxial_layers
+    nazimuthal_layers = mesh_theta.size - 1
+    ncell = naxial_layers * nradial_layers * nazimuthal_layers
 
     # points
-    npoints = (nradial_layers * nwedges + 1) * (naxial_layers + 1)
+    npoints = (nradial_layers * nazimuthal_layers + 1) * (naxial_layers + 1)
     npoints_layer = int(npoints / mesh_z.size)
     xx = np.zeros(npoints)
     yy = np.zeros(npoints)
@@ -101,23 +106,23 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
         zz[point] = k
         point += 1
         for r in range(nradial_layers):
-            for i in range(nwedges):
+            for i in range(nazimuthal_layers):
                 xx[point] = (mesh_r[r + 1]) * np.cos(mesh_theta[i])
                 yy[point] = (mesh_r[r + 1]) * np.sin(mesh_theta[i])
                 zz[point] = k
                 point += 1
 
     # connections
-    conn = np.zeros(naxial_layers * nwedges * (6 + 8 * (nradial_layers - 1)), dtype=int)
+    conn = np.zeros(naxial_layers * nazimuthal_layers * (6 + 8 * (nradial_layers - 1)), dtype=int)
     i = 0
     for k in range(naxial_layers):
         for r in range(nradial_layers):
             if r == 0:
                 # inner circle
-                for j in range(nwedges):
+                for j in range(nazimuthal_layers):
                     j0 = j + 1 + k * npoints_layer
-                    if j + 1 == nwedges:
-                        j1 = j0 - nwedges + 1
+                    if j + 1 == nazimuthal_layers:
+                        j1 = j0 - nazimuthal_layers + 1
                     else:
                         j1 = j0 + 1
                     conn[i + 0] = k * npoints_layer
@@ -129,20 +134,20 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
                     i += 6
             else:
                 # outer rings
-                for j in range(nwedges):
-                    j0 = (r - 1) * nwedges + j + 1 + k * npoints_layer
-                    if j + 1 == nwedges:
-                        j1 = j0 - nwedges + 1
+                for j in range(nazimuthal_layers):
+                    j0 = (r - 1) * nazimuthal_layers + j + 1 + k * npoints_layer
+                    if j + 1 == nazimuthal_layers:
+                        j1 = j0 - nazimuthal_layers + 1
                     else:
                         j1 = j0 + 1
                     conn[i + 0] = j0
                     conn[i + 1] = j1
-                    conn[i + 2] = j1 + nwedges
-                    conn[i + 3] = j0 + nwedges
+                    conn[i + 2] = j1 + nazimuthal_layers
+                    conn[i + 3] = j0 + nazimuthal_layers
                     conn[i + 4] = j0 + npoints_layer
                     conn[i + 5] = j1 + npoints_layer
-                    conn[i + 6] = j1 + nwedges + npoints_layer
-                    conn[i + 7] = j0 + nwedges + npoints_layer
+                    conn[i + 6] = j1 + nazimuthal_layers + npoints_layer
+                    conn[i + 7] = j0 + nazimuthal_layers + npoints_layer
                     i += 8
 
     # offsets and cell types
@@ -151,10 +156,10 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
 
     n = 0
     for k in range(naxial_layers):
-        layer_start = k * nwedges * nradial_layers
-        layer_end = layer_start + nwedges * nradial_layers
+        layer_start = k * nazimuthal_layers * nradial_layers
+        layer_end = layer_start + nazimuthal_layers * nradial_layers
         for i in range(layer_start, layer_end):
-            if i < layer_start + nwedges:
+            if i < layer_start + nazimuthal_layers:
                 n += 6
                 offsets[i] = n
                 ctypes[i] *= VtkWedge.tid
@@ -165,6 +170,10 @@ def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray)
 
     # meshmap
     meshmap = np.arange(0, ncell + 1, dtype=int)
+    meshmap = np.zeros(naxial_layers * nazimuthal_data + 1, dtype=int)
+    for i in range(meshmap.size):
+        meshmap[i] = nazimuthal_layers * nradial_layers / nazimuthal_data * i
+
     points = (xx, yy, zz)
 
     return VTKMesh(points, conn, offsets, ctypes, meshmap)

@@ -59,7 +59,7 @@ def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.
     return _genAnnulus(mesh_r, mesh_z, mesh_theta)
 
 
-def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) -> VTKMesh:
+def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
     """Generates the vtk mesh for an annulus
 
     Parameters
@@ -71,6 +71,9 @@ def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) 
     mesh_theta : ndarray of float
         Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
         and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
@@ -78,14 +81,16 @@ def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) 
         object containing the vtk mesh data for an annulus
     """
 
+    nazimuthal_data = kwargs.get("nazimuthal_data", 1)
+
     # pre-calculations
     naxial_layers = mesh_z.size - 1
     nradial_layers = mesh_r.size - 1
-    nwedges = mesh_theta.size - 1
-    ncell = nwedges * nradial_layers * naxial_layers
+    nazimuthal_layers = mesh_theta.size - 1
+    ncell = naxial_layers * nradial_layers * nazimuthal_layers
 
     # points
-    npoints = (nradial_layers + 1) * nwedges * (naxial_layers + 1)
+    npoints = (nradial_layers + 1) * nazimuthal_layers * (naxial_layers + 1)
     npoints_layer = int(npoints / mesh_z.size)
     xx = np.zeros(npoints)
     yy = np.zeros(npoints)
@@ -94,7 +99,7 @@ def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) 
     point = 0
     for z in mesh_z:
         for r in mesh_r:
-            for i in range(nwedges):
+            for i in range(nazimuthal_layers):
                 xx[point] = r * np.cos(mesh_theta[i])
                 yy[point] = r * np.sin(mesh_theta[i])
                 zz[point] = z
@@ -105,20 +110,20 @@ def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) 
     i = 0
     for k in range(naxial_layers):
         for r in range(nradial_layers):
-            for j in range(nwedges):
-                j0 = r * nwedges + j + k * npoints_layer
-                if j + 1 == nwedges:
-                    j1 = j0 - nwedges + 1
+            for j in range(nazimuthal_layers):
+                j0 = r * nazimuthal_layers + j + k * npoints_layer
+                if j + 1 == nazimuthal_layers:
+                    j1 = j0 - nazimuthal_layers + 1
                 else:
                     j1 = j0 + 1
                 conn[i + 0] = j0
                 conn[i + 1] = j1
-                conn[i + 2] = j1 + nwedges
-                conn[i + 3] = j0 + nwedges
+                conn[i + 2] = j1 + nazimuthal_layers
+                conn[i + 3] = j0 + nazimuthal_layers
                 conn[i + 4] = j0 + npoints_layer
                 conn[i + 5] = j1 + npoints_layer
-                conn[i + 6] = j1 + nwedges + npoints_layer
-                conn[i + 7] = j0 + nwedges + npoints_layer
+                conn[i + 6] = j1 + nazimuthal_layers + npoints_layer
+                conn[i + 7] = j0 + nazimuthal_layers + npoints_layer
                 i += 8
 
     # offsets
@@ -131,6 +136,10 @@ def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) 
 
     # meshmap
     meshmap = np.arange(0, ncell + 1, dtype=int)
+    meshmap = np.zeros(naxial_layers * nazimuthal_data + 1, dtype=int)
+    for i in range(meshmap.size):
+        meshmap[i] = nazimuthal_layers * nradial_layers / nazimuthal_data * i
+
     points = (xx, yy, zz)
 
     return VTKMesh(points, conn, offsets, ctypes, meshmap)
