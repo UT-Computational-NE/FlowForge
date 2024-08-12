@@ -274,12 +274,14 @@ class Hitec(Fluid):
 
 class Helium(Fluid):
     """
-    Sub class with specific properties of helium.
+    Sub class with constant specific properties of helium.
 
     References
     -----
 
-    [1]
+    [1] National Bureau of Standards. Use of the Computer Language Pascal in Developing the Initial Graphics Exchange
+    Specification (IGES) Subset Translator. NIST Technical Note 1334, U.S. Department of Commerce, 1990.
+    https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote1334.pdf.
 
     """
     def __init__(self, name):
