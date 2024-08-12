@@ -4,7 +4,7 @@ from flowforge.visualization import VTKMesh
 
 
 def genUniformCube(L: float, W: float, H: float, nx: int = 1, ny: int = 1, nz: int = 1) -> VTKMesh:
-    """ Function for generating a mesh for a cube with uniform cell division
+    """Function for generating a mesh for a cube with uniform cell division
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def genUniformCube(L: float, W: float, H: float, nx: int = 1, ny: int = 1, nz: i
 
 
 def genNonuniformCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
-    """ Function for generating a mesh for a cube with non-uniform cell division
+    """Function for generating a mesh for a cube with non-uniform cell division
 
     Parameters
     ----------
@@ -59,7 +59,7 @@ def genNonuniformCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray
 
 
 def _genCube(mesh_x: np.ndarray, mesh_y: np.ndarray, mesh_z: np.ndarray) -> VTKMesh:
-    """ Private method for generating the VTK mesh for a cube
+    """Private method for generating the VTK mesh for a cube
 
     Parameters
     ----------
