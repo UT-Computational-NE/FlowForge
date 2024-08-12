@@ -290,25 +290,25 @@ class Helium(Fluid):
 
     def conductivity(self, h):
         """
-        Thermal conductivity [W/m-K]
+        Thermal conductivity at P=0.120 MPa, T=600 K (p.37) [W/m-K]
         """
-        return 0.1735
+        return 0.2524
 
     def density(self, h):
         """
-        Density [kg/m^3]
+        Density at P=0.120 MPa, T=600 K (p.36) [kg/m^3]
         """
-        return 0.0732
+        return 0.9626e-01
 
     def viscosity(self, h):
         """
-        Dynamic viscosity [kg/m-s]
+        Dynamic viscosity at P=0.120 MPa, T=600 K (p.37) [kg/m-s]
         """
-        return 27.15e-6
+        return 32.22
 
     def specific_heat(self, h):
         """
-        Specific heat capacity [J/kg-K] (Isobaric)
+        Specific heat capacity at P=0.120 MPa, T=600 K (p.36) [J/kg-K] (Isobaric)
         """
         return 5193.0
 
