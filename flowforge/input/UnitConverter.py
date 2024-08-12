@@ -1,5 +1,8 @@
 from typing import Dict
 
+# enthalpy to j/kg
+enthalpydict = {"j/kg": 1.0}
+
 # length to m
 lendict = {"in": 0.0254, "ft": 0.3048, "yd": 0.9144, "mm": 0.001, "cm": 0.01, "m": 1.0}
 
@@ -43,33 +46,48 @@ powerdict = {"w": 1.0, "kw": 1.0e3, "mw": 1.0e6, "gw": 1.0e9, "tw": 1.0e12}
 
 
 class UnitConverter:
-    """
-    Handles all unit conversions for system inputs.
+    """  Class for handling unit conversions for FlowForge Systems and Components
+
+    On initialization, the unit conversion object starts by setting the
+    default of all unit conversions to be equal to 1.0.  Using specifications
+    dictionary, the unit converter checks the dictionary for each unit key.
+    If the key is found, the unit conversion variable is then set by matching
+    the unit given to the conversion from the appropriate :mod:`UnitConverter`
+    conversion dictionaries.  These numbers are the unit conversions to be multiplied
+    to return the values in SI units.
+
+    If the unit given is not in our defined dictionaries, it will throw an exception
+    for an unknown input unit type.
+
+    Parameters
+    ----------
+    unitdict : Dict[str, str]
+        Dictionary containing the unit names as the keys and the units that are used
+        for the system / component inputs
+
+    Attributes
+    ----------
+    lengthConversion : float
+        The multiplier to convert length to units of :math:`m`
+    areaConversion : float
+        The multiplier to convert area to units of :math:`m^2`
+    volumeConversion : float
+        The multiplier to convert volume to units of :math:`m^3`
+    timeConversion : float
+        The multiplier to convert time to units of :math:`s`
+    pressureConversion : float
+        The multiplier to convert pressure to units of :math:`Pa`
+    massFlowRateConversion : float
+        The multiplier to convert mass flow rate to units of :math:`kg/s`
+    densityConversion : float
+        The multiplier to convert density to units of :math:`kg/(m^3)`
+    powerConversion :float
+        The multiplier to convert power to units of :math:`W`
+    enthalpyConversion :float
+        The multiplier to convert enthalpy to units of :math:`J/kg`
     """
 
     def __init__(self, unitdict: Dict[str, str]) -> None:
-        """
-        The __init__ function initializes the unit conversion class by setting the
-        default of all unit conversions to be equal to 1.0. To initialize this class
-        instance, a unit dictionary must be passed as an argument.
-
-        This function then automatically checks the unit dict to see if it contains
-        each unit key. If the key is found in the dict, the unit conversion variable
-        is then set by matching the unit given to the conversion from the dictionaries
-        above. These numbers are the unit conversions to be multiplied to return the
-        values in SI units.
-
-        If the unit given is not in our defined dictionaries, it will throw an exception
-        for an unknown input unit type.
-
-        The temperature conversion is the only unit that varies from the others. This
-        conversion is done using lambda functions. Depending on the temperature unit
-        input, a different function is used to return the temperature in K.
-
-        Args:
-            - unitdict : dict, dictionary containing the unit names as the keys and the
-                         units that are used for the system inputs
-        """
         self._lenconv = 1.0
         if "length" in unitdict:
             # converting to m
@@ -126,6 +144,14 @@ class UnitConverter:
             else:
                 raise Exception("Unknown power input type: " + unitdict["power"])
 
+        self._enthalpyconv = 1.0
+        if "enthalpy" in unitdict:
+            # converting to W
+            if unitdict["enthalpy"].lower() in enthalpydict:
+                self._enthalpyconv = enthalpydict[unitdict["enthalpy"].lower()]
+            else:
+                raise Exception("Unknown enthalpy input type: " + unitdict["enthalpy"])
+
         self._tempconv = lambda T: T
         if "temperature" in unitdict:
             # converting to K
@@ -142,74 +168,51 @@ class UnitConverter:
 
     @property
     def lengthConversion(self) -> float:
-        """
-        The lengthConversion function uses the stored _lenconv variable
-        to return the system input length in m.
-        """
         return self._lenconv
 
     @property
     def areaConversion(self) -> float:
-        """
-        The areaConversion function squares the stored _lenconv variable
-        to return the system input area in m2.
-        """
         return self._lenconv * self._lenconv
 
     @property
     def volumeConversion(self) -> float:
-        """
-        The volumeConversion function uses the stored _volconv variable
-        to return the system input volume in m3.
-        """
         return self._volconv
 
     @property
     def timeConversion(self) -> float:
-        """
-        The timeConversion function uses the stored _timeconv variable
-        to return the system input time in s.
-        """
         return self._timeconv
 
     @property
     def pressureConversion(self) -> float:
-        """
-        The pressureConversion function uses the stored _presconv variable
-        to return the system input pressure in pa.
-        """
         return self._presconv
 
     @property
     def massFlowRateConversion(self) -> float:
-        """
-        The massFlowRateConversion function uses the stored _mfrconv variable
-        to return the system input mass flow rate in kg/s.
-        """
         return self._mfrconv
 
     @property
     def densityConversion(self) -> float:
-        """
-        The densityConversion function uses the stored _densconv variable
-        to return the system input density in kg/m3.
-        """
         return self._densconv
 
     @property
     def powerConversion(self) -> float:
-        """
-        The powerConversion function uses the stored _powerconv variable
-        to return the system input power in w.
-        """
         return self._powerconv
 
-    def temperatureConversion(self, T: float) -> float:
-        """
-        The temperatureConversion function uses the stored _tempconv variable
-        to return the system input temperature in K.
+    @property
+    def enthalpyConversion(self) -> float:
+        return self._enthalpyconv
 
-        Args:
-            - T : float, temperature
+    def temperatureConversion(self, T: float) -> float:
+        """ Method for performing a temperature conversion to Kelvin
+
+        Parameters
+        ----------
+        T : float
+            Temperature to be converted
+
+        Returns
+        -------
+        float
+            The equivalent temperature in :math:`K`
         """
         return self._tempconv(T)

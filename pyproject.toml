@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24.0",
+    "scipy",
     "h5py",
     "pyevtk",
     "vtk",
@@ -52,6 +53,7 @@ disable = [
     "fixme",
     "invalid-name",
     "missing-module-docstring",
+    "missing-function-docstring",
     "pointless-string-statement",
     "redefined-outer-name",
     "too-few-public-methods",

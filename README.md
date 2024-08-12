@@ -3,18 +3,19 @@
 ## Table of Contents
 1. [Installation Instructions](#installation-instructions)
 2. [Developer Tools](#developer-tools)
+3. [Contributing](#contributing)
 
 ## Installation Instructions
 Installing flowforge using the following instructions will install the package along with the required dependencies.
 
-### End User Installation 
+### End User Installation
 > This will change to PyPI installation once flowforge is open source.
 ```bash
 python -m pip install .
 ```
 ### Developer Installation
 ```bash
-python -m pip install .[dev]
+python3 -m pip install -e .[dev]
 ```
 ### Testing Installation (Primarily for CI)
 ```bash
@@ -35,3 +36,6 @@ Execute this line from the `~/FlowForge` directory to automatically format the c
 ```bash
 black ./flowforge
 ```
+
+## Contributing
+FlowForge is distributed under the terms of the [BSD 3-Clause license](https://github.com/ut-Computational-NE/FlowForge/blob/master/LICENSE). If you propose or make a contribution to this repository, you hereby license your contribution to anyone under this same license.

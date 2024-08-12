@@ -7,14 +7,21 @@ _sq32 = np.sqrt(3.0) / 2.0
 
 
 def genTriGrid(sideLength: float, layerHeights: List[float], pointsPerRow: List[int]) -> VTKMesh:
-    """
-    The genTriGrid function generates a VTKMesh class instance containing information of
-    a mesh grid consisting of triangles.
+    """ Function for generating a mesh mesh grid consisting of triangles.
 
-    Args:
-        - sideLength    : float, length of each side of the triangles
-        - layerHeights  : float list, list of the height of each layer in the mesh
-        - pointsPerRow  : list of the number of points per row in the mesh
+    Parameters
+    ----------
+    sideLength : float
+        Length of each side of the triangles
+    layerHeights : List[float]
+        Height of each layer in the mesh
+    pointsPerRow : List[int]
+        Number of points per row in the mesh
+
+    Returns
+    -------
+    VTKMesh
+        The generated VTK Mesh
     """
     # calculations
     ppr = pointsPerRow
