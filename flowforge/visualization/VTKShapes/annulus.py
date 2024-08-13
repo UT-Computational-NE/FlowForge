@@ -5,7 +5,13 @@ from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
 def genUniformAnnulus(
-    L: float, Rin: float, Rout: float, naxial_layers: int = 1, nradial_layers: int = 1, resolution: int = CYL_RESOLUTION
+    L: float,
+    Rin: float,
+    Rout: float,
+    naxial_layers: int = 1,
+    nradial_layers: int = 1,
+    resolution: int = CYL_RESOLUTION,
+    **kwargs,
 ) -> VTKMesh:
     """Generates the vtk mesh for an annulus
 
@@ -23,6 +29,9 @@ def genUniformAnnulus(
         number of radial layers to split the mesh into
     resolution : int, optional
         number of azimuthal angles to split the mesh into
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
@@ -33,10 +42,10 @@ def genUniformAnnulus(
     mesh_z = np.linspace(0, L, naxial_layers + 1)
     mesh_theta = np.linspace(0, 2 * np.pi, resolution + 1)
 
-    return _genAnnulus(mesh_r, mesh_z, mesh_theta)
+    return _genAnnulus(mesh_r, mesh_z, mesh_theta, **kwargs)
 
 
-def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray) -> VTKMesh:
+def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
     """Generates the vtk mesh for an annulus
 
     Parameters
@@ -48,6 +57,9 @@ def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.
     mesh_theta : ndarray of float
         Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
         and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
@@ -56,7 +68,7 @@ def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.
     """
     if mesh_r[0] == 0:
         mesh_r = np.delete(mesh_r, 0)
-    return _genAnnulus(mesh_r, mesh_z, mesh_theta)
+    return _genAnnulus(mesh_r, mesh_z, mesh_theta, **kwargs)
 
 
 def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
