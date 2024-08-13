@@ -37,5 +37,5 @@ Execute this line from the `~/FlowForge` directory to automatically format the c
 black ./flowforge
 ```
 
-# Contributing #
+## Contributing
 FlowForge is distributed under the terms of the [BSD 3-Clause license](https://github.com/ut-Computational-NE/FlowForge/blob/master/LICENSE). If you propose or make a contribution to this repository, you hereby license your contribution to anyone under this same license.

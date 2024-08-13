@@ -118,6 +118,7 @@ class Fluid(Material):
             prop.create_dataset("enthalpy", data=h_array)
         h5file.close()
 
+
 class FLiBe_UF4(Fluid):
     """
     Sub class with specific FLiBe_UF4 fluid properties enumerated
@@ -163,6 +164,7 @@ class FLiBe_UF4(Fluid):
         Specific enthalpy [J/kg]
         """
         return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
+
 
 class Hitec(Fluid):
     """
@@ -268,7 +270,6 @@ class Hitec(Fluid):
         d =  7.2413e-3
         # Integrated specific heat from _Tref to T
         return b*(T-self._Tref)+((c/2)*((T**2)-(self._Tref**2)))+((d/3)*((T**3)-(self._Tref**3)))
-
 
 
 class User_Fluid(Fluid):
