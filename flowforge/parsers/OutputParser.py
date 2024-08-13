@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any
+from typing import List, Any
 
 class OutputParser(ABC):
     """ An abstract class for parsing outputs from various solvers into a FlowForge Output object
@@ -20,4 +20,4 @@ class OutputParser(ABC):
         List[Any]
             The parsed output
         """
-        pass
+        return

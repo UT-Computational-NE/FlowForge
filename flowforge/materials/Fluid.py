@@ -316,7 +316,7 @@ class Helium(Fluid):
         """
         Temperature [K]
         """
-        temp = h/self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        temp = h/self.specific_heat(h) + self._Tref
         assert np.all(temp >= 0)
         return temp
 

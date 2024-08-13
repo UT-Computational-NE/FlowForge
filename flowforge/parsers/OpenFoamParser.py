@@ -1,4 +1,4 @@
-from flowforge.parsers.OutputParser import OutputParser
+from flowforge.parsers import OutputParser
 
 class OpenFoamParser(OutputParser):
     """ A class for OpenFOAM output parsing

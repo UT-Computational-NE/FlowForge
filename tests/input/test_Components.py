@@ -1,5 +1,5 @@
-from flowforge.input.Components import *
-from flowforge.input.UnitConverter import UnitConverter
+from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, SerialComponents, ComponentCollection
+from flowforge import UnitConverter
 
 _cm2m = 0.01
 unitdict = {"length": "cm"}
