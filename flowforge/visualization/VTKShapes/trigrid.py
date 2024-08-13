@@ -7,7 +7,7 @@ _sq32 = np.sqrt(3.0) / 2.0
 
 
 def genTriGrid(sideLength: float, layerHeights: List[float], pointsPerRow: List[int]) -> VTKMesh:
-    """ Function for generating a mesh mesh grid consisting of triangles.
+    """Function for generating a mesh mesh grid consisting of triangles.
 
     Parameters
     ----------

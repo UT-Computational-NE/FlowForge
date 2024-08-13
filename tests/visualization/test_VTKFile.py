@@ -1,7 +1,7 @@
 import pytest
 import os
 import numpy as np
-from flowforge.visualization import VTKFile, VTKMesh, genUniformCube, genCyl
+from flowforge.visualization import VTKFile, VTKMesh, genUniformCube, genUniformCylinder
 from vtk import vtkXMLUnstructuredGridReader
 
 
@@ -10,7 +10,7 @@ def generate_reference():
     The generate_reference function generates a VTK file that will be compared to the test files.
     This is only to be used if certain that you would like to overwrite the previous reference file.
     """
-    mymesh = genCyl(10, 1, resolution=20, nlayers=10)
+    mymesh = genUniformCylinder(10, 1, resolution=20, naxial_layers=10)
     myfile = VTKFile("testVTK/referenceFile", mesh=mymesh)
     P = np.arange(10)
     myfile["pressure"] = P
@@ -74,7 +74,7 @@ def test_mesh_no_data():
 def test_mesh_with_data():
     import os
 
-    mymesh = genCyl(10, 1, resolution=20, nlayers=10)
+    mymesh = genUniformCylinder(10, 1, resolution=20, naxial_layers=10)
     myfile = VTKFile("meshwithdata", mesh=mymesh)
     assert myfile.vtkmesh is not None
     P = np.arange(10)

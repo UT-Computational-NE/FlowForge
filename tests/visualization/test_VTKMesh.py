@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from flowforge.visualization import VTKMesh, genCyl, genUniformCube
+from flowforge.visualization import VTKMesh, genUniformCylinder, genUniformCube
 import flowforge.visualization as vtk
 
 
@@ -14,7 +14,7 @@ def test_init():
 
 
 def test_points():
-    mesh = genCyl(2, 1)
+    mesh = genUniformCylinder(2, 1)
     assert mesh.points == (mesh._x, mesh._y, mesh._z)
 
 
@@ -38,7 +38,7 @@ def test_add():
 
 
 def test_rotate():
-    mesh = genCyl(5, 1, resolution=4)
+    mesh = genUniformCylinder(5, 1, resolution=4)
 
     assert round(mesh._x[0]) == round(mesh._x[5]) == 0
     assert round(mesh._x[1]) == round(mesh._x[6]) == 1
@@ -94,7 +94,7 @@ def test_rotate():
 
 
 def test_translate_and_rotate():
-    mesh = genCyl(5, 1, resolution=4).translate(1, 1, 1, theta=np.pi / 2, alpha=np.pi / 2)
+    mesh = genUniformCylinder(5, 1, resolution=4).translate(1, 1, 1, theta=np.pi / 2, alpha=np.pi / 2)
 
     assert round(mesh._x[0]) == round(mesh._x[5]) == 1
     assert round(mesh._x[1]) == round(mesh._x[6]) == 1

@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import List, Dict, Tuple, Generator
 from six import add_metaclass
 import numpy as np
-from flowforge.visualization import VTKMesh, genAnnulus, genUniformCube, genCyl, genNozzle
+from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 
 _CYL_RESOLUTION = 50
@@ -422,7 +422,7 @@ class Pipe(Component):
         return (x, y, z)
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genCyl(self._L, self._R, nlayers=self._n, **self._kwargs).translate(
+        return genUniformCylinder(self._L, self._R, naxial_layers=self._n, **self._kwargs).translate(
             inlet[0], inlet[1], inlet[2], self._theta, self._alpha
         )
 
@@ -890,9 +890,8 @@ class Annulus(Component):
         return (x, y, z)
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genAnnulus(self._L, self._Rin, self._Rout, resolution=self._res, nlayers=self._n, **self._kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
-        )
+        return genUniformAnnulus(self._L, self._Rin, self._Rout, resolution=self._res, naxial_layers=self._n,
+            **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
@@ -1005,9 +1004,8 @@ class Tank(Component):
         return (x, y, z)
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genCyl(self._L, self._R, resolution=_CYL_RESOLUTION, nlayers=self._n, **self._kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
-        )
+        return genUniformCylinder(self._L, self._R, resolution=_CYL_RESOLUTION, naxial_layers=self._n,
+            **self._kwargs).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
