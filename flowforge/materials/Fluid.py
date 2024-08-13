@@ -272,6 +272,61 @@ class Hitec(Fluid):
         return b*(T-self._Tref)+((c/2)*((T**2)-(self._Tref**2)))+((d/3)*((T**3)-(self._Tref**3)))
 
 
+class Helium(Fluid):
+    """
+    Sub class with constant specific properties of helium.
+
+    References
+    -----
+
+    [1] National Bureau of Standards. Use of the Computer Language Pascal in Developing the Initial Graphics Exchange
+    Specification (IGES) Subset Translator. NIST Technical Note 1334, U.S. Department of Commerce, 1990.
+    https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote1334.pdf.
+
+    """
+    def __init__(self, name):
+        super().__init__(name)
+        self._Tref = 273.15 # K, temperature where enthalpy is 0
+
+    def conductivity(self, h):
+        """
+        Thermal conductivity at P=0.120 MPa, T=600 K (p.37) [W/m-K]
+        """
+        return 0.2524
+
+    def density(self, h):
+        """
+        Density at P=0.120 MPa, T=600 K (p.36) [kg/m^3]
+        """
+        return 0.9626e-01
+
+    def viscosity(self, h):
+        """
+        Dynamic viscosity at P=0.120 MPa, T=600 K (p.37) [kg/m-s]
+        """
+        return 32.22
+
+    def specific_heat(self, h):
+        """
+        Specific heat capacity at P=0.120 MPa, T=600 K (p.36) [J/kg-K] (Isobaric)
+        """
+        return 5193.0
+
+    def temperature(self, h):
+        """
+        Temperature [K]
+        """
+        temp = h/self.specific_heat(h) + self._Tref
+        assert np.all(temp >= 0)
+        return temp
+
+    def enthalpy(self, T):
+        """
+        Specific enthalpy [J/kg]
+        """
+        return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
+
+
 class User_Fluid(Fluid):
     """
     The User_Fluid subclass of the Fluid base class allows for the user to
