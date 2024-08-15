@@ -304,7 +304,7 @@ class Helium(Fluid):
         """
         Dynamic viscosity at P=0.120 MPa, T=600 K (p.37) [kg/m-s]
         """
-        return 32.22
+        return 32.22 * 1e-6
 
     def specific_heat(self, h):
         """
