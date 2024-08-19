@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Tuple
 import numpy as np
+from pyevtk import vtk
 
 
 class VTKMesh:
@@ -59,12 +60,20 @@ class VTKMesh:
     def points(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (self._x, self._y, self._z)
 
+    @points.setter
+    def points(self, points: Tuple[np.ndarray, np.ndarray, np.ndarray]) -> None:
+        self._x, self._y, self._z = points
+
     @property
     def connections(self) -> np.ndarray:
         """
         Returns the VTK point connections.
         """
         return self._conn
+
+    @connections.setter
+    def connections(self, conn: np.ndarray) -> None:
+        self._conn = conn
 
     @property
     def offsets(self) -> np.ndarray:
@@ -73,6 +82,10 @@ class VTKMesh:
         """
         return self._offsets
 
+    @offsets.setter
+    def offsets(self, offsets: np.ndarray) -> None:
+        self._offsets = offsets
+
     @property
     def ctypes(self) -> np.ndarray:
         """
@@ -80,12 +93,20 @@ class VTKMesh:
         """
         return self._ctypes
 
+    @ctypes.setter
+    def ctypes(self, ctypes: np.ndarray) -> None:
+        self._ctypes = ctypes
+
     @property
     def meshmap(self) -> np.ndarray:
         """
         Returns the VTK mesh map.
         """
         return self._meshmap
+
+    @meshmap.setter
+    def meshmap(self, meshmap: np.ndarray) -> None:
+        self._meshmap = meshmap
 
     def __add__(self, newmesh: VTKMesh) -> VTKMesh:
         """ A method for defining an addition operator to add multiple meshes together
@@ -129,6 +150,24 @@ class VTKMesh:
 
         return combinedMesh
 
+    def __repr__(self):
+        """A method for defining the representation of the VTKMesh object.
+
+        This method is used to print the VTKMesh object in a readable format.
+
+        Returns
+        -------
+        str
+            The string representation of the VTKMesh object
+        """
+        return (
+            f"Points: ({self._x.size}, {self._y.size}, {self._z.size})\n"
+            f"Connections: {self.connections}\n"
+            f"Offsets: {self.offsets}\n"
+            f"Ctypes: {self.ctypes}\n"
+            f"Meshmap: {self.meshmap})"
+        )
+
     def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> VTKMesh:
         """ Method for translating the shapes within the coordinate frame.
 
@@ -160,4 +199,151 @@ class VTKMesh:
         self._x = points[0] + x
         self._y = points[1] + y
         self._z = points[2] + z
+        return self
+
+    def combine_cells(self, cell_idx1: int, cell_idx2: int) -> VTKMesh:
+        """Method for combining two cells into one cell
+
+        This function will combine two cells into one cell and will update the connections,
+        offsets, ctypes, and meshmap arrays to reflect the new cell.
+
+        Parameters
+        ----------
+        cell_idx1 : int
+            The index of the first cell to combine
+        cell_idx2 : int
+            The index of the second cell to combine
+
+        Returns
+        -------
+        VTKMesh
+            The new mesh with the combined cells
+        """
+        if cell_idx1 > cell_idx2:
+            cell_idx1, cell_idx2 = cell_idx2, cell_idx1
+
+        if self.ctypes[cell_idx1] == vtk.VtkHexahedron.tid and self.ctypes[cell_idx2] == vtk.VtkHexahedron.tid:
+            return self._combine_hexahedrons(cell_idx1, cell_idx2)
+        if self.ctypes[cell_idx1] == vtk.VtkHexahedron.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
+            raise TypeError("Support for combining a VtkHexahedron and a VtkWedge is not yet implemented.")
+        if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkHexahedron.tid:
+            raise TypeError("Support for combining a VtkHexahedron and a VtkWedge is not yet implemented.")
+        if self.ctypes[cell_idx1] == vtk.VtkWedge.tid and self.ctypes[cell_idx2] == vtk.VtkWedge.tid:
+            raise TypeError("Support for combining two VtkWedges is not yet implemented.")
+
+        raise TypeError(
+            f"No function exists to merge the two cell types: {self.ctypes[cell_idx1]} and {self.ctypes[cell_idx2]}"
+        )
+
+    def _combine_hexahedrons(self, hexahedron_idx1: int, hexahedron_idx2: int) -> VTKMesh:
+        """Method for combining two hexahedrons into one quadratic hexahedron
+
+        This function will combine two hexahedrons into one quadratic hexahedron and will update
+        the connections, offsets, ctypes, and meshmap arrays to reflect the new hexahedron.
+
+        Parameters
+        ----------
+        hexahedron_idx1 : int
+            The index of the first hexahedron to combine
+        hexahedron_idx2 : int
+            The index of the second hexahedron to combine
+
+        Returns
+        -------
+        VTKMesh
+            The new mesh with the combined hexahedron
+        """
+        x, y, z = self.points
+        conn = self.connections.astype(int)
+        offsets = np.insert(self.offsets.astype(int), 0, 0) # inserts 0 at the beginning of the array
+        ctypes = self.ctypes.astype(int)
+        meshmap = self.meshmap.astype(int)
+
+        cell1_conn = conn[offsets[hexahedron_idx1]:offsets[hexahedron_idx1 + 1]]
+        cell2_conn = conn[offsets[hexahedron_idx2]:offsets[hexahedron_idx2 + 1]]
+
+        shared_pts_idx = []
+        shared_pts = []
+        for c1 in cell1_conn:
+            if c1 in cell2_conn:
+                shared_pts_idx.append(np.where(c1 == cell2_conn)[0][0])
+                shared_pts.append(cell2_conn[np.where(c1 == cell2_conn)[0][0]])
+
+        shared_pts_idx.sort()
+
+        last_pt = max(conn) + 1
+        if shared_pts_idx == [0, 1, 4, 5]:      # merge along the x-axis
+            new_conn = np.concatenate(
+                (
+                    [
+                        cell1_conn[[0, 1, 5, 4]],
+                        cell2_conn[[3, 2, 6, 7]],
+                        np.arange(last_pt, last_pt + 8),
+                        cell2_conn[[0, 1, 5, 4]]
+                    ]
+                )
+            )
+        elif shared_pts_idx == [0, 1, 2, 3]:    # merge along the y-axis
+            new_conn = np.concatenate(
+                (
+                    [
+                        cell1_conn[[0, 1, 2, 3]],
+                        cell2_conn[[4, 5, 6, 7]],
+                        np.arange(last_pt, last_pt + 8),
+                        cell2_conn[[0, 1, 2, 3]]
+                    ]
+                )
+            )
+        elif shared_pts_idx == [0, 3, 4, 7]:    # merge along the z-axis
+            new_conn = np.concatenate(
+                (
+                    [
+                        cell1_conn[[0, 3, 7, 4]],
+                        cell2_conn[[1, 2, 6, 5]],
+                        np.arange(last_pt, last_pt + 8),
+                        cell2_conn[[0, 3, 7, 4]]
+                    ]
+                )
+            )
+        else:
+            raise NotImplementedError("Merging between the selected faces is not supported yet.")
+
+        new_x = np.zeros((8), dtype=float)
+        new_y = np.zeros((8), dtype=float)
+        new_z = np.zeros((8), dtype=float)
+
+        for i in range(8):
+            if (i + 1) % 4 == 0:
+                pt1, pt2 = new_conn[i], new_conn[i-3]
+            else:
+                pt1, pt2 = new_conn[i], new_conn[i+1]
+            new_x[i] = np.average([x[pt1], x[pt2]])
+            new_y[i] = np.average([y[pt1], y[pt2]])
+            new_z[i] = np.average([z[pt1], z[pt2]])
+
+        x = np.append(x, new_x)
+        y = np.append(y, new_y)
+        z = np.append(z, new_z)
+        self.points = (x, y, z)
+
+        self.connections = np.concatenate(
+            (
+                conn[:offsets[hexahedron_idx1]],
+                new_conn,
+                conn[offsets[hexahedron_idx1+1]:offsets[hexahedron_idx2]],
+                conn[offsets[hexahedron_idx2+1]:]
+            )
+        )
+
+        offsets = np.delete(offsets, 0)
+        offsets[hexahedron_idx1:] += 12                         # 12 additional pts to the quadratic hexahedron
+        offsets[hexahedron_idx2:] -= 8                          # 8 pts removed from the merged hexahedron
+        self.offsets = np.delete(offsets, hexahedron_idx2)      # remove the second hexahedron offset
+
+        ctypes[hexahedron_idx1] = vtk.VtkQuadraticHexahedron.tid
+        self.ctypes = np.delete(ctypes, hexahedron_idx2)
+
+        meshmap[hexahedron_idx2:] -= 1
+        self.meshmap = np.delete(meshmap, hexahedron_idx2)
+
         return self

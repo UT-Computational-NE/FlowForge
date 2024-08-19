@@ -1,5 +1,5 @@
 import numpy as np
-from flowforge.visualization import genUniformCube, genCyl, genNozzle, genAnnulus
+from flowforge.visualization import genUniformCube, genUniformCylinder, genNozzle, genUniformAnnulus
 
 
 def test_Cube1():
@@ -46,7 +46,7 @@ def test_Cube2():
 
 def test_Cyl1():
     L, R = 10, 1
-    cyl = genCyl(L, R)
+    cyl = genUniformCylinder(L, R)
     assert cyl._x.size == 18
     assert cyl._x[0] == 0
     assert cyl._y.size == 18
@@ -70,7 +70,7 @@ def test_Cyl1():
 
 def test_Cyl2():
     L, R, = 9, 1
-    cyl = genCyl(L, R, resolution=12, nlayers=3)
+    cyl = genUniformCylinder(L, R, resolution=12, naxial_layers=3)
     assert cyl._x.size == 52
     assert cyl._x[0] == 0
     assert cyl._y.size == 52
@@ -92,6 +92,27 @@ def test_Cyl2():
     for i in range(cyl._x.size):
         assert round(cyl._x[i] ** 2 + cyl._y[i] ** 2) == R ** 2 or cyl._x[i] == cyl._y[i] == 0
         assert cyl._z[i] == 0 or cyl._z[i] == 3 or cyl._z[i] == 6 or cyl._z[i] == L
+
+
+def test_Cyl3():
+    L, R, = 9, 1
+    cyl = genUniformCylinder(L, R, resolution=12, naxial_layers=3, nradial_layers=2)
+    assert cyl._x.size == 100
+    assert cyl._x[0] == 0
+    assert cyl._y.size == 100
+    assert cyl._y[0] == 0
+    assert cyl._z.size == 100
+    assert cyl._z[0] == 0
+    assert cyl._conn.size == 504
+    assert cyl._conn[0] == 0
+    assert cyl._offsets.size == 72
+    assert cyl._offsets[0] == 6
+    assert cyl._ctypes.size == 72
+    assert cyl._meshmap.size == 4
+    assert cyl._meshmap[0] == 0
+    assert cyl._meshmap[1] == 24
+    assert cyl._meshmap[2] == 48
+    assert cyl._meshmap[3] == 72
 
 
 def test_Nozzle1():
@@ -150,7 +171,7 @@ def test_Nozzle2():
 
 def test_Annulus1():
     L, Rin, Rout = 10, 9, 10
-    annulus = genAnnulus(L, Rin, Rout, resolution=12)
+    annulus = genUniformAnnulus(L, Rin, Rout, resolution=12)
     assert annulus._x.size == 48
     assert annulus._x[0] == 9
     assert annulus._y.size == 48
@@ -175,7 +196,7 @@ def test_Annulus1():
 
 def test_Annulus2():
     L, Rin, Rout = 10, 9, 10
-    annulus = genAnnulus(L, Rin, Rout, nlayers=2, resolution=12)
+    annulus = genUniformAnnulus(L, Rin, Rout, naxial_layers=2, resolution=12)
     assert annulus._x.size == 72
     assert annulus._x[0] == 9
     assert annulus._y.size == 72
@@ -197,3 +218,24 @@ def test_Annulus2():
             round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rin ** 2
             or round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rout ** 2
         )
+
+
+def test_Annulus3():
+    L, Rin, Rout = 10, 9, 10
+    annulus = genUniformAnnulus(L, Rin, Rout, naxial_layers=2, nradial_layers=2, resolution=12)
+    assert annulus._x.size == 108
+    assert annulus._x[0] == 9
+    assert annulus._y.size == 108
+    assert annulus._y[0] == 0
+    assert annulus._z.size == 108
+    assert annulus._z[0] == 0
+    assert annulus._conn.size == 384
+    assert annulus._conn[0] == 0
+    assert annulus._offsets.size == 48
+    assert annulus._offsets[0] == 8
+    assert annulus._ctypes.size == 48
+    assert annulus._ctypes[0] == 12.0
+    assert annulus._meshmap.size == 3
+    assert annulus._meshmap[0] == 0
+    assert annulus._meshmap[1] == 24
+    assert annulus._meshmap[2] == 48

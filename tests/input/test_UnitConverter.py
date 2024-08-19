@@ -1,5 +1,4 @@
-import pytest
-from flowforge.input.UnitConverter import UnitConverter
+from flowforge import UnitConverter
 
 
 def test_defaults():

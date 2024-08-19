@@ -4,90 +4,153 @@ from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
-def genAnnulus(
-    L: float, Rin: float, Rout: float, resolution: int = CYL_RESOLUTION, nazimuthal: int = 1, nlayers: int = 1
+def genUniformAnnulus(
+    L: float,
+    Rin: float,
+    Rout: float,
+    naxial_layers: int = 1,
+    nradial_layers: int = 1,
+    resolution: int = CYL_RESOLUTION,
+    **kwargs,
 ) -> VTKMesh:
-    """  Function for generating a mesh for an annulus (a hollow cylinder)
+    """Generates the vtk mesh for an annulus
 
     Parameters
     ----------
     L : float
-        Length
+        length of the annulus
     Rin : float
-        Inner Radius
+        inner radius
     Rout : float
-        Outer Radius
-    resolution : int
-        Number of sides the annulus is approximated with
-    nazimuthal : int
-        Number of sections to split in the azimuthal direction for stored data.
-    nlayers : int
-        Numbers of layers in the vertical direction
+        outer radius
+    naxial_layers : int, optional
+        number of axial layers to split the mesh into
+    nradial_layers : int, optional
+        number of radial layers to split the mesh into
+    resolution : int, optional
+        number of azimuthal angles to split the mesh into
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
     VTKMesh
-        The generated VTK Mesh
+        object containing the vtk mesh data for an annulus
     """
-    resolution = int(np.ceil(resolution / nazimuthal) * nazimuthal)
-    ncells = resolution * nlayers
-    npoints = 2 * resolution * (nlayers + 1)
-    sliceAngle = 2 * np.pi / resolution  # radians
-    angles = np.arange(0, 2 * np.pi, sliceAngle)
-    xin = Rin * np.cos(angles)
-    yin = Rin * np.sin(angles)
-    xout = Rout * np.cos(angles)
-    yout = Rout * np.sin(angles)
-    dz = L / nlayers
-    z = np.arange(0, L + dz, dz)
+    mesh_r = np.linspace(Rin, Rout, nradial_layers + 1)
+    mesh_z = np.linspace(0, L, naxial_layers + 1)
+    mesh_theta = np.linspace(0, 2 * np.pi, resolution + 1)
+
+    return _genAnnulus(mesh_r, mesh_z, mesh_theta, **kwargs)
+
+
+def genNonUniformAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
+    """Generates the vtk mesh for an annulus
+
+    Parameters
+    ----------
+    mesh_r : ndarray of float
+        Contains the radial meshing points for cell division. Note that the array must begin with 0.
+    mesh_z : ndarray of float
+        Contains the axial meshing points for cell division. Note that the array must begin with 0.
+    mesh_theta : ndarray of float
+        Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
+        and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
+
+    Returns
+    -------
+    VTKMesh
+        object containing the vtk mesh data for an annulus
+    """
+    if mesh_r[0] == 0:
+        mesh_r = np.delete(mesh_r, 0)
+    return _genAnnulus(mesh_r, mesh_z, mesh_theta, **kwargs)
+
+
+def _genAnnulus(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
+    """Generates the vtk mesh for an annulus
+
+    Parameters
+    ----------
+    mesh_r : ndarray of float
+        Contains the radial meshing points for cell division. Note that the array must begin with 0.
+    mesh_z : ndarray of float
+        Contains the axial meshing points for cell division. Note that the array must begin with 0.
+    mesh_theta : ndarray of float
+        Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
+        and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
+
+    Returns
+    -------
+    VTKMesh
+        object containing the vtk mesh data for an annulus
+    """
+
+    nazimuthal_data = kwargs.get("nazimuthal_data", 1)
+
+    # pre-calculations
+    naxial_layers = mesh_z.size - 1
+    nradial_layers = mesh_r.size - 1
+    nazimuthal_layers = mesh_theta.size - 1
+    ncell = naxial_layers * nradial_layers * nazimuthal_layers
 
     # points
+    npoints = (nradial_layers + 1) * nazimuthal_layers * (naxial_layers + 1)
+    npoints_layer = int(npoints / mesh_z.size)
     xx = np.zeros(npoints)
     yy = np.zeros(npoints)
     zz = np.zeros(npoints)
-    i = 0
-    for k in z:
-        for j in range(resolution):
-            xx[i] = xin[j]
-            yy[i] = yin[j]
-            zz[i] = k
-            xx[i + 1] = xout[j]
-            yy[i + 1] = yout[j]
-            zz[i + 1] = k
-            i += 2
+
+    point = 0
+    for z in mesh_z:
+        for r in mesh_r:
+            for i in range(nazimuthal_layers):
+                xx[point] = r * np.cos(mesh_theta[i])
+                yy[point] = r * np.sin(mesh_theta[i])
+                zz[point] = z
+                point += 1
 
     # connections
-    conn = np.zeros(ncells * 8)
+    conn = np.zeros(ncell * 8, dtype=int)
     i = 0
-    for k in range(nlayers):
-        for j in range(resolution):
-            j0 = j * 2 + (k * resolution * 2)
-            if j + 1 == resolution:
-                j1 = k * resolution * 2
-            else:
-                j1 = j * 2 + (k * resolution * 2) + 2
-            conn[i + 0] = j0
-            conn[i + 1] = j0 + 1
-            conn[i + 2] = j1 + 1
-            conn[i + 3] = j1
-            conn[i + 4] = j0 + resolution * 2
-            conn[i + 5] = j0 + resolution * 2 + 1
-            conn[i + 6] = j1 + resolution * 2 + 1
-            conn[i + 7] = j1 + resolution * 2
-            i += 8
+    for k in range(naxial_layers):
+        for r in range(nradial_layers):
+            for j in range(nazimuthal_layers):
+                j0 = r * nazimuthal_layers + j + k * npoints_layer
+                if j + 1 == nazimuthal_layers:
+                    j1 = j0 - nazimuthal_layers + 1
+                else:
+                    j1 = j0 + 1
+                conn[i + 0] = j0
+                conn[i + 1] = j1
+                conn[i + 2] = j1 + nazimuthal_layers
+                conn[i + 3] = j0 + nazimuthal_layers
+                conn[i + 4] = j0 + npoints_layer
+                conn[i + 5] = j1 + npoints_layer
+                conn[i + 6] = j1 + nazimuthal_layers + npoints_layer
+                conn[i + 7] = j0 + nazimuthal_layers + npoints_layer
+                i += 8
 
     # offsets
-    offsets = np.zeros(ncells)
-    for i in range(ncells):
+    offsets = np.zeros(ncell, dtype=int)
+    for i in range(ncell):
         offsets[i] = (i + 1) * 8
 
     # ctypes
-    ctypes = np.ones(ncells) * VtkHexahedron.tid
+    ctypes = np.ones(ncell, dtype=int) * VtkHexahedron.tid
 
     # meshmap
-    meshmap = np.zeros(nlayers * nazimuthal + 1, dtype=int)
-    for i in range(1, meshmap.size):
-        meshmap[i] = resolution / nazimuthal * i
+    meshmap = np.arange(0, ncell + 1, dtype=int)
+    meshmap = np.zeros(naxial_layers * nazimuthal_data + 1, dtype=int)
+    for i in range(meshmap.size):
+        meshmap[i] = nazimuthal_layers * nradial_layers / nazimuthal_data * i
 
     points = (xx, yy, zz)
 

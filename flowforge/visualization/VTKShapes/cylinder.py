@@ -1,88 +1,185 @@
 import numpy as np
-from pyevtk.vtk import VtkWedge
+from pyevtk.vtk import VtkWedge, VtkHexahedron
 from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
 
-def genCyl(L: float, R: float, resolution: int = CYL_RESOLUTION, nlayers: int = 1) -> VTKMesh:
-    """ Function for generating a mesh
+def genUniformCylinder(
+    L: float, R: float, naxial_layers: int = 1, nradial_layers: int = 1, resolution: int = CYL_RESOLUTION, **kwargs
+) -> VTKMesh:
+    """Generates the vtk mesh for a cylinder with uniform cell divisions.
 
     Parameters
     ----------
     L : float
-        Length
+        Length of the cylinder.
     R : float
-        Radius
-    resolution : int
-        Number of sides the cylinder is approximated with
-    nlayers : int
-        Number of vertical layers the cylinder is comprised of
+        Radius of the cylinder.
+    naxial_layers : int, optional
+        The number of axial layers the cylinder is comprised of. Default is None.
+    nradial_layers : int, optional
+        The number of radial layers the cylinder is comprised of. Default is None.
+    resolution : int, optional
+        The number of sides the cylinder is approximated with. Default is None.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
 
     Returns
     -------
     VTKMesh
-        The generated VTK Mesh
+        Object containing the vtk mesh data for a uniform cylinder.
     """
-    nwedges = resolution
-    ncells = nwedges * nlayers
-    pi = np.pi
-    sliceAngle = 2 * pi / nwedges  # radians
-    angles = np.arange(0, 2 * pi, sliceAngle)
-    # conversion from polar to cartesian coordinates
-    x = R * np.cos(angles)
-    y = R * np.sin(angles)
-    dz = L / nlayers
-    z = np.linspace(0, L, nlayers + 1)
+
+    mesh_r = np.linspace(0, R, nradial_layers + 1)
+    mesh_z = np.linspace(0, L, naxial_layers + 1)
+    mesh_theta = np.linspace(0, 2 * np.pi, resolution + 1)
+
+    return _genCylinder(mesh_r, mesh_z, mesh_theta, **kwargs)
+
+
+def genNonUniformCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
+    """Generates the vtk mesh for a cylinder with non-uniform cell divisions.
+
+    Parameters
+    ----------
+    mesh_r : ndarray of float
+        Contains the radial meshing points for cell division. Note that the array must begin with 0.
+    mesh_z : ndarray of float
+        Contains the axial meshing points for cell division. Note that the array must begin with 0.
+    mesh_theta : ndarray of float
+        Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
+        and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
+
+    Returns
+    -------
+    VTKMesh
+        Object containing the vtk mesh data for a non-uniform cylinder.
+    """
+
+    assert mesh_r[0] == 0.0
+    assert mesh_theta[0] == 0.0
+    assert mesh_theta[-1] == 2 * np.pi
+    assert mesh_theta.size >= 4
+    return _genCylinder(mesh_r, mesh_z, mesh_theta, **kwargs)
+
+
+def _genCylinder(mesh_r: np.ndarray, mesh_z: np.ndarray, mesh_theta: np.ndarray, **kwargs) -> VTKMesh:
+    """Generates the vtk mesh for a cylinder.
+
+    Parameters
+    ----------
+    mesh_r : ndarray of float
+        Contains the radial meshing points for cell division. Note that the array must begin with 0.
+    mesh_z : ndarray of float
+        Contains the axial meshing points for cell division. Note that the array must begin with 0.
+    mesh_theta : ndarray of float
+        Contains the angular divisions of the cell. Note that the array must begin and end with 0 and 2*pi,
+        and that the array must be at least 4 values in length.
+    nazimuthal_data : ndarray of float, optional
+        Number of azimuthal divisions for the solution data for each axial layer. Default is 1 (whole layer
+        corresponds to 1 data value).
+
+    Returns
+    -------
+    VTKMesh
+        Object containing the vtk mesh data for a cylinder.
+    """
+
+    nazimuthal_data = kwargs.get("nazimuthal_data", 1)
+
+    # pre-calculations
+    naxial_layers = mesh_z.size - 1
+    nradial_layers = mesh_r.size - 1
+    nazimuthal_layers = mesh_theta.size - 1
+    ncell = naxial_layers * nradial_layers * nazimuthal_layers
 
     # points
-    npoints = (nwedges + 1) * (1 + nlayers)
+    npoints = (nradial_layers * nazimuthal_layers + 1) * (naxial_layers + 1)
+    npoints_layer = int(npoints / mesh_z.size)
     xx = np.zeros(npoints)
     yy = np.zeros(npoints)
     zz = np.zeros(npoints)
-    i = 0
-    for k in z:
+
+    point = 0
+    for k in mesh_z:
         # defines the center point of each layer of points
-        xx[i] = 0
-        yy[i] = 0
-        zz[i] = k
-        i += 1
-        for j in range(nwedges):
-            # assigns the values around the circle to the large points list at the layer height z = k
-            xx[i] = x[j]
-            yy[i] = y[j]
-            zz[i] = k
-            i += 1
+        xx[point] = 0
+        yy[point] = 0
+        zz[point] = k
+        point += 1
+        for r in range(nradial_layers):
+            for i in range(nazimuthal_layers):
+                xx[point] = (mesh_r[r + 1]) * np.cos(mesh_theta[i])
+                yy[point] = (mesh_r[r + 1]) * np.sin(mesh_theta[i])
+                zz[point] = k
+                point += 1
 
     # connections
-    conn = np.zeros(nwedges * nlayers * 6)
+    conn = np.zeros(naxial_layers * nazimuthal_layers * (6 + 8 * (nradial_layers - 1)), dtype=int)
     i = 0
-    for k in range(nlayers):
-        for j in range(nwedges):
-            j0 = j + (nwedges + 1) * k + 1
-            if j + 1 == nwedges:
-                j1 = (nwedges + 1) * k + 1
+    for k in range(naxial_layers):
+        for r in range(nradial_layers):
+            if r == 0:
+                # inner circle
+                for j in range(nazimuthal_layers):
+                    j0 = j + 1 + k * npoints_layer
+                    if j + 1 == nazimuthal_layers:
+                        j1 = j0 - nazimuthal_layers + 1
+                    else:
+                        j1 = j0 + 1
+                    conn[i + 0] = k * npoints_layer
+                    conn[i + 1] = j0
+                    conn[i + 2] = j1
+                    conn[i + 3] = (k + 1) * npoints_layer
+                    conn[i + 4] = j0 + npoints_layer
+                    conn[i + 5] = j1 + npoints_layer
+                    i += 6
             else:
-                j1 = j + ((nwedges + 1) * k) + 2
-            conn[i + 0] = (nwedges + 1) * k
-            conn[i + 1] = j0
-            conn[i + 2] = j1
-            conn[i + 3] = (nwedges + 1) * (k + 1)
-            conn[i + 4] = j0 + nwedges + 1
-            conn[i + 5] = j1 + nwedges + 1
-            i += 6
+                # outer rings
+                for j in range(nazimuthal_layers):
+                    j0 = (r - 1) * nazimuthal_layers + j + 1 + k * npoints_layer
+                    if j + 1 == nazimuthal_layers:
+                        j1 = j0 - nazimuthal_layers + 1
+                    else:
+                        j1 = j0 + 1
+                    conn[i + 0] = j0
+                    conn[i + 1] = j1
+                    conn[i + 2] = j1 + nazimuthal_layers
+                    conn[i + 3] = j0 + nazimuthal_layers
+                    conn[i + 4] = j0 + npoints_layer
+                    conn[i + 5] = j1 + npoints_layer
+                    conn[i + 6] = j1 + nazimuthal_layers + npoints_layer
+                    conn[i + 7] = j0 + nazimuthal_layers + npoints_layer
+                    i += 8
 
-    # offset data
-    offsets = np.zeros(ncells)
-    for i in range(ncells):
-        offsets[i] = (i + 1) * 6
+    # offsets and cell types
+    offsets = np.zeros(ncell, dtype=int)
+    ctypes = np.ones(ncell, dtype=int)
 
-    # cell types
-    ctypes = np.ones(ncells) * VtkWedge.tid
+    n = 0
+    for k in range(naxial_layers):
+        layer_start = k * nazimuthal_layers * nradial_layers
+        layer_end = layer_start + nazimuthal_layers * nradial_layers
+        for i in range(layer_start, layer_end):
+            if i < layer_start + nazimuthal_layers:
+                n += 6
+                offsets[i] = n
+                ctypes[i] *= VtkWedge.tid
+            else:
+                n += 8
+                offsets[i] = n
+                ctypes[i] *= VtkHexahedron.tid
 
-    # mesh map
-    meshmap = np.zeros(nlayers + 1, dtype=int)
-    for i in range(nlayers):
-        meshmap[i + 1] = nwedges * (i + 1)
+    # meshmap
+    meshmap = np.arange(0, ncell + 1, dtype=int)
+    meshmap = np.zeros(naxial_layers * nazimuthal_data + 1, dtype=int)
+    for i in range(meshmap.size):
+        meshmap[i] = nazimuthal_layers * nradial_layers / nazimuthal_data * i
+
     points = (xx, yy, zz)
 
     return VTKMesh(points, conn, offsets, ctypes, meshmap)
