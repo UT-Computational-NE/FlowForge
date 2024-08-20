@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
-from flowforge.input.Components import Component, Nozzle
+from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
 from flowforge.parsers.OutputParser import OutputParser
@@ -122,7 +122,7 @@ class System:
         Returns the core component of the system.
         """
         for comp in self._components:
-            if comp.__class__.__name__ == "HexCore":
+            if isinstance(comp, HexCore):
                 return comp
 
         return Exception
