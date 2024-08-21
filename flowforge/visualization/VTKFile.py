@@ -84,7 +84,9 @@ class VTKFile:
         This function makes use of the :func:`unstructuredGridToVTK` function from the
         pyevtk library.
         """
+
         assert self.vtkmesh is not None
+
         unstructuredGridToVTK(
             self.filepath,
             *self.vtkmesh.points,

@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
-from flowforge.input.Components import Component, Nozzle
+from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
 from flowforge.parsers.OutputParser import OutputParser
@@ -115,6 +115,17 @@ class System:
             self._MMBC._convertUnits(UnitConverter(unitdict))
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
+
+    @property
+    def core(self):
+        """
+        Returns the core component of the system.
+        """
+        for comp in self._components:
+            if isinstance(comp, HexCore):
+                return comp
+
+        return Exception
 
     def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict],
                          boundary_conditions: Dict = {}, fluid: str = "FLiBe") -> None:
