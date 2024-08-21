@@ -1452,6 +1452,7 @@ class HexCore(ParallelComponents):
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
+        solid_system: Dict = None,
         **kwargs,
     ) -> None:
         self._pitch = pitch
@@ -1473,8 +1474,35 @@ class HexCore(ParallelComponents):
                         self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
                     extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
 
+        self._solidsystem = None
+        if solid_system != None:
+            self._solidsystem = self.solidsys(**solid_system)
         super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
 
+    class solidsys:
+        def __init__(
+            self,
+            n_slices: int = 1,
+            outer_radius: float = 1,
+            pitch: float = 1,
+            refine: int = 1,
+            material: str = "graphite",
+            side_bc: Dict = None,
+            top_bc: Dict = None,
+            bot_bc: Dict = None,
+            alpha: float = 0.9,
+            hgap_radial: float = 10
+        ) -> None:
+            self._n_slices = n_slices
+            self._outer_radius = outer_radius
+            self._pitch = pitch
+            self._refine = refine
+            self._material = material
+            self._side_bc = side_bc
+            self._top_bc = top_bc
+            self._bot_bc = bot_bc
+            self._alpha = alpha
+            self._hgap_radial = hgap_radial
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
 
