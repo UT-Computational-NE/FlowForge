@@ -265,47 +265,47 @@ class Component:
         new_vec = np.dot(azimuthal_rotate, np.dot(polar_rotate, np.array([x, y, z])))
         return new_vec
 
+    @staticmethod
+    def factory(indict: Dict) -> Dict[str, Component]:
+        """Factory for building a collection of components
 
-def component_factory(indict: Dict) -> Dict[str, Component]:
-    """Factory for building a collection of components
+        Parameters
+        ----------
+        indict : Dict
+            The input dictionary specifying the components to be instantiated.  This dictionary can be comprised
+            of two forms of inputs:
 
-    Parameters
-    ----------
-    indict : Dict
-        The input dictionary specifying the components to be instantiated.  This dictionary can be comprised
-        of two forms of inputs:
+            1.) A Name-Component pair
+                (Dict[str, Component])
+            2.) A dictionary of component types, each type holding a dictionary of name-parameter_set pairs, with the
+                name being the unique component's name, and the parameter_set another dictionary with key's corresponding
+                to the __init__ signature of the associated component type
+                (Dict[str, Dict[str, Dict[str, float]]])
 
-        1.) A Name-Component pair
-            (Dict[str, Component])
-        2.) A dictionary of component types, each type holding a dictionary of name-parameter_set pairs, with the
-            name being the unique component's name, and the parameter_set another dictionary with key's corresponding
-            to the __init__ signature of the associated component type
-            (Dict[str, Dict[str, Dict[str, float]]])
-
-    Returns
-    -------
-    Dict[str, Component]
-        The collection of components built
-        (key: Component name, value: Component object)
-    """
-    components = {}
-    for key, value in indict.items():
-        if isinstance(value, dict):
-            comp_type = key
-            comps = value
-            if comp_type in component_list:
-                for name, parameters in comps.items():
-                    components[name] = component_list[comp_type](**parameters)
+        Returns
+        -------
+        Dict[str, Component]
+            The collection of components built
+            (key: Component name, value: Component object)
+        """
+        components = {}
+        for key, value in indict.items():
+            if isinstance(value, dict):
+                comp_type = key
+                comps = value
+                if comp_type in component_list:
+                    for name, parameters in comps.items():
+                        components[name] = component_list[comp_type](**parameters)
+                else:
+                    raise TypeError("Unknown component type: " + comp_type)
+            elif isinstance(value, Component):
+                name = key
+                comp = value
+                components[name] = comp
             else:
-                raise TypeError("Unknown component type: " + comp_type)
-        elif isinstance(value, Component):
-            name = key
-            comp = value
-            components[name] = comp
-        else:
-            raise TypeError(f"Unknown input dictionary: {key:s} type: {str(type(value)):s}")
+                raise TypeError(f"Unknown input dictionary: {key:s} type: {str(type(value)):s}")
 
-    return components
+        return components
 
 
 class Pipe(Component):
@@ -1120,7 +1120,7 @@ class ParallelComponents(ComponentCollection):
     ----------
     components : Dict
         The collection parallel components which comprise this component.  The structure of
-        this dictionary follows the same convention as :func:`component_factory`
+        this dictionary follows the same convention as :func:`Component.factory`
     centroids : Dict[str, List[float]]
         The :math:`x-y` coordinates of the centroids of the parallel components.
         (key: component name, value: [x_coord, y_coord])
@@ -1176,7 +1176,7 @@ class ParallelComponents(ComponentCollection):
         **kwargs,
     ) -> None:
         #parallel components first
-        self._myParallelComponents = component_factory(parallel_components)
+        self._myParallelComponents = Component.factory(parallel_components)
         self._centroids = centroids
         #add parallel components to my components
         myComponents = {**self._myParallelComponents}
@@ -1393,7 +1393,7 @@ class HexCore(ParallelComponents):
         Distance between each of the fuel channels (serial components)
     components : Dict
         The collection parallel components which comprise this component.  The structure of
-        this dictionary follows the same convention as :func:`component_factory`
+        this dictionary follows the same convention as :func:`Component.factory`
     hexmap : List[List[int]]
         list containing the serial components in the corresponding rows and
         columns of the hex map
@@ -1457,7 +1457,7 @@ class HexCore(ParallelComponents):
         self._pitch = pitch
         self._map = hexmap
         self._orificing = orificing
-        self.tmpComponents = component_factory(components)
+        self.tmpComponents = Component.factory(components)
         extended_comps = {}
         centroids = {}
         if self._orificing is not None: #making sure shape of map == shape of orficing
@@ -1541,7 +1541,7 @@ class SerialComponents(ComponentCollection):
     ----------
     components : Dict
         The collection parallel components which comprise this component.  The structure of
-        this dictionary follows the same convention as :func:`component_factory`
+        this dictionary follows the same convention as :func:`Component.factory`
     order : List[str]
         The order of the components listed in order from start to finish using the unique component names
 
@@ -1569,7 +1569,7 @@ class SerialComponents(ComponentCollection):
     """
 
     def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
-        cont_components = component_factory(components)
+        cont_components = Component.factory(components)
         cont_components, order = cont_factory(cont_components,order)
         super().__init__(cont_components)
         self._order = order
