@@ -2,7 +2,7 @@ import json
 from math import isclose
 
 from flowforge.input.System import System
-from flowforge.input.Components import component_factory
+from flowforge.input.Components import Component
 
 def test_single_segment():
     return  # This should be deleted once the test has been fully implemented
@@ -11,7 +11,7 @@ def test_single_segment():
     with open(inputfile, 'r') as rf:
         input_dict = json.load(rf)
 
-    components = component_factory(input_dict['components'])
+    components = Component.factory(input_dict['components'])
 
     system = System(components,
                     input_dict.get('system', {}),
