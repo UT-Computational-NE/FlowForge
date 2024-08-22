@@ -1484,25 +1484,26 @@ class HexCore(ParallelComponents):
             self,
             n_slices: int = 1,
             outer_radius: float = 1,
-            pitch: float = 1,
             refine: int = 1,
             material: str = "graphite",
             side_bc: Dict = None,
             top_bc: Dict = None,
             bot_bc: Dict = None,
             alpha: float = 0.9,
-            hgap_radial: float = 10
+            hgap_radial: float = 10.0,
+            power: str = "1.0"
         ) -> None:
             self._n_slices = n_slices
             self._outer_radius = outer_radius
-            self._pitch = pitch
             self._refine = refine
             self._material = material
-            self._side_bc = side_bc
-            self._top_bc = top_bc
-            self._bot_bc = bot_bc
+            self._bc = [None,None,None]
+            self._bc[0] = side_bc
+            self._bc[1] = top_bc
+            self._bc[2] = bot_bc
             self._alpha = alpha
             self._hgap_radial = hgap_radial
+            self._power = power
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
 
