@@ -307,6 +307,10 @@ class System:
     @property
     def MMBC(self) -> MassMomentumBC:
         return self._MMBC
+    
+    @property
+    def DirichletBC(self) -> DirichletBC:
+        return self._DirichletBC
 
     @property
     def fluidname(self) -> str:
