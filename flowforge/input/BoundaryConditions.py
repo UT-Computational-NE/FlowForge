@@ -153,6 +153,26 @@ class DirichletBC():
       * _temperature -> Tuple[string, float]
 
     """
+
+    """
+    TODO For the class:
+      - For right now, this class can only handle 1 BC per property (mdot, pressure, ...)
+      - Will need to add a method to hold mutiple BCs
+        - Perhaps : _temperature -> dict : {"node1" : float, "node2" : float, ...}
+        - Need to examine how this would function downstream before adding too much
+
+      - Also, as a more long-term note, this class is *not* in the final form. As a goal, this
+        class should not have to specify/hard-code the properties (temperature, mdot, ...), but
+        should instead strive to be more general. It should take in, as inputs, a reference to 
+        the variable of which the BC will be applied, the value at the boundary, and some mapping
+        to the actual fluid mesh, as well as the mesh-index at which to apply the BC. In this 
+        manner, one could theortically set a BC of any variable at any point in the mesh. As this
+        is not a vitale feature of SyTH, it should be done later as an added feature.
+                                                                                        - Charlie
+    
+    """
+
+
     def __init__(self, bounday_conditions: dict = None):
         bc_types = list(bounday_conditions.keys())
 
