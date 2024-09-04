@@ -117,6 +117,8 @@ class System:
             self._MMBC._convertUnits(UnitConverter(unitdict))
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
+        if self._DirichletBC is not None:
+            self._DirichletBC._convertUnits(UnitConverter(unitdict))
 
     @property
     def core(self):
