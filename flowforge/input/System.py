@@ -5,7 +5,7 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, DirichletBC
 from flowforge.parsers.OutputParser import OutputParser
 
 def make_continuous(components: List[Component], order: List[dict]):
@@ -99,6 +99,8 @@ class System:
         self._EBC = None
         self._fluid = None
 
+        self._DirichletBC = None  # ** DIRICHLET BC **
+
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
         elif "segment" in sysdict:
@@ -170,6 +172,9 @@ class System:
             self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+        self._DirichletBC = None
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):    # ** DIRICHLET BC **
+            self._DirichletBC = DirichletBC(**boundary_conditions)
 
     def _setupSegment(self, components: List[Component], order: List[dict],
                       boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
@@ -211,6 +216,9 @@ class System:
         self._EBC = None
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+        self._DirichletBC = None
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):    # ** DIRICHLET BC **
+            self._DirichletBC = DirichletBC(**boundary_conditions)
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """ Private method for setting up output parsers

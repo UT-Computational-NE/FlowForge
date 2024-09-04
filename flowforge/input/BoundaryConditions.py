@@ -126,3 +126,77 @@ class EnthalpyBC():
                 self._val_outlet *= uc.enthalpyConversion
             else:
                 raise Exception("Unknown enthalpy BC type: " + self.type_outlet)
+
+class DirichletBC():
+    """
+    General class for Dirichlet boundary conditions
+
+    Types of BC inputs:
+      - mass flow rate
+      - pressure
+      - temperature
+      - enthalpy
+    
+    bounday_conditions should be defined as a dict in the form:
+
+    bounday_conditions = {
+        "mass_flow_rate" : {"inlet/outlet", float},
+        "pressure"       : {"inlet/outlet", float},
+        "temperature"    : {"inlet/outlet", float},
+        "enthalpy"       : {"inlet/outlet", float}
+    }
+    
+    attributes:
+      * _mdot        -> Tuple[string, float]
+      * _pressure    -> Tuple[string, float]
+      * _enthalpy    -> Tuple[string, float]
+      * _temperature -> Tuple[string, float]
+
+    """
+    def __init__(self, bounday_conditions: dict = None):
+        bc_types = list(bounday_conditions.keys())
+
+        self._mdot = None
+        self._pressure = None
+        self._temperature = None
+        self._enthalpy = None
+
+        if "mass_flow_rate" in  bc_types:
+            mdot_bc = bounday_conditions["mass_flow_rate"]
+            self._mdot = tuple([mdot_bc[0], mdot_bc[1]])
+        if "pressure" in  bc_types:
+            p_bc = bounday_conditions["pressure"]
+            self._pressure = tuple([p_bc[0], p_bc[1]])
+        if "temperature" in  bc_types:
+            t_bc = bounday_conditions["temperature"]
+            self._temperature = tuple([t_bc[0], t_bc[1]])
+        if "enthalpy" in  bc_types:
+            e_bc = bounday_conditions["enthalpy"]
+            self._enthalpy = tuple([e_bc[0], e_bc[1]])
+
+    @property
+    def mdot(self):
+        return self._mdot
+    
+    @property
+    def pressure(self):
+        return self._pressure
+    
+    @property
+    def temperature(self):
+        return self._temperature
+    
+    @property
+    def enthalpy(self):
+        return self._enthalpy
+    
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        if self._mdot:
+            self._mdot *= uc.massFlowRateConversion
+        if self._pressure:
+            self._pressure *= uc.pressureConversion
+        if self._temperature:
+            self._temperature *= uc.temperatureConversion(self._temperature[1])
+        if self._enthalpy:
+            self._enthalpy *= uc.enthalpyConversion
+        
