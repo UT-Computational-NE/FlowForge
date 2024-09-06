@@ -386,7 +386,8 @@ class User_Fluid(Fluid):
     The User_Fluid subclass of the Fluid base class allows for the user to
     define their own property functions for the material being used.
     """
-    def __init__(self, name, therm_cond_funct, dens_funct, visco_funct, surf_tens_funct, spec_heat_funct, temp_funct, entha_funct):
+    def __init__(self, name, therm_cond_funct, dens_funct, visco_funct,
+                 surf_tens_funct, spec_heat_funct, temp_funct, entha_funct):
         """
         The User_Fluid subclass initializes by sending the name to the base
         class for initialization and then stores the 6 property functions.
@@ -396,6 +397,7 @@ class User_Fluid(Fluid):
             - therm_cond_funct : function of enthalpy which returns the conductivity of the fluid [W/m-K]
             - dens_funct       : function of enthalpy which returns the density of the fluid [kg/m^3]
             - visco_funct      : function of enthalpy which returns the viscosity of the fluid [kg/m-s]
+            - surf_tens_funct  : function of enthalpy which returns the surface tension of the fluid [kg/s^2]
             - spec_heat_funct  : function of enthalpy which returns the specific heat of the fluid [J/kg-K]
             - temp_funct       : function of enthalpy which returns the temperature of the fluid [K]
             - entha_funct      : function of temperature which returns the enthalpy of the material [J/kg]
