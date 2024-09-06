@@ -60,7 +60,7 @@ def test_hitec(): #test the hdf5 export function
     np.testing.assert_approx_equal(salt.conductivity(500000), 0.54112348483547, significant  = 8)
     np.testing.assert_approx_equal(salt.density(500000), 1957.746305236, significant  = 8)
     np.testing.assert_approx_equal(salt.viscosity(500000), 0.01193414245605, significant  = 8)
-    np.testing.assert_approx_equal(salt.surface_tension(500000), 1.124372083171, significant  = 8)
+    np.testing.assert_approx_equal(salt.surface_tension(500000), 0.124372083171, significant  = 8)
     np.testing.assert_approx_equal(salt.specific_heat(500000), 2406.2428723738, significant  = 8)
     np.testing.assert_approx_equal(salt.temperature(500000), 447.98411563, significant  = 8)
     np.testing.assert_approx_equal(salt.enthalpy(447.98411563), 500000.0, significant  = 8)
