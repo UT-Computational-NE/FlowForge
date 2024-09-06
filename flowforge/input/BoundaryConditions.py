@@ -173,7 +173,7 @@ class DirichletBC():
     """
 
 
-    def __init__(self, bounday_conditions: dict = None):
+    def __init__(self, **bounday_conditions: dict):
         bc_types = list(bounday_conditions.keys())
 
         self._mdot = None
@@ -181,18 +181,20 @@ class DirichletBC():
         self._temperature = None
         self._enthalpy = None
 
-        if "mass_flow_rate" in  bc_types:
-            mdot_bc = bounday_conditions["mass_flow_rate"]
-            self._mdot = tuple([mdot_bc[0], mdot_bc[1]])
-        if "pressure" in  bc_types:
-            p_bc = bounday_conditions["pressure"]
-            self._pressure = tuple([p_bc[0], p_bc[1]])
-        if "temperature" in  bc_types:
-            t_bc = bounday_conditions["temperature"]
-            self._temperature = tuple([t_bc[0], t_bc[1]])
-        if "enthalpy" in  bc_types:
-            e_bc = bounday_conditions["enthalpy"]
-            self._enthalpy = tuple([e_bc[0], e_bc[1]])
+        valid_bc_types = {"mass_flow_rate" : None,
+                          "pressure" : None,
+                          "temperature" : None,
+                          "enthalpy" : None}
+
+        for bc_type in [*valid_bc_types]:
+            if bc_type in bc_types:
+                valid_bc_types[bc_type] = [*bounday_conditions[bc_type],  # variable name
+                                           *bounday_conditions[bc_type].values()]  # variable value
+        
+        self._mdot = valid_bc_types["mass_flow_rate"]
+        self._pressure = valid_bc_types["pressure"]
+        self._temperature = valid_bc_types["temperature"]
+        self._enthalpy = valid_bc_types["enthalpy"]
 
     @property
     def mdot(self):
@@ -212,11 +214,11 @@ class DirichletBC():
     
     def _convertUnits(self, uc: UnitConverter) -> None:
         if self._mdot:
-            self._mdot *= uc.massFlowRateConversion
+            self._mdot[1] *= uc.massFlowRateConversion
         if self._pressure:
-            self._pressure *= uc.pressureConversion
+            self._pressure[1] *= uc.pressureConversion
         if self._temperature:
-            self._temperature *= uc.temperatureConversion(self._temperature[1])
+            self._temperature[1] = uc.temperatureConversion(self._temperature[1])
         if self._enthalpy:
-            self._enthalpy *= uc.enthalpyConversion
+            self._enthalpy[1] *= uc.enthalpyConversion
         
