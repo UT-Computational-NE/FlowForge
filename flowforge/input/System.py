@@ -100,6 +100,7 @@ class System:
         self._fluid = None
 
         self._DirichletBC = None  # ** DIRICHLET BC **
+        self._isLoop = False  # Boolean defining if system is a loop or segement
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
@@ -146,6 +147,8 @@ class System:
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
+        self._isLoop = True
+        
         components, loop = make_continuous(components,loop)
         self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
@@ -194,6 +197,8 @@ class System:
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
         """
+        self._isLoop = False
+
         components, order = make_continuous(components,order)
         self._fluidname = fluid.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
@@ -313,6 +318,10 @@ class System:
     @property
     def DirichletBC(self) -> DirichletBC:
         return self._DirichletBC
+
+    @property
+    def isLoop(self) -> bool:
+        return self._isLoop
 
     @property
     def fluidname(self) -> str:
