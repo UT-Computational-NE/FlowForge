@@ -108,6 +108,7 @@ class System:
             self._setupSegment(components, **sysdict["segment"])
         # TODO add additional types of systems that can be set up
 
+
         if "parsers" in sysdict:
             self._setupParsers(sysdict["parsers"])
 
@@ -171,15 +172,8 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-        self._MMBC = None
-        self._EBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        self._DirichletBC = None
-        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):    # ** DIRICHLET BC **
-            self._DirichletBC = DirichletBC(**boundary_conditions)
+        #get the boundary conditions
+        self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSegment(self, components: List[Component], order: List[dict],
                       boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
@@ -216,16 +210,9 @@ class System:
             self._wallfunctions.append(deepcopy(wftemp))
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
+        
         #get the boundary conditions
-        self._MMBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        self._EBC = None
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        self._DirichletBC = None
-        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):    # ** DIRICHLET BC **
-            self._DirichletBC = DirichletBC(**boundary_conditions)
+        self._setupBoundaryConditions(boundary_conditions)
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """ Private method for setting up output parsers
@@ -238,6 +225,16 @@ class System:
 
         raise NotImplementedError("To Be Implemented")
 
+    def _setupBoundaryConditions(self, boundary_conditions):
+        self._MMBC = None
+        if "mass_momentum" in boundary_conditions:
+            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
+        self._EBC = None
+        if "enthalpy" in boundary_conditions:
+            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+        self._DirichletBC = None
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):    # ** DIRICHLET BC **
+            self._DirichletBC = DirichletBC(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """ Generator for marching over the nodes (i.e. cells) of a system
