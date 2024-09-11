@@ -304,6 +304,23 @@ class Hitec(Fluid):
     def temperature(self, h):
         """
         Temperature [K]
+
+        Solving this based on the integral of dh(T)/dT = C_p(T) from T_1 to T_2 where:
+
+        Delta_h(T) = h(T_2) - h(T_1) = h - 0
+
+        and,
+
+        C_p(T) = d*T^2 + c*T + b
+
+        thus,
+
+        h = d/3*T^3 + c/2*T^2 + b*T + a
+
+        Note: h(T_1) is a relative term where enthalpy is 0
+
+        TODO: This temp method could be optmized and the math behind the method
+        could be further explained.
         """
         d =  7.2413e-3
         c = -10.833
