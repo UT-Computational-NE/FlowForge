@@ -52,7 +52,7 @@ class Fluid(Material):
     @abc.abstractmethod
     def surface_tension(self, h):
         """
-        Surface tension [kg/s^2]
+        Surface tension [N/m]
         """
         raise NotImplementedError
 
@@ -142,12 +142,6 @@ class FLiBe_UF4(Fluid):
     In this section a list of temperature dependent caveats are presented
     with any listed uncertainties from the liturature [1]
 
-    Thermal conductivity:       validated for temp at 873 K
-    Density:                    valid for temp range 800-1080 K
-    Dynamic viscosity:          valid for temp range 873-1073 k
-    Surface Tension:            valid for temp range 773.15-1073.15 K with ± 3% uncertainty
-    Specific heat:              validated for temp at 973 K with ± 20% uncertainty
-
     References
     -----
 
@@ -162,33 +156,46 @@ class FLiBe_UF4(Fluid):
 
     def conductivity(self, h):
         """
-        Thermal conductivity [W/m-K]
+        Thermal conductivity [W/m-K]:
+        Validated for temp at 873 K,
+        ref [1], pg. 8-9, eq. (2.21)
         """
-        return 1.1*(h**0)
+        return 1.066 + h*0
 
     def density(self, h):
         """
-        Density [kg/m^3]
+        Density [kg/m^3]:
+        Validated for temp range 800-1080 K,
+        ref [1], pg. 6, eq. (2.13)
         """
-        return 2413 - 0.488*self.temperature(h)
+        T = self.temperature(h)
+        return 2413 - (0.488*T)
 
     def viscosity(self, h):
         """
-        Dynamic viscosity [kg/m-s]
+        Dynamic viscosity [kg/m-s]:
+        Validated for temp range 873-1073 K,
+        ref [1], pg. 7, eq. (2.18)
         """
-        return 0.116*np.exp(3755.0/self.temperature(h))*1e-3
+        T = self.temperature(h)
+        return (0.116e-3)*np.exp(3755.0/T)
 
     def surface_tension(self, h):
         """
-        Surface tension [kg/s^2]
+        Surface tension [N/m]:
+        Validated for temp range 773.15-1073.15 K with ± 3% uncertainty,
+        ref [1], pg. 8, eq. (2.19)
         """
-        return 0.295778-(0.12*self.temperature(h)*1e-3)
+        T = self.temperature(h)
+        return 0.295778-((0.12e-3)*T)
 
     def specific_heat(self, h):
         """
-        Specific heat capacity [J/kg-K] (Isobaric)
+        Specific heat capacity [J/kg-K] (Isobaric):
+        Validated for temp at 973 K with ± 20% uncertainty,
+        ref [1], pg. 8
         """
-        return 2386 + h*0
+        return 2415.78 + h*0
 
     def temperature(self, h):
         """
@@ -219,22 +226,16 @@ class Hitec(Fluid):
     In this section a list of temperature dependent caveats are presented
     with uncertainties from the liturature
 
-    Thermal conductivity:       valid for temp range 373-773 K with ± 5% uncertainty  [1]
-    Density:                    valid for temp range 470-870 K with ± 2% uncertainty  [2]
-    Dynamic viscosity:          valid for temp range 420-710 K with ± 16% uncertainty [2]
-    Surface tension:            valid for temp range 570-670 K with ± 10% uncertainty [2]
-    Specific heat:              valid for temp range 426-776 K with ± 5% uncertainty  [2]
-
     References
     -----
 
-    [1] R. Santini, L. Tadrist, J. Pantaloni, and P. Cerisier, “Measurement of thermal
-        conductivity of molten salts in the range 100-500 C,” Int. J. Heat Mass
-        Transfer 27, 623-626 (1984).
-
-    [2] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
+    [1] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
         of liquid salt thermophysical and thermochemical properties,” Technical
         Report No. INL/EXT-10-18297 (2010).
+
+    [2] R. Santini, L. Tadrist, J. Pantaloni, and P. Cerisier, “Measurement of thermal
+        conductivity of molten salts in the range 100-500 C,” Int. J. Heat Mass
+        Transfer 27, 623-626 (1984).
 
     """
     def __init__(self, name):
@@ -243,47 +244,62 @@ class Hitec(Fluid):
 
     def conductivity(self, h):
         """
-        Thermal conductivity [W/m-K]
+        Thermal conductivity [W/m-K]:
+        Validated for temp range 373-773 K with ± 5% uncertainty,
+        ref [2], pg. 625, Table 1.
         """
         a =  0.78
         b = -1.25e-3
         c =  1.6e-6
-        return a + (b*self.temperature(h)) + (c*(self.temperature(h)**2))
+        T = self.temperature(h)
+        return a + (b*T) + (c*(T**2))
 
     def density(self, h):
         """
-        Density [kg/m^3]
+        Density [kg/m^3]:
+        Validated for temp range 470-870 K with ± 2% uncertainty,
+        ref [1], pg. 13, eq. (2.31)
         """
         a =  2293.6
         b = -0.7497
-        return a + (b*self.temperature(h))
+        T = self.temperature(h)
+        return a + (b*T)
 
     def viscosity(self, h):
         """
-        Dynamic viscosity [kg/m-s]
+        Dynamic viscosity [kg/m-s]:
+        Validated for temp range 420-710 K with ± 16% uncertainty,
+        ref [1], pg. 13, eq. (2.32)
         """
         a =  0.4737
         b = -2.297e-3
         c =  3.731e-6
         d = -2.019e-9
-        return a + (b*self.temperature(h)) + (c*(self.temperature(h)**2)) + (d*(self.temperature(h)**3))
+        T = self.temperature(h)
+        return a + (b*T) + (c*(T**2)) + (d*(T**3))
 
     def surface_tension(self, h):
         """
-        Surface tension [kg/s^2]
+        Surface tension [N/m]:
+        Validated for temp range 570-670 K with ± 10% uncertainty,
+        ref [1], pg. 14, eq. (2.33)
         """
         a = 0.14928
-        b = -0.556*1e-4
-        return a + (b*self.temperature(h))
+        b = -0.556e-4
+        T = self.temperature(h)
+        return a + (b*T)
 
     def specific_heat(self, h):
         """
-        Specific heat capacity [J/kg-K] (Isobaric)
+        Specific heat capacity [J/kg-K] (Isobaric):
+        Validated for temp range 426-776 K with ± 5% uncertainty,
+        ref [1], pg. 14, eq. (2.34)
         """
         a =  5806.0
         b = -10.833
         c =  7.2413e-3
-        return a + (b*self.temperature(h)) + (c*(self.temperature(h)**2))
+        T = self.temperature(h)
+        return a + (b*T) + (c*(T**2))
 
     def temperature(self, h):
         """
@@ -356,7 +372,7 @@ class Helium(Fluid):
 
     def surface_tension(self, h):
         """
-        Surface tension [kg/s^2]
+        Surface tension [N/m]
         """
         return 0.0
 
@@ -397,7 +413,7 @@ class User_Fluid(Fluid):
             - therm_cond_funct : function of enthalpy which returns the conductivity of the fluid [W/m-K]
             - dens_funct       : function of enthalpy which returns the density of the fluid [kg/m^3]
             - visco_funct      : function of enthalpy which returns the viscosity of the fluid [kg/m-s]
-            - surf_tens_funct  : function of enthalpy which returns the surface tension of the fluid [kg/s^2]
+            - surf_tens_funct  : function of enthalpy which returns the surface tension of the fluid [N/m]
             - spec_heat_funct  : function of enthalpy which returns the specific heat of the fluid [J/kg-K]
             - temp_funct       : function of enthalpy which returns the temperature of the fluid [K]
             - entha_funct      : function of temperature which returns the enthalpy of the material [J/kg]
@@ -431,7 +447,7 @@ class User_Fluid(Fluid):
 
     def surface_tension(self, h):
         """
-        Surface tension [kg/s^2]
+        Surface tension [N/m]
         """
         return self.surface_tension_fun(h)
 
