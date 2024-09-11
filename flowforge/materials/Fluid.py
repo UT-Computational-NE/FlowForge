@@ -147,7 +147,7 @@ class FLiBe_UF4(Fluid):
 
     [1] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
         of liquid salt thermophysical and thermochemical properties,” Technical
-        Report No. INL/EXT-10-18297 (2010).
+        Report No. INL/EXT-10-18297 Rev. 1 (2013).
 
     """
     def __init__(self, name):
@@ -231,7 +231,7 @@ class Hitec(Fluid):
 
     [1] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
         of liquid salt thermophysical and thermochemical properties,” Technical
-        Report No. INL/EXT-10-18297 (2010).
+        Report No. INL/EXT-10-18297 Rev. 1 (2013).
 
     [2] R. Santini, L. Tadrist, J. Pantaloni, and P. Cerisier, “Measurement of thermal
         conductivity of molten salts in the range 100-500 C,” Int. J. Heat Mass
