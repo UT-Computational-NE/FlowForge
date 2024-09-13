@@ -23,6 +23,7 @@ class Fluid(Material):
             ["thermal_conductivity", self.conductivity],
             ["density", self.density],
             ["viscosity", self.viscosity],
+            ["surface_tension", self.surface_tension],
             ["specific_heat", self.specific_heat],
             ["temperature", self.temperature]
         ]
@@ -49,6 +50,13 @@ class Fluid(Material):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def surface_tension(self, h):
+        """
+        Surface tension [N/m]
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def specific_heat(self, h):
         """
         Specific heat [J/kg-K]
@@ -66,12 +74,6 @@ class Fluid(Material):
     def enthalpy(self, T):
         """
         Enthalpy [J/kg]
-        """
-        raise NotImplementedError
-
-    def surface_tension(self, h):
-        """
-        Surface tension [N/m]
         """
         raise NotImplementedError
 
@@ -388,6 +390,12 @@ class Helium(Fluid):
         Dynamic viscosity at P=0.120 MPa, T=600 K (p.37) [kg/m-s]
         """
         return 32.22 * 1e-6
+
+    def surface_tension(self, h):
+        """
+        Surface tension [N/m]
+        """
+        return NotImplementedError
 
     def specific_heat(self, h):
         """
