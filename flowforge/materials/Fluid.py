@@ -427,7 +427,8 @@ class User_Fluid(Fluid):
                  spec_heat_funct, temp_funct, entha_funct,surf_tens_funct=None):
         """
         The User_Fluid subclass initializes by sending the name to the base
-        class for initialization and then stores the 6 property functions.
+        class for initialization and then stores the 6 property functions
+        with 1 optional property function.
 
         Args:
             - name : string, name of the solid material
