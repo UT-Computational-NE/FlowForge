@@ -23,7 +23,6 @@ class Fluid(Material):
             ["thermal_conductivity", self.conductivity],
             ["density", self.density],
             ["viscosity", self.viscosity],
-            ["surface_tension", self.surface_tension],
             ["specific_heat", self.specific_heat],
             ["temperature", self.temperature]
         ]
