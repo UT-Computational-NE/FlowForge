@@ -49,7 +49,6 @@ class Fluid(Material):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def surface_tension(self, h):
         """
         Surface tension [N/m]
