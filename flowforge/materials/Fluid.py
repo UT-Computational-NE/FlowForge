@@ -391,12 +391,6 @@ class Helium(Fluid):
         """
         return 32.22 * 1e-6
 
-    def surface_tension(self, h):
-        """
-        Surface tension [N/m]
-        """
-        return NotImplementedError
-
     def specific_heat(self, h):
         """
         Specific heat capacity at P=0.120 MPa, T=600 K (p.36) [J/kg-K] (Isobaric)
