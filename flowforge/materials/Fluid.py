@@ -49,12 +49,6 @@ class Fluid(Material):
         """
         raise NotImplementedError
 
-    def surface_tension(self, h):
-        """
-        Surface tension [N/m]
-        """
-        raise NotImplementedError
-
     @abc.abstractmethod
     def specific_heat(self, h):
         """
@@ -73,6 +67,12 @@ class Fluid(Material):
     def enthalpy(self, T):
         """
         Enthalpy [J/kg]
+        """
+        raise NotImplementedError
+
+    def surface_tension(self, h):
+        """
+        Surface tension [N/m]
         """
         raise NotImplementedError
 
