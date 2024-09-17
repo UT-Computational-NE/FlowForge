@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 from flowforge.materials.Material import Material
 
+# pylint:disable=abstract-method
 class Fluid(Material):
     """
     Fluid class stores fluid property data and returns values describing thermodynamic state of fluid given
