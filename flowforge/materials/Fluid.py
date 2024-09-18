@@ -3,7 +3,6 @@ import h5py
 import numpy as np
 from flowforge.materials.Material import Material
 
-# pylint:disable=abstract-method
 # ------------------------------------------------------------------------------------------------------------
 # Explanation: The "abstract-method" warning is disabled in pylint because the surface_tension method in the
 # abstract class is not intended to be an abstract method. However, by raising a NotImplementedError within
@@ -83,7 +82,7 @@ class Fluid(Material):
         """
         Surface tension [N/m]
         """
-        raise NotImplementedError
+        raise RuntimeError("Surface tension not implemented for this fluid")
 
     def Pr(self, h):
         """
