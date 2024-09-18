@@ -4,6 +4,14 @@ import numpy as np
 from flowforge.materials.Material import Material
 
 # pylint:disable=abstract-method
+# ------------------------------------------------------------------------------------------------------------
+# Explanation: The "abstract-method" warning is disabled in pylint because the surface_tension method in the
+# abstract class is not intended to be an abstract method. However, by raising a NotImplementedError within
+# this method, pylint assumes it is an abstract method, even though it does not explicitly use
+# the @abc.abstractmethod decorator. Since not all concrete classes implement the surface_tension method,
+# pylint would otherwise raise an error. Therefore, disabling the "abstract-method" warning in pylint
+# is necessary in this case.
+# ------------------------------------------------------------------------------------------------------------
 class Fluid(Material):
     """
     Fluid class stores fluid property data and returns values describing thermodynamic state of fluid given
@@ -184,7 +192,8 @@ class FLiBe_UF4(Fluid):
         """
         Surface tension [N/m]:
         Validated for temp range 773.15-1073.15 K with ± 3% uncertainty,
-        ref. [1], pg. 8, eq. (2.19)
+        under a dry argon, helium or nitrogen gas enviorment,
+        ref. [1], pg. 8 and 33, eq. (2.19)
         """
         T = self.temperature(h)
         return 0.295778-((0.12e-3)*T)
@@ -282,7 +291,9 @@ class Hitec(Fluid):
         """
         Surface tension [N/m]:
         Validated for temp range 570-670 K with ± 10% uncertainty,
-        ref. [1], pg. 14, eq. (2.33)
+        under a dry argon, helium or nitrogen gas enviorment,
+        ref. [1], pg. 14 and 33, eq. (2.33)
+        Note:
         """
         a = 0.14928
         b = -0.556e-4
