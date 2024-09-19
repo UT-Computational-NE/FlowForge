@@ -149,10 +149,10 @@ class FLiBe_UF4(Fluid):
     -----
 
     [1] C. Davis, "Implementation of Molten Salt Properties into RELAP5-3D/ATHENA," U.S. Department of Energy,
-    Tech. Rep., Jan. 2005. doi: 10.2172/910991. Available: https://www.osti.gov/biblio/910991.
+        Tech. Rep., Jan. 2005. doi: 10.2172/910991. Available: https://www.osti.gov/biblio/910991.
 
     [2] R. Romatoski and L.-W. Hu, "Fluoride salt coolant properties for nuclear reactor applications:
-    A review," *Annals of Nuclear Energy*, vol. 109, pp. 635-647, Nov. 2017. doi: 10.1016/j.anucene.2017.05.036.
+        A review," *Annals of Nuclear Energy*, vol. 109, pp. 635-647, Nov. 2017. doi: 10.1016/j.anucene.2017.05.036.
 
     [3] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, "Engineering Database of Liquid Salt Thermophysical
         and Thermochemical Properties," Idaho National Laboratory, Tech. Rep. INL/EXT-10-18297, Rev. 1, June 2013.
@@ -166,7 +166,7 @@ class FLiBe_UF4(Fluid):
     def conductivity(self, h):
         """
         Thermal conductivity [W/m-K]:
-        Validated for temp range 459-610 K and at 873 K ± 10-50% uncertainty,
+        Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
         ref. [1], pg. 10, Table 7.
         ref. [2], pg.  6, Table 3.
         """
