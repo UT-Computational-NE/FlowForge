@@ -1,7 +1,8 @@
 from flowforge.input.UnitConverter import UnitConverter
 
-class MassMomentumBC():
-    """ Class for mass and momentum BC
+
+class MassMomentumBC:
+    """Class for mass and momentum BC
 
     Attributes
     ----------
@@ -12,28 +13,29 @@ class MassMomentumBC():
     Pside : str
         Side that pressure is on. "inlet" or "outlet"
     """
+
     def __init__(self, inlet: dict = None, outlet: dict = None):
         assert outlet
 
         if inlet:
-            if 'mdot' in inlet:
-                self._mdot = inlet['mdot']
-                self._Pside = 'outlet'
-                self._surfaceP = outlet['pressure']
+            if "mdot" in inlet:
+                self._mdot = inlet["mdot"]
+                self._Pside = "outlet"
+                self._surfaceP = outlet["pressure"]
             else:
-                self._mdot = outlet['mdot']
-                self._Pside = 'inlet'
-                self._surfaceP = inlet['pressure']
+                self._mdot = outlet["mdot"]
+                self._Pside = "inlet"
+                self._surfaceP = inlet["pressure"]
             assert self.mdot != 0
         else:
             assert outlet
-            assert 'mdot' not in outlet
+            assert "mdot" not in outlet
             self._mdot = None
-            self._Pside = 'outlet'
-            self._surfaceP = outlet['pressure']
+            self._Pside = "outlet"
+            self._surfaceP = outlet["pressure"]
 
         assert self.surfaceP > 0
-        assert self.Pside in('inlet', 'outlet')
+        assert self.Pside in ("inlet", "outlet")
 
     @property
     def mdot(self):
@@ -52,8 +54,9 @@ class MassMomentumBC():
         if self._mdot:
             self._mdot *= uc.massFlowRateConversion
 
-class EnthalpyBC():
-    """ Class for enthalpy BC.
+
+class EnthalpyBC:
+    """Class for enthalpy BC.
 
     Attributes
     ----------
@@ -66,13 +69,14 @@ class EnthalpyBC():
     type_outlet : dict
         The outlet BC type
     """
+
     def __init__(self, inlet: dict = None, outlet: dict = None):
         assert inlet or outlet
 
         self._type_inlet = None
         self._val_inlet = None
         if inlet:
-            self._type_inlet = 'enthalpy'
+            self._type_inlet = "enthalpy"
             self._val_inlet = inlet
             if isinstance(inlet, dict):
                 for key in inlet.keys():
@@ -80,19 +84,19 @@ class EnthalpyBC():
                 self._val_inlet = inlet[self.type_inlet]
 
             assert self.val_inlet > 0
-            assert self.type_inlet in('temperature', 'enthalpy')
+            assert self.type_inlet in ("temperature", "enthalpy")
 
         self._type_outlet = None
         self._val_outlet = None
         if outlet:
-            self._type_outlet = 'enthalpy'
+            self._type_outlet = "enthalpy"
             self._val_outlet = outlet
             if isinstance(outlet, dict):
                 for key in outlet.keys():
                     self._type_outlet = key
                 self._val_outlet = outlet[self.type_outlet]
             assert self.val_outlet > 0
-            assert self.type_outlet in('temperature', 'enthalpy')
+            assert self.type_outlet in ("temperature", "enthalpy")
 
     @property
     def val_inlet(self):
@@ -112,22 +116,23 @@ class EnthalpyBC():
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         if self._val_inlet:
-            if self.type_inlet == 'temperature':
+            if self.type_inlet == "temperature":
                 self._val_inlet = uc.temperatureConversion(self._val_inlet)
-            elif self.type_inlet == 'enthalpy':
+            elif self.type_inlet == "enthalpy":
                 self._val_inlet *= uc.enthalpyConversion
             else:
                 raise Exception("Unknown enthalpy BC type: " + self.type_inlet)
 
         if self._val_outlet:
-            if self.type_outlet == 'temperature':
+            if self.type_outlet == "temperature":
                 self._val_outlet = uc.temperatureConversion(self._val_outlet)
-            elif self.type_outlet == 'enthalpy':
+            elif self.type_outlet == "enthalpy":
                 self._val_outlet *= uc.enthalpyConversion
             else:
                 raise Exception("Unknown enthalpy BC type: " + self.type_outlet)
 
-class DirichletBC():
+
+class DirichletBC:
     """
     General class for Dirichlet boundary conditions
 
@@ -136,7 +141,7 @@ class DirichletBC():
       - pressure
       - temperature
       - enthalpy
-    
+
     bounday_conditions should be defined as a dict in the form:
 
     bounday_conditions = {
@@ -145,7 +150,7 @@ class DirichletBC():
         "temperature"    : {"inlet/outlet", float},
         "enthalpy"       : {"inlet/outlet", float}
     }
-    
+
     attributes:
       * _mdot        -> Tuple[string, float]
       * _pressure    -> Tuple[string, float]
@@ -172,7 +177,6 @@ class DirichletBC():
     
     """
 
-
     def __init__(self, **bounday_conditions: dict):
         bc_types = list(bounday_conditions.keys())
 
@@ -181,15 +185,14 @@ class DirichletBC():
         self._temperature = [None, None]
         self._enthalpy = [None, None]
 
-        valid_bc_types = {"mass_flow_rate" : None,
-                          "pressure" : None,
-                          "temperature" : None,
-                          "enthalpy" : None}
+        valid_bc_types = {"mass_flow_rate": None, "pressure": None, "temperature": None, "enthalpy": None}
 
         for bc_type in [*valid_bc_types]:
             if bc_type in bc_types:
-                valid_bc_types[bc_type] = [*bounday_conditions[bc_type],  # variable name
-                                           *bounday_conditions[bc_type].values()]  # variable value
+                valid_bc_types[bc_type] = [
+                    *bounday_conditions[bc_type],  # variable name
+                    *bounday_conditions[bc_type].values(),
+                ]  # variable value
 
         self._mdot = valid_bc_types["mass_flow_rate"]
         self._pressure = valid_bc_types["pressure"]
@@ -221,4 +224,3 @@ class DirichletBC():
             self._temperature[1] = uc.temperatureConversion(self._temperature[1])
         if self._enthalpy[0] is not None:
             self._enthalpy[1] *= uc.enthalpyConversion
-        

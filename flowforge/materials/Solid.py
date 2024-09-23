@@ -52,20 +52,20 @@ class Solid(Material, ABC):
             - Tmax     : (OPTIONAL) float, [K] maximum temperature to export property values
             - thresh   : (OPTIONAL) float, tolerance in the linear interpolation error
         """
-        h5file = h5py.File(filename, 'a')
-        group_name = path+"solid_material"
+        h5file = h5py.File(filename, "a")
+        group_name = path + "solid_material"
         if group_name in h5file:
             del h5file[group_name]
-        solid = h5file.create_group(path+"solid_material")
-        k_temps,   k_vals =   self.exportMaterialProperty(self.conductivity, Tmin, Tmax, thresh)
-        cp_temps,  cp_vals =  self.exportMaterialProperty(self.specific_heat, Tmin, Tmax, thresh)
+        solid = h5file.create_group(path + "solid_material")
+        k_temps, k_vals = self.exportMaterialProperty(self.conductivity, Tmin, Tmax, thresh)
+        cp_temps, cp_vals = self.exportMaterialProperty(self.specific_heat, Tmin, Tmax, thresh)
         rho_temps, rho_vals = self.exportMaterialProperty(self.density, Tmin, Tmax, thresh)
-        solid.create_dataset("conductivity/temps",   data=k_temps,   dtype=float)
-        solid.create_dataset("conductivity/values",  data=k_vals,    dtype=float)
-        solid.create_dataset("specific_heat/temps",  data=cp_temps,  dtype=float)
-        solid.create_dataset("specific_heat/values", data=cp_vals,   dtype=float)
-        solid.create_dataset("density/temps",        data=rho_temps, dtype=float)
-        solid.create_dataset("density/values",       data=rho_vals,  dtype=float)
+        solid.create_dataset("conductivity/temps", data=k_temps, dtype=float)
+        solid.create_dataset("conductivity/values", data=k_vals, dtype=float)
+        solid.create_dataset("specific_heat/temps", data=cp_temps, dtype=float)
+        solid.create_dataset("specific_heat/values", data=cp_vals, dtype=float)
+        solid.create_dataset("density/temps", data=rho_temps, dtype=float)
+        solid.create_dataset("density/values", data=rho_vals, dtype=float)
         h5file.close()
 
 
@@ -85,7 +85,7 @@ class Graphite(Solid):
 
         Units : W/m-k
         """
-        return 134.0 - 0.1074*(T-273.15) + 3.719E-5*(T-273.15)**2
+        return 134.0 - 0.1074 * (T - 273.15) + 3.719e-5 * (T - 273.15) ** 2
 
     def density(self, T):
         """
@@ -96,7 +96,7 @@ class Graphite(Solid):
 
         Units : kg/m3
         """
-        return (-6e-9*(T-273.15)**2 - 3e-5*(T-273.15) + 1.8891)*1000
+        return (-6e-9 * (T - 273.15) ** 2 - 3e-5 * (T - 273.15) + 1.8891) * 1000
 
     def specific_heat(self, T):
         """
@@ -109,7 +109,9 @@ class Graphite(Solid):
         """
         # convert T from C to K
         T = T + 273.15
-        Cp = 0.538657 + 9.11129E-6*T - 90.2725/T - 43449.3/(T*T) + 1.59309E7/(T*T*T) - 1.43688E9/(T*T*T*T)
+        Cp = (
+            0.538657 + 9.11129e-6 * T - 90.2725 / T - 43449.3 / (T * T) + 1.59309e7 / (T * T * T) - 1.43688e9 / (T * T * T * T)
+        )
         # convert Cp from cal/g-K to kJ/kg-K
         Cp *= 4.184
         return Cp
@@ -131,7 +133,7 @@ class SS316H(Solid):
 
         Units : W/m-k
         """
-        return 0.013*T + 11.45305
+        return 0.013 * T + 11.45305
 
     def density(self, T=None):
         """
@@ -154,8 +156,10 @@ class SS316H(Solid):
         Units : kJ/kg-K
         """
         if T is not None and T < 273.15 or T > 373.15:
-            print(f"WARNING: Temperature {T:.2f} K ({T-273.15:.2f} C) is outside of manufacturer specifications \
-                  for specific heat of 0-100 C.")
+            print(
+                f"WARNING: Temperature {T:.2f} K ({T-273.15:.2f} C) is outside of manufacturer specifications \
+                  for specific heat of 0-100 C."
+            )
         return 0.500
 
 
@@ -164,6 +168,7 @@ class User_Solid(Solid):
     The User_Solid subclass of the Solid base class allows for the user to
     define their own property functions for the material being used.
     """
+
     def __init__(self, name, k_funct, dens_funct, cp_funct):
         """
         The User_Solid subclass initializes by sending the name to the base
@@ -177,13 +182,13 @@ class User_Solid(Solid):
         """
         Solid.__init__(self, name)
         if isinstance(k_funct, str) and isinstance(dens_funct, str) and isinstance(cp_funct, str):
-            self.k_funct    = eval(str(k_funct))
+            self.k_funct = eval(str(k_funct))
             self.dens_funct = eval(str(dens_funct))
-            self.cp_funct   = eval(str(cp_funct))
+            self.cp_funct = eval(str(cp_funct))
         else:
-            self.k_funct    = k_funct
+            self.k_funct = k_funct
             self.dens_funct = dens_funct
-            self.cp_funct   = cp_funct
+            self.cp_funct = cp_funct
 
     def conductivity(self, T):
         """
@@ -226,6 +231,7 @@ class Solid_table(User_Solid):
     being used. These functions are then sent to the Solid_functions class to be initialized
     there.
     """
+
     def __init__(self, name, T_k, k, T_dens, dens, T_cp, cp):
         """
         The __init__ function of the Solid_table class initializes the class instance by
@@ -249,12 +255,12 @@ class Solid_table(User_Solid):
             - T_cp      : float list, list of temperature values (degrees C) that coincide with the cp values
             - cp        : float list, list of specific heat values (kJ/kg-K) at each temperature in T_cp
         """
-        self.T_k    = T_k
-        self.k      = k
+        self.T_k = T_k
+        self.k = k
         self.T_dens = T_dens
-        self.dens   = dens
-        self.T_cp   = T_cp
-        self.cp     = cp
+        self.dens = dens
+        self.T_cp = T_cp
+        self.cp = cp
 
         assert len(T_k) == len(k)
         assert len(T_dens) == len(dens)
@@ -262,7 +268,7 @@ class Solid_table(User_Solid):
 
         User_Solid.__init__(self, name, interp1d(T_k, k), interp1d(T_dens, dens), interp1d(T_cp, cp))
 
-    def exportConductivity(self, Tmin=None, Tmax=None, thresh=None): #pylint:disable=unused-argument
+    def exportConductivity(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
         """
         This function exports the stored thermal conductivity data values
         and the corresponding temperature values.
@@ -271,7 +277,7 @@ class Solid_table(User_Solid):
         """
         return self.T_k, self.k
 
-    def exportDensity(self, Tmin=None, Tmax=None, thresh=None): #pylint:disable=unused-argument
+    def exportDensity(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
         """
         This function exports the stored density data values
         and the corresponding temperature values.
@@ -280,7 +286,7 @@ class Solid_table(User_Solid):
         """
         return self.T_dens, self.dens
 
-    def exportSpecificHeat(self, Tmin=None, Tmax=None, thresh=None): #pylint:disable=unused-argument
+    def exportSpecificHeat(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
         """
         This function exports the stored specific heat data values
         and the corresponding temperature values.

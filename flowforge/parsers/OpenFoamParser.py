@@ -1,7 +1,8 @@
 from flowforge.parsers import OutputParser
 
+
 class OpenFoamParser(OutputParser):
-    """ A class for OpenFOAM output parsing
+    """A class for OpenFOAM output parsing
 
     Attributes
     ----------
@@ -10,7 +11,6 @@ class OpenFoamParser(OutputParser):
     def __init__(self):
 
         raise NotImplementedError("To Be Implemented")
-
 
     def parse(self) -> None:
 

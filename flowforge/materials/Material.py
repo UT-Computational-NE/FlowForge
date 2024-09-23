@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
+
 class Material:
     """
     The Material class contains the function to convert equations of material properties into tabular data
@@ -33,7 +34,7 @@ class Material:
         n = 2
         Tnew = np.linspace(Tmin, Tmax, n)
         fnew = mat_property(Tnew)
-        err = 2*thresh
+        err = 2 * thresh
         while err >= thresh:
             Told = Tnew
             fold = fnew
@@ -41,6 +42,6 @@ class Material:
             Tnew = np.linspace(Tmin, Tmax, n)
             finter = interp1d(Told, fold)(Tnew)
             fnew = mat_property(Tnew)
-            err = np.sqrt(np.dot(finter-fnew, finter-fnew) / float(n))
+            err = np.sqrt(np.dot(finter - fnew, finter - fnew) / float(n))
 
         return Told, fold

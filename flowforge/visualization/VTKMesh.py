@@ -5,7 +5,7 @@ from pyevtk import vtk
 
 
 class VTKMesh:
-    """ A class for storing a VTK mesh of a FlowForge system.
+    """A class for storing a VTK mesh of a FlowForge system.
 
     It provides the functions necessary to add meshes together as well as
     the function to translate the shapes in the coordinate system.
@@ -109,7 +109,7 @@ class VTKMesh:
         self._meshmap = meshmap
 
     def __add__(self, newmesh: VTKMesh) -> VTKMesh:
-        """ A method for defining an addition operator to add multiple meshes together
+        """A method for defining an addition operator to add multiple meshes together
 
         The most practical use of this operator would be to initialize a mesh and then
         use '+=' to add meshes to the main mesh.
@@ -169,7 +169,7 @@ class VTKMesh:
         )
 
     def translate(self, x: float, y: float, z: float, theta: float = 0, alpha: float = 0) -> VTKMesh:
-        """ Method for translating the shapes within the coordinate frame.
+        """Method for translating the shapes within the coordinate frame.
 
         This function has the ability to move the shapes in the x, y, and z axis and it also has
         the ability to rotate the shapes in the polar (theta) and azimuthal (alpha) directions.
@@ -255,12 +255,12 @@ class VTKMesh:
         """
         x, y, z = self.points
         conn = self.connections.astype(int)
-        offsets = np.insert(self.offsets.astype(int), 0, 0) # inserts 0 at the beginning of the array
+        offsets = np.insert(self.offsets.astype(int), 0, 0)  # inserts 0 at the beginning of the array
         ctypes = self.ctypes.astype(int)
         meshmap = self.meshmap.astype(int)
 
-        cell1_conn = conn[offsets[hexahedron_idx1]:offsets[hexahedron_idx1 + 1]]
-        cell2_conn = conn[offsets[hexahedron_idx2]:offsets[hexahedron_idx2 + 1]]
+        cell1_conn = conn[offsets[hexahedron_idx1] : offsets[hexahedron_idx1 + 1]]
+        cell2_conn = conn[offsets[hexahedron_idx2] : offsets[hexahedron_idx2 + 1]]
 
         shared_pts_idx = []
         shared_pts = []
@@ -272,36 +272,36 @@ class VTKMesh:
         shared_pts_idx.sort()
 
         last_pt = max(conn) + 1
-        if shared_pts_idx == [0, 1, 4, 5]:      # merge along the x-axis
+        if shared_pts_idx == [0, 1, 4, 5]:  # merge along the x-axis
             new_conn = np.concatenate(
                 (
                     [
                         cell1_conn[[0, 1, 5, 4]],
                         cell2_conn[[3, 2, 6, 7]],
                         np.arange(last_pt, last_pt + 8),
-                        cell2_conn[[0, 1, 5, 4]]
+                        cell2_conn[[0, 1, 5, 4]],
                     ]
                 )
             )
-        elif shared_pts_idx == [0, 1, 2, 3]:    # merge along the y-axis
+        elif shared_pts_idx == [0, 1, 2, 3]:  # merge along the y-axis
             new_conn = np.concatenate(
                 (
                     [
                         cell1_conn[[0, 1, 2, 3]],
                         cell2_conn[[4, 5, 6, 7]],
                         np.arange(last_pt, last_pt + 8),
-                        cell2_conn[[0, 1, 2, 3]]
+                        cell2_conn[[0, 1, 2, 3]],
                     ]
                 )
             )
-        elif shared_pts_idx == [0, 3, 4, 7]:    # merge along the z-axis
+        elif shared_pts_idx == [0, 3, 4, 7]:  # merge along the z-axis
             new_conn = np.concatenate(
                 (
                     [
                         cell1_conn[[0, 3, 7, 4]],
                         cell2_conn[[1, 2, 6, 5]],
                         np.arange(last_pt, last_pt + 8),
-                        cell2_conn[[0, 3, 7, 4]]
+                        cell2_conn[[0, 3, 7, 4]],
                     ]
                 )
             )
@@ -314,9 +314,9 @@ class VTKMesh:
 
         for i in range(8):
             if (i + 1) % 4 == 0:
-                pt1, pt2 = new_conn[i], new_conn[i-3]
+                pt1, pt2 = new_conn[i], new_conn[i - 3]
             else:
-                pt1, pt2 = new_conn[i], new_conn[i+1]
+                pt1, pt2 = new_conn[i], new_conn[i + 1]
             new_x[i] = np.average([x[pt1], x[pt2]])
             new_y[i] = np.average([y[pt1], y[pt2]])
             new_z[i] = np.average([z[pt1], z[pt2]])
@@ -328,17 +328,17 @@ class VTKMesh:
 
         self.connections = np.concatenate(
             (
-                conn[:offsets[hexahedron_idx1]],
+                conn[: offsets[hexahedron_idx1]],
                 new_conn,
-                conn[offsets[hexahedron_idx1+1]:offsets[hexahedron_idx2]],
-                conn[offsets[hexahedron_idx2+1]:]
+                conn[offsets[hexahedron_idx1 + 1] : offsets[hexahedron_idx2]],
+                conn[offsets[hexahedron_idx2 + 1] :],
             )
         )
 
         offsets = np.delete(offsets, 0)
-        offsets[hexahedron_idx1:] += 12                         # 12 additional pts to the quadratic hexahedron
-        offsets[hexahedron_idx2:] -= 8                          # 8 pts removed from the merged hexahedron
-        self.offsets = np.delete(offsets, hexahedron_idx2)      # remove the second hexahedron offset
+        offsets[hexahedron_idx1:] += 12  # 12 additional pts to the quadratic hexahedron
+        offsets[hexahedron_idx2:] -= 8  # 8 pts removed from the merged hexahedron
+        self.offsets = np.delete(offsets, hexahedron_idx2)  # remove the second hexahedron offset
 
         ctypes[hexahedron_idx1] = vtk.VtkQuadraticHexahedron.tid
         self.ctypes = np.delete(ctypes, hexahedron_idx2)
