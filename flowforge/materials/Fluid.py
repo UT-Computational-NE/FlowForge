@@ -145,14 +145,20 @@ class FLiBe_UF4(Fluid):
 
     Caveats:
     In this section a list of temperature dependent caveats are presented
-    with any listed uncertainties from the liturature [1]
+    with any listed uncertainties from the literature [1,2,3]
 
     References
     -----
 
-    [1] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
-        of liquid salt thermophysical and thermochemical properties,” Technical
-        Report No. INL/EXT-10-18297 Rev. 1 (2013).
+    [1] C. Davis, "Implementation of Molten Salt Properties into RELAP5-3D/ATHENA," U.S. Department of Energy,
+        Tech. Rep., Jan. 2005. doi: 10.2172/910991. Available: https://www.osti.gov/biblio/910991.
+
+    [2] R. Romatoski and L.-W. Hu, "Fluoride salt coolant properties for nuclear reactor applications:
+        A review," *Annals of Nuclear Energy*, vol. 109, pp. 635-647, Nov. 2017. doi: 10.1016/j.anucene.2017.05.036.
+
+    [3] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, "Engineering Database of Liquid Salt Thermophysical
+        and Thermochemical Properties," Idaho National Laboratory, Tech. Rep. INL/EXT-10-18297, Rev. 1, June 2013.
+        Available: https://inldigitallibrary.inl.gov/sites/STI/STI/5698704.pdf.
 
     """
 
@@ -163,16 +169,17 @@ class FLiBe_UF4(Fluid):
     def conductivity(self, h):
         """
         Thermal conductivity [W/m-K]:
-        Validated for temp at 873 K,
-        ref. [1], pg. 8-9, eq. (2.21)
+        Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
+        ref. [1], pg.  10, Table 7.
+        ref. [2], pg. 638, Table 3.
         """
-        return 1.066 + h * 0
+        return 1.1 + h*0
 
     def density(self, h):
         """
         Density [kg/m^3]:
         Validated for temp range 800-1080 K,
-        ref. [1], pg. 6, eq. (2.13)
+        ref. [3], pg. 6, eq. (2.13)
         """
         T = self.temperature(h)
         return 2413 - (0.488 * T)
@@ -181,7 +188,7 @@ class FLiBe_UF4(Fluid):
         """
         Dynamic viscosity [kg/m-s]:
         Validated for temp range 873-1073 K,
-        ref. [1], pg. 7, eq. (2.18)
+        ref. [3], pg. 7, eq. (2.18)
         """
         T = self.temperature(h)
         return (0.116e-3) * np.exp(3755.0 / T)
@@ -191,7 +198,7 @@ class FLiBe_UF4(Fluid):
         Surface tension [N/m]:
         Validated for temp range 773.15-1073.15 K with ± 3% uncertainty,
         under a dry argon, helium or nitrogen gas enviorment,
-        ref. [1], pg. 8 and 33, eq. (2.19)
+        ref. [3], pg. 8 and 33, eq. (2.19)
         """
         T = self.temperature(h)
         return 0.295778 - ((0.12e-3) * T)
@@ -199,10 +206,11 @@ class FLiBe_UF4(Fluid):
     def specific_heat(self, h):
         """
         Specific heat capacity [J/kg-K] (Isobaric):
-        Validated for temp at 973 K with ± 20% uncertainty,
-        ref. [1], pg. 8
+        Validated for temp range 788-1093 K with ± 3% uncertainty,
+        ref. [1], pg.   3, Table 1.
+        ref. [2], pg. 637, Table 2.
         """
-        return 2415.78 + h * 0
+        return 2386 + h*0
 
     def temperature(self, h):
         """
@@ -231,18 +239,18 @@ class Hitec(Fluid):
 
     Caveats:
     In this section a list of temperature dependent caveats are presented
-    with uncertainties from the liturature
+    with uncertainties from the literature [1,2]
 
     References
     -----
 
-    [1] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, “Engineering database
-        of liquid salt thermophysical and thermochemical properties,” Technical
-        Report No. INL/EXT-10-18297 Rev. 1 (2013).
+    [1] R. Santini, L. Tadrist, J. Pantaloni, and P. Cerisier, "Measurement of thermal conductivity of molten salts
+        in the range 100-500°C," *International Journal of Heat and Mass Transfer*, vol. 21, no. 4, pp. 623-626, 1984.
+        doi: 10.1016/0017-9310(84)90034-6.
 
-    [2] R. Santini, L. Tadrist, J. Pantaloni, and P. Cerisier, “Measurement of thermal
-        conductivity of molten salts in the range 100-500 C,” Int. J. Heat Mass
-        Transfer 27, 623-626 (1984).
+    [2] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, "Engineering Database of Liquid Salt Thermophysical
+        and Thermochemical Properties," Idaho National Laboratory, Tech. Rep. INL/EXT-10-18297, Rev. 1, June 2013.
+        Available: https://inldigitallibrary.inl.gov/sites/STI/STI/5698704.pdf.
 
     """
 
@@ -254,7 +262,7 @@ class Hitec(Fluid):
         """
         Thermal conductivity [W/m-K]:
         Validated for temp range 373-773 K with ± 5% uncertainty,
-        ref. [2], pg. 625, Table 1.
+        ref. [1], pg. 625, Table 1.
         """
         a = 0.78
         b = -1.25e-3
@@ -266,7 +274,7 @@ class Hitec(Fluid):
         """
         Density [kg/m^3]:
         Validated for temp range 470-870 K with ± 2% uncertainty,
-        ref. [1], pg. 13, eq. (2.31)
+        ref. [2], pg. 13, eq. (2.31)
         """
         a = 2293.6
         b = -0.7497
@@ -277,7 +285,7 @@ class Hitec(Fluid):
         """
         Dynamic viscosity [kg/m-s]:
         Validated for temp range 420-710 K with ± 16% uncertainty,
-        ref. [1], pg. 13, eq. (2.32)
+        ref. [2], pg. 13, eq. (2.32)
         """
         a = 0.4737
         b = -2.297e-3
@@ -291,7 +299,7 @@ class Hitec(Fluid):
         Surface tension [N/m]:
         Validated for temp range 570-670 K with ± 10% uncertainty,
         under a dry argon, helium or nitrogen gas enviorment,
-        ref. [1], pg. 14 and 33, eq. (2.33)
+        ref. [2], pg. 14 and 33, eq. (2.33)
         Note:
         """
         a = 0.14928
@@ -303,7 +311,7 @@ class Hitec(Fluid):
         """
         Specific heat capacity [J/kg-K] (Isobaric):
         Validated for temp range 426-776 K with ± 5% uncertainty,
-        ref. [1], pg. 14, eq. (2.34)
+        ref. [2], pg. 14, eq. (2.34)
         """
         a = 5806.0
         b = -10.833
