@@ -168,13 +168,12 @@ class DirichletBC:
 
       - Also, as a more long-term note, this class is *not* in the final form. As a goal, this
         class should not have to specify/hard-code the properties (temperature, mdot, ...), but
-        should instead strive to be more general. It should take in, as inputs, a reference to 
+        should instead strive to be more general. It should take in, as inputs, a reference to
         the variable of which the BC will be applied, the value at the boundary, and some mapping
-        to the actual fluid mesh, as well as the mesh-index at which to apply the BC. In this 
+        to the actual fluid mesh, as well as the mesh-index at which to apply the BC. In this
         manner, one could theortically set a BC of any variable at any point in the mesh. As this
         is not a vitale feature of SyTH, it should be done later as an added feature.
                                                                                         - Charlie
-    
     """
 
     def __init__(self, **bounday_conditions: dict):
