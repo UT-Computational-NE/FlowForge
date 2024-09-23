@@ -149,7 +149,7 @@ class System:
             from the 'first' component of the loop to the 'last'.
         """
         self._isLoop = True
-        
+
         components, loop = make_continuous(components,loop)
         self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
@@ -210,7 +210,7 @@ class System:
             self._wallfunctions.append(deepcopy(wftemp))
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
-        
+
         #get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
 
@@ -311,7 +311,7 @@ class System:
     @property
     def MMBC(self) -> MassMomentumBC:
         return self._MMBC
-    
+
     @property
     def DirichletBC(self) -> DirichletBC:
         return self._DirichletBC

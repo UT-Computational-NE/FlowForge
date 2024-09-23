@@ -176,10 +176,10 @@ class DirichletBC():
     def __init__(self, **bounday_conditions: dict):
         bc_types = list(bounday_conditions.keys())
 
-        self._mdot = None
-        self._pressure = None
-        self._temperature = None
-        self._enthalpy = None
+        self._mdot = [None, None]
+        self._pressure = [None, None]
+        self._temperature = [None, None]
+        self._enthalpy = [None, None]
 
         valid_bc_types = {"mass_flow_rate" : None,
                           "pressure" : None,
@@ -190,7 +190,7 @@ class DirichletBC():
             if bc_type in bc_types:
                 valid_bc_types[bc_type] = [*bounday_conditions[bc_type],  # variable name
                                            *bounday_conditions[bc_type].values()]  # variable value
-        
+
         self._mdot = valid_bc_types["mass_flow_rate"]
         self._pressure = valid_bc_types["pressure"]
         self._temperature = valid_bc_types["temperature"]
@@ -199,26 +199,26 @@ class DirichletBC():
     @property
     def mdot(self):
         return self._mdot
-    
+
     @property
     def pressure(self):
         return self._pressure
-    
+
     @property
     def temperature(self):
         return self._temperature
-    
+
     @property
     def enthalpy(self):
         return self._enthalpy
-    
+
     def _convertUnits(self, uc: UnitConverter) -> None:
-        if self._mdot:
+        if self._mdot[0] is not None:
             self._mdot[1] *= uc.massFlowRateConversion
-        if self._pressure:
+        if self._pressure[0] is not None:
             self._pressure[1] *= uc.pressureConversion
-        if self._temperature:
+        if self._temperature[0] is not None:
             self._temperature[1] = uc.temperatureConversion(self._temperature[1])
-        if self._enthalpy:
+        if self._enthalpy[0] is not None:
             self._enthalpy[1] *= uc.enthalpyConversion
         
