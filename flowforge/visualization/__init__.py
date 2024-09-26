@@ -6,6 +6,7 @@ from .VTKShapes.cube import genUniformCube, genNonuniformCube
 from .VTKShapes.cylinder import genUniformCylinder, genNonUniformCylinder
 from .VTKShapes.nozzle import genNozzle
 from .VTKShapes.trigrid import genTriGrid
+from .VTKShapes.square import genUniformSquare, genNonuniformSquare
 
 VtkVertex = pyevtk.vtk.VtkVertex
 VtkPolyVertex = pyevtk.vtk.VtkPolyVertex
