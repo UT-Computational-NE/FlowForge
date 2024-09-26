@@ -1,5 +1,5 @@
 from flowforge.input.UnitConverter import UnitConverter
-
+import abc
 
 class MassMomentumBC:
     """Class for mass and momentum BC
@@ -132,94 +132,120 @@ class EnthalpyBC:
                 raise Exception("Unknown enthalpy BC type: " + self.type_outlet)
 
 
-class DirichletBC:
+class BoundaryConditions:
     """
-    General class for Dirichlet boundary conditions
+    Continer class for all input boundary conditions
 
-    Types of BC inputs:
-      - mass flow rate
-      - pressure
-      - temperature
-      - enthalpy
-
-    bounday_conditions should be defined as a dict in the form:
+    "bounday_conditions" should be defined as a dict in the form:
 
     bounday_conditions = {
-        "mass_flow_rate" : {"inlet/outlet", float},
-        "pressure"       : {"inlet/outlet", float},
-        "temperature"    : {"inlet/outlet", float},
-        "enthalpy"       : {"inlet/outlet", float}
+        "unique_boundary_name" : {"boundary_type": "DirichletBC", "surface": "surface_name", "varaible": "varaible_name",  "value", float},
+        "inlet_mdot"           : {"boundary_type": "DirichletBC", "surface": "inlet",        "varaible": "mass_flow_rate", "value", 25.0},
+        "outlet_pressure"      : {"boundary_type": "DirichletBC", "surface": "outlet",       "varaible": "pressure",       "value", 1e5},
+        "inlet_temperature"    : {"boundary_type": "DirichletBC", "surface": "inlet",        "varaible": "temperature",    "value", 700}
     }
-
-    attributes:
-      * _mdot        -> Tuple[string, float]
-      * _pressure    -> Tuple[string, float]
-      * _enthalpy    -> Tuple[string, float]
-      * _temperature -> Tuple[string, float]
-
     """
-
-    """
-    TODO For the class:
-      - For right now, this class can only handle 1 BC per property (mdot, pressure, ...)
-      - Will need to add a method to hold mutiple BCs
-        - Perhaps : _temperature -> dict : {"node1" : float, "node2" : float, ...}
-        - Need to examine how this would function downstream before adding too much
-
-      - Also, as a more long-term note, this class is *not* in the final form. As a goal, this
-        class should not have to specify/hard-code the properties (temperature, mdot, ...), but
-        should instead strive to be more general. It should take in, as inputs, a reference to
-        the variable of which the BC will be applied, the value at the boundary, and some mapping
-        to the actual fluid mesh, as well as the mesh-index at which to apply the BC. In this
-        manner, one could theortically set a BC of any variable at any point in the mesh. As this
-        is not a vitale feature of SyTH, it should be done later as an added feature.
-                                                                                        - Charlie
-    """
-
     def __init__(self, **bounday_conditions: dict):
-        bc_types = list(bounday_conditions.keys())
+        bc_names = list(bounday_conditions.keys())
 
-        self._mdot = [None, None]
-        self._pressure = [None, None]
-        self._temperature = [None, None]
-        self._enthalpy = [None, None]
+        bc_objects = {"DirichletBC": DirichletBC}
 
-        valid_bc_types = {"mass_flow_rate": None, "pressure": None, "temperature": None, "enthalpy": None}
+        bc_list = []
+        for bc_name in bc_names:
+            bc_type = bounday_conditions[bc_name]["boundary_type"]
+            bc_obj = bc_objects[bc_type]
+            bc = bc_obj(bounday_conditions["surface"],
+                        bounday_conditions["variable"],
+                        bounday_conditions["value"])
+            bc_list.append(bc)
 
-        for bc_type in [*valid_bc_types]:
-            if bc_type in bc_types:
-                valid_bc_types[bc_type] = [
-                    *bounday_conditions[bc_type],  # variable name
-                    *bounday_conditions[bc_type].values(),
-                ]  # variable value
-
-        self._mdot = valid_bc_types["mass_flow_rate"]
-        self._pressure = valid_bc_types["pressure"]
-        self._temperature = valid_bc_types["temperature"]
-        self._enthalpy = valid_bc_types["enthalpy"]
+        N = len(bc_names)
+        self.bcs = dict()
+        for i in range(N):
+            self.bcs[bc_names[i]] = bc_list[i]
 
     @property
-    def mdot(self):
-        return self._mdot
+    def boundary_conditions(self):
+        return self.bcs
+
+    @boundary_conditions.setter
+    def boundary_conditions(self, bc_dict):
+        self.bcs = bc_dict
+
+    def _convertUnits(self, uc: UnitConverter):
+        converted_bcs = dict()
+        for bc_name in [*self.bcs]:
+            bc_obj = self.bcs[bc_name]
+            bc_obj._convertUnits(uc)
+            converted_bcs[bc_name] = bc_obj
+        self.boundary_conditions = converted_bcs
+
+
+class GeneralBC(abc.ABC):
+    """
+    General abstract class for boundary conditions
+
+    Methods:
+        - _convertUnits
+        - _get_variable_conversion
+
+    Attributes:
+        - _surface_name: str
+        - _variable_name : str
+        - _value: float
+    """
+    def __init__(self, surface: str, variable: str, value: float):
+        self._surface_name = surface
+        self._variable_name = variable
+        self._value = value
 
     @property
-    def pressure(self):
-        return self._pressure
+    def boundary_type(self):
+        raise NotImplementedError
 
     @property
-    def temperature(self):
-        return self._temperature
+    def boundary_value(self):
+        return self._value
+
+    @boundary_value.setter
+    def boundary_value(self, value):
+        self._value = value
 
     @property
-    def enthalpy(self):
-        return self._enthalpy
+    def varaible_name(self):
+        return self._variable_name
+
+    @property
+    def surface_name(self):
+        return self._surface_name
 
     def _convertUnits(self, uc: UnitConverter) -> None:
-        if self._mdot[0] is not None:
-            self._mdot[1] *= uc.massFlowRateConversion
-        if self._pressure[0] is not None:
-            self._pressure[1] *= uc.pressureConversion
-        if self._temperature[0] is not None:
-            self._temperature[1] = uc.temperatureConversion(self._temperature[1])
-        if self._enthalpy[0] is not None:
-            self._enthalpy[1] *= uc.enthalpyConversion
+        conversion_factor = self._get_variable_conversion(uc)
+        self.boundary_value = self.boundary_value * conversion_factor
+
+    def _get_variable_conversion(self, uc: UnitConverter):
+        raise NotImplementedError
+
+class DirichletBC(GeneralBC):
+    """
+    Sub-class for Dirichlet boundary conditions
+    """
+    def __init__(self, surface: str, variable: str, value: float):
+        super().__init__(surface, variable, value)
+
+    @property
+    def boundary_type(self):
+        return "DirichletBC"
+
+    def _get_variable_conversion(self, uc: UnitConverter):
+        if self.varaible_name == "mass_flow_rate":
+            conversion_factor = uc.massFlowRateConversion
+        elif self.varaible_name == "pressure":
+            conversion_factor = uc.pressureConversion
+        elif self.varaible_name == "temperature":
+            conversion_factor = uc.temperatureConversion(self.boundary_value) / self.boundary_value
+        elif self.varaible_name == "enthalpy":
+            conversion_factor = uc.enthalpyConversion
+        else:
+            raise Exception('ERROR: non-valid variable name: '+self.varaible_name+'.')
+        return conversion_factor

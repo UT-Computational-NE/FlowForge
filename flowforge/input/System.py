@@ -5,7 +5,7 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, DirichletBC
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
 
 
@@ -114,7 +114,7 @@ class System:
         self._EBC = None
         self._fluid = None
 
-        self._DirichletBC = None  # ** DIRICHLET BC **
+        self._BoundaryConditions = None  # ** Boundary Conditions **
         self._isLoop = False  # Boolean defining if system is a loop or segement
 
         if "simple_loop" in sysdict:
@@ -133,8 +133,8 @@ class System:
             self._MMBC._convertUnits(UnitConverter(unitdict))
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
-        if self._DirichletBC is not None:
-            self._DirichletBC._convertUnits(UnitConverter(unitdict))
+        if self._BoundaryConditions is not None:
+            self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
     def core(self):
@@ -248,9 +248,9 @@ class System:
         self._EBC = None
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        self._DirichletBC = None
-        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):  # ** DIRICHLET BC **
-            self._DirichletBC = DirichletBC(**boundary_conditions)
+        self._BoundaryConditions = None
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):
+            self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -329,8 +329,8 @@ class System:
         return self._MMBC
 
     @property
-    def DirichletBC(self) -> DirichletBC:
-        return self._DirichletBC
+    def BoundaryConditions(self) -> BoundaryConditions:
+        return self._BoundaryConditions
 
     @property
     def isLoop(self) -> bool:
