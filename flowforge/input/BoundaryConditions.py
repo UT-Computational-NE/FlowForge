@@ -224,20 +224,6 @@ class GeneralBC(abc.ABC):
         self.boundary_value = self.boundary_value * conversion_factor
 
     def _get_variable_conversion(self, uc: UnitConverter):
-        raise NotImplementedError
-
-class DirichletBC(GeneralBC):
-    """
-    Sub-class for Dirichlet boundary conditions
-    """
-    def __init__(self, surface: str, variable: str, value: float):
-        super().__init__(surface, variable, value)
-
-    @property
-    def boundary_type(self):
-        return "DirichletBC"
-
-    def _get_variable_conversion(self, uc: UnitConverter):
         if self.varaible_name == "mass_flow_rate":
             conversion_factor = uc.massFlowRateConversion
         elif self.varaible_name == "pressure":
@@ -249,3 +235,14 @@ class DirichletBC(GeneralBC):
         else:
             raise Exception('ERROR: non-valid variable name: '+self.varaible_name+'.')
         return conversion_factor
+
+class DirichletBC(GeneralBC):
+    """
+    Sub-class for Dirichlet boundary conditions
+    """
+    def __init__(self, surface: str, variable: str, value: float):
+        super().__init__(surface, variable, value)
+
+    @property
+    def boundary_type(self):
+        return "DirichletBC"
