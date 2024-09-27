@@ -150,7 +150,6 @@ class BoundaryConditions:
     }
     """
     def __init__(self, **bounday_conditions: dict):
-        bc_names = list(bounday_conditions.keys())
 
         bc_objects = {"DirichletBC": DirichletBC}
 
