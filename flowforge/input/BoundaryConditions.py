@@ -154,19 +154,11 @@ class BoundaryConditions:
 
         bc_objects = {"DirichletBC": DirichletBC}
 
-        bc_list = []
-        for bc_name in bc_names:
-            bc_type = bounday_conditions[bc_name]["boundary_type"]
-            bc_obj = bc_objects[bc_type]
-            bc = bc_obj(bounday_conditions["surface"],
-                        bounday_conditions["variable"],
-                        bounday_conditions["value"])
-            bc_list.append(bc)
-
-        N = len(bc_names)
         self.bcs = {}
-        for i in range(N):
-            self.bcs[bc_names[i]] = bc_list[i]
+        for bc_name, bc in bounday_conditions.items():
+            bc_type = bc["boundary_type"]
+            bc_obj  = bc_objects[bc_type]
+            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
 
     @property
     def boundary_conditions(self):
@@ -234,16 +226,16 @@ class GeneralBC(abc.ABC):
         self.boundary_value = self.boundary_value * conversion_factor
 
     def _get_variable_conversion(self, uc: UnitConverter):
-        if self.varaible_name == "mass_flow_rate":
+        if self.variable_name == "mass_flow_rate":
             conversion_factor = uc.massFlowRateConversion
-        elif self.varaible_name == "pressure":
+        elif self.variable_name == "pressure":
             conversion_factor = uc.pressureConversion
-        elif self.varaible_name == "temperature":
+        elif self.variable_name == "temperature":
             conversion_factor = uc.temperatureConversion(self.boundary_value) / self.boundary_value
-        elif self.varaible_name == "enthalpy":
+        elif self.variable_name == "enthalpy":
             conversion_factor = uc.enthalpyConversion
         else:
-            raise Exception('ERROR: non-valid variable name: '+self.varaible_name+'.')
+            raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
         return conversion_factor
 
 class DirichletBC(GeneralBC):
