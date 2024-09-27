@@ -222,7 +222,7 @@ class GeneralBC(abc.ABC):
         self._value = value
 
     @property
-    def varaible_name(self):
+    def variable_name(self):
         return self._variable_name
 
     @property
