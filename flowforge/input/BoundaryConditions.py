@@ -134,27 +134,27 @@ class EnthalpyBC:
 
 class BoundaryConditions:
     """
-    Continer class for all input boundary conditions
+    Container class for all input boundary conditions
 
-    "bounday_conditions" should be defined as a dict in the form:
+    "boundary_conditions" should be defined as a dict in the form:
 
-    bounday_conditions = {
+    boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "DirichletBC", "surface": "surface_name", "varaible": "varaible_name",  "value", float},
+                {"boundary_type": "DirichletBC", "surface": "surface_name", "variable": "variable_name",  "value", float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "varaible": "mass_flow_rate", "value", 25.0},
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value", 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC", "surface": "outlet",       "varaible": "pressure",       "value", 1e5},
+                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value", 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "varaible": "temperature",    "value", 700}
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value", 700}
     }
     """
-    def __init__(self, **bounday_conditions: dict):
+    def __init__(self, **boundary_conditions: dict):
 
         bc_objects = {"DirichletBC": DirichletBC}
 
         self.bcs = {}
-        for bc_name, bc in bounday_conditions.items():
+        for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj  = bc_objects[bc_type]
             self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
