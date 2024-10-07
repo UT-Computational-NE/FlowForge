@@ -46,7 +46,7 @@ powerdict = {"w": 1.0, "kw": 1.0e3, "mw": 1.0e6, "gw": 1.0e9, "tw": 1.0e12}
 
 
 class UnitConverter:
-    """  Class for handling unit conversions for FlowForge Systems and Components
+    """Class for handling unit conversions for FlowForge Systems and Components
 
     On initialization, the unit conversion object starts by setting the
     default of all unit conversions to be equal to 1.0.  Using specifications
@@ -203,7 +203,7 @@ class UnitConverter:
         return self._enthalpyconv
 
     def temperatureConversion(self, T: float) -> float:
-        """ Method for performing a temperature conversion to Kelvin
+        """Method for performing a temperature conversion to Kelvin
 
         Parameters
         ----------

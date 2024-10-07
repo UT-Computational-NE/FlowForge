@@ -5,8 +5,9 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
+
 
 def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
@@ -26,32 +27,49 @@ def make_continuous(components: List[Component], order: List[dict]):
     list, list
         The new component list and order with the inserted nozzles
     """
-    num_connects=0
+    num_connects = 0
     discont_found = True
     while discont_found:
-        discont_found=False
-        #initialize the previous area as the first area
+        discont_found = False
+        # initialize the previous area as the first area
         prev_area = components[order[0]["component"]].inletArea
         for i, entry in enumerate(order):
-            if abs(prev_area-components[entry["component"]].inletArea) \
-              > 1.0E-12*min(prev_area,components[entry["component"]].inletArea):
-                tempnozzle=Nozzle(L=1.0E-64,R_inlet=np.sqrt(prev_area/np.pi),R_outlet=
-                                  np.sqrt(components[entry["component"]].inletArea/np.pi),
-                                  theta=components[entry["component"]].theta*180/np.pi,\
-                                    alpha = components[entry["component"]].alpha,
-                                  Klossinlet=0,Klossoutlet=0,Klossavg=0,roughness=0)
-                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] \
-                  = deepcopy(tempnozzle)
-                order = order[0:i] + [{'component' : 'temp_nozzle_for_make_continuous_creation_in_system_' \
-                                       + f'{entry["component"]}_{num_connects}'}] + order[i:len(order)]
+            if abs(prev_area - components[entry["component"]].inletArea) > 1.0e-12 * min(
+                prev_area, components[entry["component"]].inletArea
+            ):
+                tempnozzle = Nozzle(
+                    L=1.0e-64,
+                    R_inlet=np.sqrt(prev_area / np.pi),
+                    R_outlet=np.sqrt(components[entry["component"]].inletArea / np.pi),
+                    theta=components[entry["component"]].theta * 180 / np.pi,
+                    alpha=components[entry["component"]].alpha,
+                    Klossinlet=0,
+                    Klossoutlet=0,
+                    Klossavg=0,
+                    roughness=0,
+                )
+                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] = (
+                    deepcopy(tempnozzle)
+                )
+                order = (
+                    order[0:i]
+                    + [
+                        {
+                            "component": "temp_nozzle_for_make_continuous_creation_in_system_"
+                            + f'{entry["component"]}_{num_connects}'
+                        }
+                    ]
+                    + order[i : len(order)]
+                )
                 num_connects += 1
                 discont_found = True
                 break
             prev_area = components[entry["component"]].outletArea
     return components, order
 
+
 class System:
-    """ A class for representing a whole system of components
+    """A class for representing a whole system of components
 
     Controls the whole system by initializing all components and writing vtk solution file
 
@@ -86,10 +104,7 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self,
-                 components: Dict[str, Component],
-                 sysdict: Dict,
-                 unitdict: Dict[str, str]) -> None:
+    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._output_parsers = {}
         self._connectivity = []
@@ -98,6 +113,9 @@ class System:
         self._MMBC = None
         self._EBC = None
         self._fluid = None
+
+        self._BoundaryConditions = None  # ** Boundary Conditions **
+        self._isLoop = False  # Boolean defining if system is a loop or segement
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
@@ -110,11 +128,13 @@ class System:
 
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
-        #convert BC units
+        # convert BC units
         if self._MMBC is not None:
             self._MMBC._convertUnits(UnitConverter(unitdict))
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
+        if self._BoundaryConditions is not None:
+            self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
     def core(self):
@@ -127,9 +147,10 @@ class System:
 
         return Exception
 
-    def _setupSimpleLoop(self, components: Dict[str, Component], loop: List[dict],
-                         boundary_conditions: Dict = {}, fluid: str = "FLiBe") -> None:
-        """ Private method for setting up a loop of components
+    def _setupSimpleLoop(
+        self, components: Dict[str, Component], loop: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe"
+    ) -> None:
+        """Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
         connects to first component input
@@ -142,7 +163,9 @@ class System:
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
         """
-        components, loop = make_continuous(components,loop)
+        self._isLoop = True
+
+        components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
@@ -153,9 +176,9 @@ class System:
                 bftemp = entry["BodyForces"]
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
-            #add a body force for the component if present
+            # add a body force for the component if present
             self._bodyforces.append(deepcopy(bftemp))
-            #add a wall function for the component if present
+            # add a wall function for the component if present
             self._wallfunctions.append(deepcopy(wftemp))
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
@@ -164,16 +187,13 @@ class System:
             if i == len(loop) - 1:
                 self._connectivity.append((self._components[i], self._components[0]))
 
-        self._MMBC = None
-        self._EBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+        # get the boundary conditions
+        self._setupBoundaryConditions(boundary_conditions)
 
-    def _setupSegment(self, components: List[Component], order: List[dict],
-                      boundary_conditions: Dict =  {}, fluid: str = "FLiBe") -> None:
-        """ Private method for setting up a segment
+    def _setupSegment(
+        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe"
+    ) -> None:
+        """Private method for setting up a segment
 
         Here, a segment refers to a model with defined inlet and outlet boundary conditions
 
@@ -187,7 +207,9 @@ class System:
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
         """
-        components, order = make_continuous(components,order)
+        self._isLoop = False
+
+        components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
@@ -198,22 +220,18 @@ class System:
                 bftemp = entry["BodyForces"]
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
-            #add a body force for the component if present
+            # add a body force for the component if present
             self._bodyforces.append(deepcopy(bftemp))
-            #add a wall function for the component if present
+            # add a wall function for the component if present
             self._wallfunctions.append(deepcopy(wftemp))
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
-        #get the boundary conditions
-        self._MMBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        self._EBC = None
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+
+        # get the boundary conditions
+        self._setupBoundaryConditions(boundary_conditions)
 
     def _setupParsers(self, parser_dict: Dict) -> None:
-        """ Private method for setting up output parsers
+        """Private method for setting up output parsers
 
         Parameters
         ----------
@@ -223,9 +241,19 @@ class System:
 
         raise NotImplementedError("To Be Implemented")
 
+    def _setupBoundaryConditions(self, boundary_conditions):
+        self._MMBC = None
+        if "mass_momentum" in boundary_conditions:
+            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
+        self._EBC = None
+        if "enthalpy" in boundary_conditions:
+            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+        self._BoundaryConditions = None
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):
+            self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
-        """ Generator for marching over the nodes (i.e. cells) of a system
+        """Generator for marching over the nodes (i.e. cells) of a system
 
         This method essentially allows one to march over the nodes of a system
         and be able to reference / use the component said node belongs to
@@ -240,7 +268,7 @@ class System:
             yield from comp.getNodeGenerator()
 
     def getVTKMesh(self) -> VTKMesh:
-        """ Method for generating a VTK mesh of the system
+        """Method for generating a VTK mesh of the system
 
         Returns
         -------
@@ -255,7 +283,7 @@ class System:
         return mesh
 
     def writeVTKFile(self, filename: str) -> None:
-        """ Method for generating and writing VTK meshes to file
+        """Method for generating and writing VTK meshes to file
 
         Parameters
         ----------
@@ -299,6 +327,14 @@ class System:
     @property
     def MMBC(self) -> MassMomentumBC:
         return self._MMBC
+
+    @property
+    def BoundaryConditions(self) -> BoundaryConditions:
+        return self._BoundaryConditions
+
+    @property
+    def isLoop(self) -> bool:
+        return self._isLoop
 
     @property
     def fluidname(self) -> str:

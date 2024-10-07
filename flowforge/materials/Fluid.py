@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 from flowforge.materials.Material import Material
 
+
 class Fluid(Material):
     """
     Fluid class stores fluid property data and returns values describing thermodynamic state of fluid given
@@ -10,6 +11,7 @@ class Fluid(Material):
     and Prandtl Number given enthalpy and returns Reynolds Number given enthalpy, velocity, and hydraulic diameter.
     The enthalpy function will return an enthalpy given a Temperature.
     """
+
     def __init__(self, name):
         """
         The __init__ function initializes the Fluid class instance by storing the name
@@ -25,7 +27,7 @@ class Fluid(Material):
             ["viscosity", self.viscosity],
             ["surface_tension", self.surface_tension],
             ["specific_heat", self.specific_heat],
-            ["temperature", self.temperature]
+            ["temperature", self.temperature],
         ]
 
     @abc.abstractmethod
@@ -84,7 +86,7 @@ class Fluid(Material):
         """
         Prandtl number
         """
-        return self.specific_heat(h)*self.viscosity(h) / self.conductivity(h)
+        return self.specific_heat(h) * self.viscosity(h) / self.conductivity(h)
 
     def Re(self, h, V, Dh) -> float:
         """
@@ -96,7 +98,7 @@ class Fluid(Material):
         Returns:
             - float, Reynold's number
         """
-        return self.density(h)*V*Dh / self.viscosity(h)
+        return self.density(h) * V * Dh / self.viscosity(h)
 
     def fluidPropertyArray(self):
         """
@@ -105,7 +107,7 @@ class Fluid(Material):
         """
         return self._fluid_property_array
 
-    def exportHDF5(self, filename, path="/", Tmin=273.15 ,Tmax=1300, thresh=1e-2):
+    def exportHDF5(self, filename, path="/", Tmin=273.15, Tmax=1300, thresh=1e-2):
         """
         The exportHDF5 function exports all of the property data for the Fluid.
 
@@ -118,11 +120,11 @@ class Fluid(Material):
         """
         Hmin = self.enthalpy(Tmin)
         Hmax = self.enthalpy(Tmax)
-        h5file = h5py.File(filename, 'a')
-        fluid = h5file.create_group(path+"fluid_properties")
+        h5file = h5py.File(filename, "a")
+        fluid = h5file.create_group(path + "fluid_properties")
         prop_array = self.fluidPropertyArray()
-        #prop array holds name of property and property function
-        #the name is used to name the dataset and the function is used to get the y data (property) and x data (enthalpy)
+        # prop array holds name of property and property function
+        # the name is used to name the dataset and the function is used to get the y data (property) and x data (enthalpy)
         for item in prop_array:
             prop = fluid.create_group(item[0])
             h_array, prop_array = self.exportMaterialProperty(item[1], Hmin, Hmax, thresh)
@@ -159,6 +161,7 @@ class FLiBe_UF4(Fluid):
         Available: https://inldigitallibrary.inl.gov/sites/STI/STI/5698704.pdf.
 
     """
+
     def __init__(self, name):
         super().__init__(name)
         self._Tref = 273.15  # temperature where enthalpy is 0
@@ -179,7 +182,7 @@ class FLiBe_UF4(Fluid):
         ref. [3], pg. 6, eq. (2.13)
         """
         T = self.temperature(h)
-        return 2413 - (0.488*T)
+        return 2413 - (0.488 * T)
 
     def viscosity(self, h):
         """
@@ -188,7 +191,7 @@ class FLiBe_UF4(Fluid):
         ref. [3], pg. 7, eq. (2.18)
         """
         T = self.temperature(h)
-        return (0.116e-3)*np.exp(3755.0/T)
+        return (0.116e-3) * np.exp(3755.0 / T)
 
     def surface_tension(self, h):
         """
@@ -198,7 +201,7 @@ class FLiBe_UF4(Fluid):
         ref. [3], pg. 8 and 33, eq. (2.19)
         """
         T = self.temperature(h)
-        return 0.295778-((0.12e-3)*T)
+        return 0.295778 - ((0.12e-3) * T)
 
     def specific_heat(self, h):
         """
@@ -213,7 +216,7 @@ class FLiBe_UF4(Fluid):
         """
         Temperature [K]
         """
-        temp = h/self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        temp = h / self.specific_heat(h) + self._Tref  # only true because specific heat is constant
         assert np.all(temp >= 0)
         return temp
 
@@ -221,7 +224,7 @@ class FLiBe_UF4(Fluid):
         """
         Specific enthalpy [J/kg]
         """
-        return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
+        return self.specific_heat(0) * (T - self._Tref)  # only true because specific heat is constant
 
 
 class Hitec(Fluid):
@@ -250,6 +253,7 @@ class Hitec(Fluid):
         Available: https://inldigitallibrary.inl.gov/sites/STI/STI/5698704.pdf.
 
     """
+
     def __init__(self, name):
         super().__init__(name)
         self._Tref = 273.15  # temperature where enthalpy is 0
@@ -260,11 +264,11 @@ class Hitec(Fluid):
         Validated for temp range 373-773 K with ± 5% uncertainty,
         ref. [1], pg. 625, Table 1.
         """
-        a =  0.78
+        a = 0.78
         b = -1.25e-3
-        c =  1.6e-6
+        c = 1.6e-6
         T = self.temperature(h)
-        return a + (b*T) + (c*(T**2))
+        return a + (b * T) + (c * (T**2))
 
     def density(self, h):
         """
@@ -272,10 +276,10 @@ class Hitec(Fluid):
         Validated for temp range 470-870 K with ± 2% uncertainty,
         ref. [2], pg. 13, eq. (2.31)
         """
-        a =  2293.6
+        a = 2293.6
         b = -0.7497
         T = self.temperature(h)
-        return a + (b*T)
+        return a + (b * T)
 
     def viscosity(self, h):
         """
@@ -283,12 +287,12 @@ class Hitec(Fluid):
         Validated for temp range 420-710 K with ± 16% uncertainty,
         ref. [2], pg. 13, eq. (2.32)
         """
-        a =  0.4737
+        a = 0.4737
         b = -2.297e-3
-        c =  3.731e-6
+        c = 3.731e-6
         d = -2.019e-9
         T = self.temperature(h)
-        return a + (b*T) + (c*(T**2)) + (d*(T**3))
+        return a + (b * T) + (c * (T**2)) + (d * (T**3))
 
     def surface_tension(self, h):
         """
@@ -301,7 +305,7 @@ class Hitec(Fluid):
         a = 0.14928
         b = -0.556e-4
         T = self.temperature(h)
-        return a + (b*T)
+        return a + (b * T)
 
     def specific_heat(self, h):
         """
@@ -309,11 +313,11 @@ class Hitec(Fluid):
         Validated for temp range 426-776 K with ± 5% uncertainty,
         ref. [2], pg. 14, eq. (2.34)
         """
-        a =  5806.0
+        a = 5806.0
         b = -10.833
-        c =  7.2413e-3
+        c = 7.2413e-3
         T = self.temperature(h)
-        return a + (b*T) + (c*(T**2))
+        return a + (b * T) + (c * (T**2))
 
     def temperature(self, h):
         """
@@ -340,21 +344,21 @@ class Hitec(Fluid):
         TODO: The temp method could be optmized and the math behind the method
         could be further explained.
         """
-        d =  7.2413e-3
+        d = 7.2413e-3
         c = -10.833
-        b =  5806.0
-        a = (0 - h) - (b*(self._Tref) + ((c/2)*(self._Tref**2)) + ((d/3)*(self._Tref**3)))
+        b = 5806.0
+        a = (0 - h) - (b * (self._Tref) + ((c / 2) * (self._Tref**2)) + ((d / 3) * (self._Tref**3)))
         if not np.isscalar(h):
             a_flattened = np.array(a).flatten()
             T_val = np.array([])
             for a_index in a_flattened:
-                T_roots = np.roots(np.array([d/3,c/2,b,a_index]))
+                T_roots = np.roots(np.array([d / 3, c / 2, b, a_index]))
                 assert np.sum(np.isclose(T_roots.imag, 0) & (T_roots.real >= 0)) == 1
                 T_root = T_roots[np.isclose(T_roots.imag, 0) & (T_roots.real >= 0)].real[0]
-                T_val = np.append(T_val,T_root)
-            T_val = np.reshape(T_val,np.array(h).shape)
+                T_val = np.append(T_val, T_root)
+            T_val = np.reshape(T_val, np.array(h).shape)
         else:
-            T_roots = np.roots(np.array([d/3,c/2,b,a]))
+            T_roots = np.roots(np.array([d / 3, c / 2, b, a]))
             assert np.sum(np.isclose(T_roots.imag, 0) & (T_roots.real >= 0)) == 1
             T_val = T_roots[np.isclose(T_roots.imag, 0) & (T_roots.real >= 0)].real[0]
         return T_val
@@ -364,11 +368,11 @@ class Hitec(Fluid):
         Specific enthalpy [J/kg]
         """
         # a = 0
-        b =  5806.0
+        b = 5806.0
         c = -10.833
-        d =  7.2413e-3
+        d = 7.2413e-3
         # Integrated specific heat from _Tref to T
-        return b*(T-self._Tref)+((c/2)*((T**2)-(self._Tref**2)))+((d/3)*((T**3)-(self._Tref**3)))
+        return b * (T - self._Tref) + ((c / 2) * ((T**2) - (self._Tref**2))) + ((d / 3) * ((T**3) - (self._Tref**3)))
 
 
 class Helium(Fluid):
@@ -383,9 +387,10 @@ class Helium(Fluid):
     https://nvlpubs.nist.gov/nistpubs/Legacy/TN/nbstechnicalnote1334.pdf.
 
     """
+
     def __init__(self, name):
         super().__init__(name)
-        self._Tref = 273.15 # K, temperature where enthalpy is 0
+        self._Tref = 273.15  # K, temperature where enthalpy is 0
 
     def conductivity(self, h):
         """
@@ -415,7 +420,7 @@ class Helium(Fluid):
         """
         Temperature [K]
         """
-        temp = h/self.specific_heat(h) + self._Tref
+        temp = h / self.specific_heat(h) + self._Tref
         assert np.all(temp >= 0)
         return temp
 
@@ -423,7 +428,7 @@ class Helium(Fluid):
         """
         Specific enthalpy [J/kg]
         """
-        return self.specific_heat(0)*(T - self._Tref) # only true because specific heat is constant
+        return self.specific_heat(0) * (T - self._Tref)  # only true because specific heat is constant
 
 
 class User_Fluid(Fluid):
@@ -431,8 +436,10 @@ class User_Fluid(Fluid):
     The User_Fluid subclass of the Fluid base class allows for the user to
     define their own property functions for the material being used.
     """
-    def __init__(self, name, therm_cond_funct, dens_funct, visco_funct,
-                 spec_heat_funct, temp_funct, entha_funct,surf_tens_funct=None):
+
+    def __init__(
+        self, name, therm_cond_funct, dens_funct, visco_funct, spec_heat_funct, temp_funct, entha_funct, surf_tens_funct=None
+    ):
         """
         The User_Fluid subclass initializes by sending the name to the base
         class for initialization and then stores the 6 property functions

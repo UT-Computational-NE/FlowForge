@@ -8,8 +8,4 @@ solid_material_database = {
 }
 
 # FLUIDS
-fluid_material_database = {
-    "flibe_uf4": FLiBe_UF4,
-    "hitec": Hitec,
-    "helium": Helium
-}
+fluid_material_database = {"flibe_uf4": FLiBe_UF4, "hitec": Hitec, "helium": Helium}

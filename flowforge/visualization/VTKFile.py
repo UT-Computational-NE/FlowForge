@@ -4,7 +4,7 @@ from flowforge.visualization import VTKMesh
 
 
 class VTKFile:
-    """ Class which provides the ability to write VTK mesh data to a file
+    """Class which provides the ability to write VTK mesh data to a file
 
     If no data is set using the :meth:`__setitem__` method, the file will
     still write with a data list that is set by default to be empty. No errors
@@ -24,7 +24,7 @@ class VTKFile:
         self.data = {}
 
     def addMesh(self, mesh: VTKMesh) -> None:
-        """ Method for adding a :class:`VTKMesh`
+        """Method for adding a :class:`VTKMesh`
 
         Parameters
         ----------
@@ -34,7 +34,7 @@ class VTKFile:
         self.vtkmesh = mesh
 
     def __setitem__(self, key: str, data: np.ndarray) -> None:
-        """  Method used for assigning data to be written to the file
+        """Method used for assigning data to be written to the file
 
         The most useful way to use this function is the implicitly call
         it by doing something like: "data['pressure'] = pressure_data"
@@ -55,7 +55,7 @@ class VTKFile:
         self.data[key] = self._unroll_data(data)
 
     def _unroll_data(self, data: np.ndarray) -> np.ndarray:
-        """ Private method for setting values to the appropriate cells in the mesh
+        """Private method for setting values to the appropriate cells in the mesh
 
         This method loops through the inputed data array as well as the meshmap and
         sets the values to the appropriate cells in the mesh.
@@ -77,7 +77,7 @@ class VTKFile:
         return values
 
     def writeFile(self) -> None:
-        """ Primary method for writing all data as a '.vtu' file.
+        """Primary method for writing all data as a '.vtu' file.
 
         This file will allow you to visualize the meshes created. It will
         also allow the user to visualize any data stored using the :meth:`__setItem__` function.
