@@ -1,5 +1,6 @@
 import abc
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.parsers.EquationParser import EquationParser
 
 class MassMomentumBC:
     """Class for mass and momentum BC
@@ -189,12 +190,17 @@ class GeneralBC(abc.ABC):
         - _variable_name : str
         - _value: float
     """
-    def __init__(self, surface: str, variable: str, value: float):
+    def __init__(self, surface: str, variable: str, value=None, function=None, **coupledVariables):
         self._surface_name = surface
         self._variable_name = variable
         self._value = value
+        self._function = function
 
         self.bc_type = "None"
+
+        if function is not None:
+            self._coupled_variables = {input_name: coupled_variable for input_name, coupled_variable in coupledVariables.items()}
+            self._expression = self.createExpression(function, self._coupled_variables)
 
     @property
     def boundary_type(self):
@@ -207,6 +213,10 @@ class GeneralBC(abc.ABC):
     @property
     def boundary_value(self):
         return self._value
+
+    @property
+    def boundary_expression(self):
+        return self._expression
 
     @boundary_value.setter
     def boundary_value(self, value):
@@ -236,6 +246,9 @@ class GeneralBC(abc.ABC):
         else:
             raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
         return conversion_factor
+
+    def createExpression(self, function, coupled_variables):
+        return EquationParser(function, *coupled_variables.values())
 
 class DirichletBC(GeneralBC):
     """
