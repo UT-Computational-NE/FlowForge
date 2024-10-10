@@ -38,18 +38,20 @@ class EquationParser:
 
     @property
     def coupledVariables(self):
-        return self._variables
+        return self._coupled_variables
 
     def evaluate(self, x=None, y=None, z=None, t=None, **kwargs):
         expression = self.expression
         if x is not None:
-            expression.subs(self.xCoord, x)
+            expression = expression.subs(self.xCoord, x)
         if y is not None:
-            expression.subs(self.yCoord, y)
+            expression = expression.subs(self.yCoord, y)
         if z is not None:
-            expression.subs(self.zCoord, z)
+            expression = expression.subs(self.zCoord, z)
         if t is not None:
-            expression.subs(self.time, t)
+            expression = expression.subs(self.time, t)
 
         for variable_name, value in kwargs.items():
-            expression.subs(self.coupledVariables[variable_name], value)
+            expression = expression.subs(self.coupledVariables[variable_name], value)
+
+        return float(expression)
