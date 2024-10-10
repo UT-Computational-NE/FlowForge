@@ -190,7 +190,7 @@ class GeneralBC(abc.ABC):
         - _variable_name : str
         - _value: float
     """
-    def __init__(self, surface: str, variable: str, value=None, function=None, **coupledVariables):
+    def __init__(self, surface: str, variable: str, value=None, function=None):
         self._surface_name = surface
         self._variable_name = variable
         self._value = value
@@ -199,7 +199,6 @@ class GeneralBC(abc.ABC):
         self.bc_type = "None"
 
         if function is not None:
-            self._coupled_variables = {input_name: coupled_variable for input_name, coupled_variable in coupledVariables.items()}
             self._expression = self.createExpression(function, self._coupled_variables)
 
     @property
