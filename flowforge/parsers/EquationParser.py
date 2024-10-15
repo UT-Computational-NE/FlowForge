@@ -6,7 +6,7 @@ class EquationParser:
         self._expression = sympy.sympify(equation)
 
         potential_variable = ['x', 'y', 'z', 't'] + [i for i in coupled_variables]
-        variable_names = self.extract_variable_name(equation)
+        variable_names = self._extract_variable_name(equation)
         self._variables = {var: sympy.symbols(var) for var in potential_variable
                            if var in variable_names}
 
@@ -18,7 +18,7 @@ class EquationParser:
     def expression(self):
         return self._expression
 
-    def extract_variable_name(self, equation):
+    def _extract_variable_name(self, equation):
         variables = ''.join(character if character.isalpha()
                             else ' ' for character in equation).split()
         return variables
