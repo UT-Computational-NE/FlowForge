@@ -10,14 +10,6 @@ class EquationParser:
         self._variables = {var: sympy.symbols(var) for var in potential_variable
                            if var in variable_names}
 
-    @property
-    def inputEquation(self):
-        return self._input_equation
-
-    @property
-    def expression(self):
-        return self._expression
-
     def _extract_variable_name(self, equation):
         variables = ''.join(character if character.isalpha()
                             else ' ' for character in equation).split()
@@ -32,6 +24,6 @@ class EquationParser:
         full_input = {'x': x, 'y': y, 'z': z, 't': t} \
             | {variable_name: value for variable_name, value in coupled_variables.items()}
         expression_input = self._generate_expression_input(full_input)
-        expression = self.expression.subs(expression_input)
+        expression = self._expression.subs(expression_input)
 
         return float(expression)
