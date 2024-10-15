@@ -190,16 +190,12 @@ class GeneralBC(abc.ABC):
         - _variable_name : str
         - _value: float
     """
-    def __init__(self, surface: str, variable: str, value=None, function=None):
+    def __init__(self, surface: str, variable: str, value):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = value
-        self._function = function
+        self._value = self.createExpression(str(value))
 
         self.bc_type = "None"
-
-        if function is not None:
-            self._expression = self.createExpression(function, self._coupled_variables)
 
     @property
     def boundary_type(self):
@@ -212,10 +208,6 @@ class GeneralBC(abc.ABC):
     @property
     def boundary_value(self):
         return self._value
-
-    @property
-    def boundary_expression(self):
-        return self._expression
 
     @boundary_value.setter
     def boundary_value(self, value):
