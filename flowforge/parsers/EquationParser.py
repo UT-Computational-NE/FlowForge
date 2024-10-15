@@ -1,16 +1,14 @@
-import abc
 import sympy
-import numpy as np
 
 class EquationParser:
     def __init__(self, equation: str, *coupled_variables):
         self._input_equation = equation
         self._expression = sympy.sympify(equation)
-        self._t = sympy.symbols('t')
-        self._x = sympy.symbols('x')
-        self._y = sympy.symbols('y')
-        self._z = sympy.symbols('z')
-        self._coupled_variables = {i: sympy.symbols(i) for i in coupled_variables}
+
+        potential_variable = ['x', 'y', 'z', 't'] + [i for i in coupled_variables]
+        variable_names = self.extract_variable_name(equation)
+        self._variables = {var: sympy.symbols(var) for var in potential_variable
+                           if var in variable_names}
 
     @property
     def inputEquation(self):
@@ -20,38 +18,20 @@ class EquationParser:
     def expression(self):
         return self._expression
 
-    @property
-    def time(self):
-        return self._t
+    def extract_variable_name(self, equation):
+        variables = ''.join(character if character.isalpha()
+                            else ' ' for character in equation).split()
+        return variables
 
-    @property
-    def xCoord(self):
-        return self._x
+    def _generate_expression_input(self, all_input: dict):
+        expression_input = {self._variables[var]: all_input[var]
+                            for var in [*self._variables.keys()]}
+        return expression_input
 
-    @property
-    def yCoord(self):
-        return self._y
-
-    @property
-    def zCoord(self):
-        return self._z
-
-    @property
-    def coupledVariables(self):
-        return self._coupled_variables
-
-    def evaluate(self, x=None, y=None, z=None, t=None, **kwargs):
-        expression = self.expression
-        if x is not None:
-            expression = expression.subs(self.xCoord, x)
-        if y is not None:
-            expression = expression.subs(self.yCoord, y)
-        if z is not None:
-            expression = expression.subs(self.zCoord, z)
-        if t is not None:
-            expression = expression.subs(self.time, t)
-
-        for variable_name, value in kwargs.items():
-            expression = expression.subs(self.coupledVariables[variable_name], value)
+    def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
+        full_input = {'x': x, 'y': y, 'z': z, 't': t} \
+            | {variable_name: value for variable_name, value in coupled_variables.items()}
+        expression_input = self._generate_expression_input(full_input)
+        expression = self.expression.subs(expression_input)
 
         return float(expression)
