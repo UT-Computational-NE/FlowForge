@@ -70,6 +70,24 @@ def test_coupled_variables():
     test_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
+def test_unit_conversion():
+    test_name = "test_unit_conversion"
+    equation = '10.1 + 3.2*x'
+    expression = EquationParser(equation)
+    variables = ['x']
+
+    scale_factor = 1.8
+    shift_factor = 22
+    expression.performUnitConversion(scale_factor, shift_factor)
+
+    test_inputs = [[1],
+                   [5],
+                   [4.6]]
+    expected_results = [45.94, 68.98, 66.676]
+
+    test_all_values(variables, expression, test_name, equation,
+                    test_inputs, expected_results)
+
 def test_all_values(variables, expression, test_name, original_equation, test_inputs, expected_values):
     number_of_variables = len(variables)
     number_of_tests = len(test_inputs)
@@ -102,3 +120,4 @@ if __name__ == "__main__":
     test_time_dependent_equation()
     test_spatial_and_time_equation()
     test_coupled_variables()
+    test_unit_conversion()

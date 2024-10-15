@@ -10,6 +10,22 @@ class EquationParser:
         self._variables = {var: sympy.symbols(var) for var in potential_variable
                            if var in variable_names}
 
+    @property
+    def inputEquation(self):
+        return self._input_equation
+
+    @inputEquation.setter
+    def inputEquation(self, value):
+        self._input_equation = value
+
+    @property
+    def expression(self):
+        return self._expression
+
+    @expression.setter
+    def expression(self, value):
+        self._expression = value
+
     def _extract_variable_name(self, equation):
         variables = ''.join(character if character.isalpha()
                             else ' ' for character in equation).split()
@@ -19,6 +35,12 @@ class EquationParser:
         expression_input = {self._variables[var]: all_input[var]
                             for var in [*self._variables.keys()]}
         return expression_input
+
+    def performUnitConversion(self, scale_factor=1, shift_factor=0,):
+        scaled_equation = "(" + str(scale_factor) + " * (" + self.inputEquation + ")) + " + str(shift_factor)
+        scaled_expression = sympy.sympify(scaled_equation)
+        self.inputEquation = scaled_equation
+        self.expression = scaled_expression
 
     def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
         full_input = {'x': x, 'y': y, 'z': z, 't': t} \
