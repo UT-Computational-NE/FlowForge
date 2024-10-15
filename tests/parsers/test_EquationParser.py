@@ -1,5 +1,19 @@
 from flowforge.parsers.EquationParser import EquationParser
 
+def test_constant_equation():
+    test_name = "test_constant_equation"
+    equation = '11.2'
+    expression = EquationParser(equation)
+    variables = ['x']
+
+    test_inputs = [[1],
+                   [5],
+                   [1.2]]
+    expected_results = [11.2, 11.2, 11.2]
+
+    test_all_values(variables, expression, test_name, equation,
+                    test_inputs, expected_results)
+
 def test_spatial_equation():
     test_name = "test_spatial_equation"
     equation = '10.1*x + (15.6 / y) - z**2'
@@ -83,6 +97,7 @@ def withinRoundingPrecision(true, predicted):
         return False
 
 if __name__ == "__main__":
+    test_constant_equation()
     test_spatial_equation()
     test_time_dependent_equation()
     test_spatial_and_time_equation()
