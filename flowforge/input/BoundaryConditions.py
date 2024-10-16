@@ -1,5 +1,6 @@
 import abc
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.parsers.EquationParser import EquationParser
 
 class MassMomentumBC:
     """Class for mass and momentum BC
@@ -189,10 +190,10 @@ class GeneralBC(abc.ABC):
         - _variable_name : str
         - _value: float
     """
-    def __init__(self, surface: str, variable: str, value: float):
+    def __init__(self, surface: str, variable: str, value):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = value
+        self._value = EquationParser(str(value))
 
         self.bc_type = "None"
 
@@ -221,21 +222,22 @@ class GeneralBC(abc.ABC):
         return self._surface_name
 
     def convertUnits(self, uc: UnitConverter) -> None:
-        conversion_factor = self._get_variable_conversion(uc)
-        self.boundary_value = self.boundary_value * conversion_factor
+        scale_factor, shift_factor = self._get_variable_conversion(uc)
+        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
 
     def _get_variable_conversion(self, uc: UnitConverter):
+        scale_factor, shift_factor = 1, 0
         if self.variable_name == "mass_flow_rate":
-            conversion_factor = uc.massFlowRateConversion
+            scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
-            conversion_factor = uc.pressureConversion
+            scale_factor = uc.pressureConversion
         elif self.variable_name == "temperature":
-            conversion_factor = uc.temperatureConversion(self.boundary_value) / self.boundary_value
+            scale_factor, shift_factor = uc.temperatureConversionFactors
         elif self.variable_name == "enthalpy":
-            conversion_factor = uc.enthalpyConversion
+            scale_factor = uc.enthalpyConversion
         else:
             raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
-        return conversion_factor
+        return scale_factor, shift_factor
 
 class DirichletBC(GeneralBC):
     """

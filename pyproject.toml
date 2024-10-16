@@ -25,6 +25,7 @@ dependencies = [
     "h5py",
     "pyevtk",
     "vtk",
+    "sympy",
 ]
 
 [project.optional-dependencies]
