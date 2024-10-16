@@ -153,21 +153,21 @@ class UnitConverter:
                 raise Exception("Unknown enthalpy input type: " + unitdict["enthalpy"])
 
         self._tempconv = lambda T: T
-        scale_temp_by = 1; shift_temp_by = 0
+        scale_temp_by, shift_temp_by = 1, 0
         if "temperature" in unitdict:
             # converting to K
             if unitdict["temperature"] == "K":
                 self._tempconv = lambda T: T
-                scale_temp_by = 1; shift_temp_by = 0
+                scale_temp_by, shift_temp_by = 1, 0
             elif unitdict["temperature"] == "C":
                 self._tempconv = lambda T: T + 273.15
-                scale_temp_by = 1; shift_temp_by = 273.15
+                scale_temp_by, shift_temp_by = 1, 273.15
             elif unitdict["temperature"] == "F":
                 self._tempconv = lambda T: (T - 32) * 5 / 9 + 273.15
-                scale_temp_by = 5.0/9.0; shift_temp_by = 273.15 - (32.0*5.0/9.0)
+                scale_temp_by, shift_temp_by = 5.0/9.0, 273.15 - (32.0*5.0/9.0)
             elif unitdict["temperature"] == "R":
                 self._tempconv = lambda T: T * 5 / 9
-                scale_temp_by = 5.0/9.0; shift_temp_by = 0
+                scale_temp_by, shift_temp_by = 5.0/9.0, 0
             else:
                 raise Exception("Unknown temperature input type: " + unitdict["temperature"])
         self._tempconvfactors = [scale_temp_by, shift_temp_by]
