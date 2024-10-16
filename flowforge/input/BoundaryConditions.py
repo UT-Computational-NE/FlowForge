@@ -193,7 +193,7 @@ class GeneralBC(abc.ABC):
     def __init__(self, surface: str, variable: str, value):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = self.createExpression(str(value))
+        self._value = EquationParser(str(value))
 
         self.bc_type = "None"
 
@@ -238,9 +238,6 @@ class GeneralBC(abc.ABC):
         else:
             raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
         return scale_factor, shift_factor
-
-    def createExpression(self, function):
-        return EquationParser(function)
 
 class DirichletBC(GeneralBC):
     """
