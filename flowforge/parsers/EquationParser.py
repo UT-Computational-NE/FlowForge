@@ -90,7 +90,7 @@ class EquationParser:
         self.expression = scaled_expression
 
     def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
-        full_input = {'x': x, 'y': y, 'z': z, 't': t} + dict(coupled_variables)
+        full_input = {'x': x, 'y': y, 'z': z, 't': t} | dict(coupled_variables)
         expression_input = self._generate_expression_input(full_input)
         expression = self._expression.subs(expression_input)
 

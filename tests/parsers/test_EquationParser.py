@@ -11,7 +11,7 @@ def test_constant_equation():
                    [1.2]]
     expected_results = [11.2, 11.2, 11.2]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
 def test_spatial_equation():
@@ -25,7 +25,7 @@ def test_spatial_equation():
                    (1.2, 2.0, 0.2)]
     expected_results = [24.7, 28.62, 19.88]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
 def test_time_dependent_equation():
@@ -39,7 +39,7 @@ def test_time_dependent_equation():
                    [30.42]]
     expected_results = [100, 200, 304.2]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
 def test_spatial_and_time_equation():
@@ -53,7 +53,7 @@ def test_spatial_and_time_equation():
                    (1.2, 2.0, 0.2, 0.8)]
     expected_results = [24.7, 5.724, 24.85]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
 def test_coupled_variables():
@@ -67,7 +67,7 @@ def test_coupled_variables():
                    (1.2, 2.0, 0.2, 0.8)]
     expected_results = [210.6, 5145, 61.5072]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
 def test_unit_conversion():
@@ -85,10 +85,10 @@ def test_unit_conversion():
                    [4.6]]
     expected_results = [45.94, 68.98, 66.676]
 
-    test_all_values(variables, expression, test_name, equation,
+    run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
 
-def test_all_values(variables, expression, test_name, original_equation, test_inputs, expected_values):
+def run_all_values(variables : list, expression, test_name, original_equation, test_inputs, expected_values):
     number_of_variables = len(variables)
     number_of_tests = len(test_inputs)
 
