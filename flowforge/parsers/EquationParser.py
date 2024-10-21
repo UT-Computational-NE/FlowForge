@@ -1,4 +1,5 @@
 import sympy
+import re
 
 class EquationParser:
     """
@@ -74,8 +75,11 @@ class EquationParser:
         return self._variables
 
     def _extract_variable_name(self, equation):
+        """
         variables = ''.join(character if character.isalpha()
                             else ' ' for character in equation).split()
+        """
+        variables = [var for var in re.findall(r'[\w]+', equation) if any(char.isalpha() for char in var)]
         return variables
 
     def _generate_expression_input(self, all_input: dict):
