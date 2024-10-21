@@ -1,5 +1,5 @@
-import sympy
 import re
+import sympy
 
 class EquationParser:
     """
