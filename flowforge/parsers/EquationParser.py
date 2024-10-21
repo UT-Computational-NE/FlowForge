@@ -91,7 +91,7 @@ class EquationParser:
 
     def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
         full_input = {'x': x, 'y': y, 'z': z, 't': t} | dict(coupled_variables)
-        expression_input = self._generate_expression_input(full_input)
-        expression = self._expression.subs(expression_input)
+        reduced_input = {self._variables[var]: full_input[var] for var in [*self._variables.keys()]}
+        expression = self._expression.subs(reduced_input)
 
         return float(expression)

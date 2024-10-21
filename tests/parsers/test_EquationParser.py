@@ -1,3 +1,5 @@
+import math
+
 from flowforge.parsers.EquationParser import EquationParser
 
 def test_constant_equation():
@@ -96,23 +98,7 @@ def run_all_values(variables : list, expression, test_name, original_equation, t
     for input, expected in inputs_and_expected:
         input_args = {variables[i] : input[i] for i in range(number_of_variables)}
         output_value = expression.evaluate(**input_args)
-        compare_results(test_name, original_equation, input,
-                        output_value, expected)
-
-def compare_results(test_name, equation, input_values, output_value, expected_value):
-    if withinRoundingPrecision(expected_value, output_value):
-        return True
-    else:
-        raise Exception("ERROR in test " + test_name + " : " + \
-                         "Expected " + str(equation) + " @ " + str(input_values) + \
-                         "to give '"+str(expected_value)+"'. Got '"+str(output_value)+"' instead.")
-
-def withinRoundingPrecision(true, predicted):
-    PRECISION_FACTOR = 1e-10
-    if (true - predicted) < PRECISION_FACTOR:
-        return True
-    else:
-        return False
+        assert math.isclose(output_value, expected)
 
 if __name__ == "__main__":
     test_constant_equation()
