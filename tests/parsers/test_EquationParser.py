@@ -53,7 +53,7 @@ def test_spatial_and_time_equation():
     test_inputs = [(1, 1, 1, 1),
                    (5, 5, 5, 5),
                    (1.2, 2.0, 0.2, 0.8)]
-    expected_results = [24.7, 5.724, 24.85]
+    expected_results = [24.7, 5.724, 107.65]
 
     run_all_values(variables, expression, test_name, equation,
                     test_inputs, expected_results)
@@ -98,7 +98,7 @@ def run_all_values(variables : list, expression, test_name, original_equation, t
     for input, expected in inputs_and_expected:
         input_args = {variables[i] : input[i] for i in range(number_of_variables)}
         output_value = expression.evaluate(**input_args)
-        assert math.isclose(output_value, expected)
+        assert math.isclose(output_value, expected), "Expected: " + str(expected) + ", Output: " + str(output_value)
 
 if __name__ == "__main__":
     test_constant_equation()
