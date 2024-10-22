@@ -50,9 +50,10 @@ class EquationParser:
         self._expression = sympy.sympify(equation)
 
         potential_variable = ['x', 'y', 'z', 't'] + list(coupled_variables)
-        variable_names = self._extract_variable_name(equation)
+        variable_names_extracted_from_equation = [var for var in re.findall(r'[\w]+', equation)
+                                                  if any(char.isalpha() for char in var)]
         self._variables = {var: sympy.symbols(var) for var in potential_variable
-                           if var in variable_names}
+                           if var in variable_names_extracted_from_equation}
 
     @property
     def inputEquation(self):
@@ -73,19 +74,6 @@ class EquationParser:
     @property
     def variables(self):
         return self._variables
-
-    def _extract_variable_name(self, equation):
-        """
-        variables = ''.join(character if character.isalpha()
-                            else ' ' for character in equation).split()
-        """
-        variables = [var for var in re.findall(r'[\w]+', equation) if any(char.isalpha() for char in var)]
-        return variables
-
-    def _generate_expression_input(self, all_input: dict):
-        expression_input = {self._variables[var]: all_input[var]
-                            for var in [*self._variables.keys()]}
-        return expression_input
 
     def performUnitConversion(self, scale_factor=1, shift_factor=0,):
         scaled_equation = "(" + str(scale_factor) + " * (" + self.inputEquation + ")) + " + str(shift_factor)
