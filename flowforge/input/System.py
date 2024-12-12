@@ -286,6 +286,7 @@ class System:
         self._VBC = None
         if "void" in boundary_conditions:
             self._VBC = VoidBC(**boundary_conditions["void"])
+        self._BoundaryConditions = None
         if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions) \
             and ("void" not in boundary_conditions) :
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
