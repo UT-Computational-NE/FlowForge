@@ -132,6 +132,42 @@ class EnthalpyBC:
             else:
                 raise Exception("Unknown enthalpy BC type: " + self.type_outlet)
 
+class VoidBC:
+    """Class for void fraction BC
+
+    Attributes
+    ----------
+    mdot : float
+        Mass float rate [kg/s]
+    """
+
+    def __init__(self, inlet: dict = None, outlet: dict = None):
+        assert inlet or outlet
+
+        self._type_inlet = None
+        self._val_inlet = None
+        if inlet:
+            self._type_inlet = "mdot"
+            self._val_inlet = inlet
+            if isinstance(inlet, dict):
+                for key in inlet.keys():
+                    self._type_inlet = key
+                self._val_inlet = inlet[self.type_inlet]
+
+    @property
+    def val_inlet(self):
+        return self._val_inlet
+
+    @property
+    def type_inlet(self):
+        return self._type_inlet
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        if self.type_inlet == "mdot":
+            self._val_inlet *= uc.massFlowRateConversion
+        else:
+            raise Exception("Unknown void fraction BC type: " + self.type_inlet)
+
 
 class BoundaryConditions:
     """

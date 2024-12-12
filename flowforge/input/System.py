@@ -5,7 +5,7 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, HexCore
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, BoundaryConditions
+from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
 
 
@@ -112,8 +112,11 @@ class System:
         self._wallfunctions = []
         self._MMBC = None
         self._EBC = None
+        self._VBC = None
         self._fluid = None
-        self._gasfluid = None
+        self._gas = None
+        self._gasbodyforces = []
+        self._gaswallfunctions = []
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
         self._isLoop = False  # Boolean defining if system is a loop or segement
@@ -134,6 +137,8 @@ class System:
             self._MMBC._convertUnits(UnitConverter(unitdict))
         if self._EBC is not None:
             self._EBC._convertUnits(UnitConverter(unitdict))
+        if self._VBC is not None:
+            self._VBC._convertUnits(UnitConverter(unitdict))
         if self._BoundaryConditions is not None:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
@@ -153,7 +158,7 @@ class System:
         loop: List[dict],
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
-        gasfluid = None
+        gas = None
         ) -> None:
 
         """Private method for setting up a loop of components
@@ -168,15 +173,22 @@ class System:
         loop : List[dict]
             List specifying the construction of loop via component names and forces.  Ordering is
             from the 'first' component of the loop to the 'last'.
+        boundary_conditions : Dict
+            Dictionary of boundary conditions for the segment
+        fluid : str
+            The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
+        gas  optional :
+            An optional parameter to specify gas in the system (e.g. "Helium")
+
         """
         self._isLoop = True
 
         components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
-        if gasfluid is not None:
-            self._gasfluidname = gasfluid.lower()
+        if gas is not None:
+            self._gasname = gas.lower()
         else:
-            self._gasfluidname = gasfluid
+            self._gasname = gas
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
             self._components.append(deepcopy(components[entry["component"]]))
@@ -201,11 +213,12 @@ class System:
         self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSegment(
-        self, components: List[Component],
+        self,
+        components: List[Component],
         order: List[dict],
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
-        gasfluid = None
+        gas = None
         ) -> None:
         """Private method for setting up a segment
 
@@ -220,15 +233,19 @@ class System:
             from the 'first' component of the segment to the 'last'.
         boundary_conditions : Dict
             Dictionary of boundary conditions for the segment
+        fluid : str
+            The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
+        gas  optional :
+            An optional parameter to specify gas in the system (e.g. "Helium")
         """
         self._isLoop = False
 
         components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
-        if gasfluid is not None:
-            self._gasfluidname = gasfluid.lower()
+        if gas is not None:
+            self._gasname = gas.lower()
         else:
-            self._gasfluidname = gasfluid
+            self._gasname = gas
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
             self._components.append(deepcopy(components[entry["component"]]))
@@ -266,8 +283,11 @@ class System:
         self._EBC = None
         if "enthalpy" in boundary_conditions:
             self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        self._BoundaryConditions = None
-        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions):
+        self._VBC = None
+        if "void" in boundary_conditions:
+            self._VBC = VoidBC(**boundary_conditions["void"])
+        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions) \
+            and ("void" not in boundary_conditions) :
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
@@ -347,6 +367,10 @@ class System:
         return self._MMBC
 
     @property
+    def VBC(self) -> VoidBC:
+        return self._VBC
+
+    @property
     def BoundaryConditions(self) -> BoundaryConditions:
         return self._BoundaryConditions
 
@@ -359,5 +383,5 @@ class System:
         return self._fluidname
 
     @property
-    def gasfluidname(self) -> str:
-        return self._gasfluidname
+    def gasname(self) -> str:
+        return self._gasname
