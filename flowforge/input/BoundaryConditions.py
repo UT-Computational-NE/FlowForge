@@ -227,7 +227,7 @@ class GeneralBC(abc.ABC):
 
     def _get_variable_conversion(self, uc: UnitConverter):
         scale_factor, shift_factor = 1, 0
-        if self.variable_name == "mass_flow_rate":
+        if self.variable_name == "mass_flow_rate" or "gas_mass_flow_rate":
             scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
             scale_factor = uc.pressureConversion
