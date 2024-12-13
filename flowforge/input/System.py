@@ -115,7 +115,6 @@ class System:
         self._VBC = None
         self._fluid = None
         self._gas = None
-        self._gasbodyforces = []
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
         self._isLoop = False  # Boolean defining if system is a loop or segement

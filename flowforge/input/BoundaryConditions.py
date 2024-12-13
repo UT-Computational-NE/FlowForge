@@ -154,7 +154,7 @@ class VoidBC:
                 assert "void_fraction" not in inlet
                 self._type_inlet = "mdot"
                 self._val_inlet = inlet["mdot"]
-                assert self.val_inlet != 0.0 # mass flow rate can be any direction
+                assert self.val_inlet != 0.0 # for opposite directional flow of voids
             else:
                 assert "mdot" not in inlet
                 self._type_inlet = "void_fraction"
@@ -168,7 +168,7 @@ class VoidBC:
                 assert "void_fraction" not in outlet
                 self._type_outlet = "mdot"
                 self._val_outlet = outlet["mdot"]
-                assert self.val_inlet != 0.0 # mass flow rate can be any direction
+                assert self.val_inlet != 0.0 # for opposite directional flow of voids
             else:
                 assert "mdot" not in outlet
                 self._type_outlet = "void_fraction"
