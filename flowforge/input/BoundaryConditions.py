@@ -8,7 +8,7 @@ class MassMomentumBC:
     Attributes
     ----------
     mdot : float
-        Mass float rate [kg/s]
+        Mass flow rate [kg/s]
     surfaceP : float
         Surface pressure [Pa]
     Pside : str
@@ -138,7 +138,9 @@ class VoidBC:
     Attributes
     ----------
     mdot : float
-        Mass float rate [kg/s]
+        Mass flow rate [kg/s]
+    void_fraction : float
+        Void fraction [-]
     """
 
     def __init__(self, inlet: dict = None, outlet: dict = None):
@@ -147,24 +149,44 @@ class VoidBC:
         self._type_inlet = None
         self._val_inlet = None
         if inlet:
-            self._type_inlet = "mdot"
-            self._val_inlet = inlet
-            if isinstance(inlet, dict):
-                for key in inlet.keys():
-                    self._type_inlet = key
-                self._val_inlet = inlet[self.type_inlet]
+            if "mdot" in inlet:
+                self._type_inlet = "mdot"
+                self._val_inlet = inlet["mdot"]
+            else:
+                self._type_inlet = "void_fraction"
+                self._val_inlet = inlet["void_fraction"]
+
+        self._type_outlet = None
+        self._val_outlet = None
+        if outlet:
+            if "mdot" in outlet:
+                self._type_outlet = "mdot"
+                self._val_outlet = outlet["mdot"]
+            else:
+                self._type_outlet = "void_fraction"
+                self._val_outlet = outlet["void_fraction"]
 
     @property
     def val_inlet(self):
         return self._val_inlet
 
     @property
+    def val_outlet(self):
+        return self._val_outlet
+
+    @property
     def type_inlet(self):
         return self._type_inlet
+
+    @property
+    def type_outlet(self):
+        return self._type_outlet
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         if self.type_inlet == "mdot":
             self._val_inlet *= uc.massFlowRateConversion
+        elif self.type_inlet == "void_fraction":
+            pass # void fraction is non-dimensional
         else:
             raise Exception("Unknown void fraction BC type: " + self.type_inlet)
 
@@ -271,6 +293,8 @@ class GeneralBC(abc.ABC):
             scale_factor, shift_factor = uc.temperatureConversionFactors
         elif self.variable_name == "enthalpy":
             scale_factor = uc.enthalpyConversion
+        elif self.variable_name == "void_fraction":
+            pass # void fraction is non-dimensional
         else:
             raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
         return scale_factor, shift_factor

@@ -185,10 +185,7 @@ class System:
 
         components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
-        if gas is not None:
-            self._gasname = gas.lower()
-        else:
-            self._gasname = gas
+        self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
             self._components.append(deepcopy(components[entry["component"]]))
@@ -242,10 +239,7 @@ class System:
 
         components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
-        if gas is not None:
-            self._gasname = gas.lower()
-        else:
-            self._gasname = gas
+        self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
             self._components.append(deepcopy(components[entry["component"]]))
