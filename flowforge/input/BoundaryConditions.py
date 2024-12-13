@@ -149,22 +149,31 @@ class VoidBC:
         self._type_inlet = None
         self._val_inlet = None
         if inlet:
+            assert outlet is None
             if "mdot" in inlet:
+                assert "void_fraction" not in inlet
                 self._type_inlet = "mdot"
                 self._val_inlet = inlet["mdot"]
+                assert self.val_inlet != 0.0 # mass flow rate can be any direction
             else:
+                assert "mdot" not in inlet
                 self._type_inlet = "void_fraction"
                 self._val_inlet = inlet["void_fraction"]
-
+                assert self.val_inlet >= 0.0 and self.val_inlet <= 1.0
         self._type_outlet = None
         self._val_outlet = None
         if outlet:
+            assert inlet is None
             if "mdot" in outlet:
+                assert "void_fraction" not in outlet
                 self._type_outlet = "mdot"
                 self._val_outlet = outlet["mdot"]
+                assert self.val_inlet != 0.0 # mass flow rate can be any direction
             else:
+                assert "mdot" not in outlet
                 self._type_outlet = "void_fraction"
                 self._val_outlet = outlet["void_fraction"]
+                assert self.val_outlet >= 0.0 and self.val_outlet <= 1.0
 
     @property
     def val_inlet(self):
