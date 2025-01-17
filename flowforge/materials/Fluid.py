@@ -182,7 +182,9 @@ class FLiBe_UF4(Fluid):
         ref. [3], pg. 6, eq. (2.13)
         """
         T = self.temperature(h)
-        return 2413 - (0.488 * T)
+        density = 2413 - (0.488 * T)
+        assert np.all(density >= 0)
+        return density
 
     def viscosity(self, h):
         """
