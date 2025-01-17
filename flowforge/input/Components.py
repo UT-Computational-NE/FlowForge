@@ -1049,7 +1049,7 @@ class ComponentCollection(Component):
 
     @property
     def volume(self) -> float:
-        return sum([component.volume for component in self.baseComponents])
+        return sum(component.volume for component in self.baseComponents)
 
     @property
     def inletArea(self) -> float:
