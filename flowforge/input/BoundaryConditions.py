@@ -304,8 +304,12 @@ class GeneralBC(abc.ABC):
             scale_factor = uc.enthalpyConversion
         elif self.variable_name == "void_fraction":
             pass # void fraction is non-dimensional
+        elif self.variable_name.startswith("neutron_precursor_mass_concentration"):
+            pass
+        elif self.variable_name.startswith("decay_heat_precursor_mass_concentration"):
+            pass
         else:
-            raise Exception('ERROR: non-valid variable name: '+self.variable_name+'.')
+            raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
         return scale_factor, shift_factor
 
 class DirichletBC(GeneralBC):
