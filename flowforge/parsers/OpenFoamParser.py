@@ -9,9 +9,7 @@ class OpenFoamParser(OutputParser):
     """
 
     def __init__(self):
-
         raise NotImplementedError("To Be Implemented")
 
     def parse(self) -> None:
-
         raise NotImplementedError("To Be Implemented")
