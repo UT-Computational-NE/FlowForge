@@ -485,6 +485,103 @@ class Tee(Pipe):
 
 component_list["tee"] = Tee
 
+class RectangularPipe(Pipe):
+    """ A rectangular pipe component
+
+    Parameters
+    ----------
+    L : float
+        Length of the pipe
+    W : float
+        Width of the pipe
+    H : float
+        Height of the pipe
+    n : int
+        Number of segments the pipe is divided into
+    theta : float
+        Orientation angle of the pipe in the polar direction
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
+    roughness : float
+        Pipe roughness 
+    """
+
+    def __init__(
+            self, 
+            L: float,
+            W: float,
+            H: float,
+            n: int = 1,
+            theta: float = 0.0,
+            Kloss: float = 0.0,
+            roughness: float = 0.0,     
+            **kwargs
+        ) -> None:
+
+        Ac = W * H
+        Pw = 2 * (W+H)
+        Dh = 4* Ac/Pw
+
+        super().__init__(L=L, Ac=Ac, Dh=Dh, n=n, theta=theta, Kloss=Kloss, roughness=roughness, **kwargs)
+        self._W = W
+        self._H = H
+
+    @property
+    def width(self) -> float:
+        return self._W
+    
+    @property
+    def height(self) -> float:
+        return self._H
+
+class Stadium(Pipe):
+    """A stadium pipe component
+    
+    Parameters
+    ----------
+    L : float
+        Length of the stadium channel
+    W : float
+        Width of the rectangular portion of the stadium channel
+    H : float
+        Height (Diameter) of the stadium channel
+    n : int
+        Number of segments the pipe is divided into
+    theta : float
+        Orientation angle of the pipe in the polar direction
+    Kloss : float
+        K-loss coefficient associated with pressure loss through the pipe
+    roughness : float
+        Pipe roughness 
+    """
+
+    def __init__(
+        self,
+        L: float,
+        W: float,
+        H: float, 
+        n: int,
+        theta: float = 0.0,
+        Kloss: float = 0.0,
+        roughness: float = 0.0,
+        **kwargs
+    ) -> None:
+        Ac = np.pi * (H/2)**2 + W*H
+        Pw = 2 * (np.pi * (H/2) + W)
+        Dh = 4 * Ac / Pw
+
+        super().__init__(L=L, Ac=Ac, Dh=Dh, n=n, theta=theta, Kloss=Kloss, roughness=roughness, **kwargs )
+        self._W = W
+        self._H = H
+
+    @property
+    def width(self) -> float:
+        return self._W
+    
+    @property
+    def height(self) -> float:
+        return self._H
+
 
 class SimpleTank(Pipe):
     """
