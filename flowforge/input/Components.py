@@ -309,6 +309,133 @@ class Component:
         return components
 
 
+class CrossSection(abc.ABC):
+    """Abstract base class for cross-sectional areas"""
+
+    @property
+    @abc.abstractmethod
+    def flow_area(self) -> float:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def wetted_perimeter(self) -> float:
+        pass
+
+    @property
+    def hydraulic_diameter(self) -> float:
+        return 4 * self.flow_area / self.wetted_perimeter
+
+class CircularCrossSection(CrossSection):
+    """Circular cross-sectional area
+
+    Parameters
+    ---------
+    R: float
+        Radius of the circular pipe
+    """
+
+    def __init__(self, R: float):
+        self._R = R
+
+    @property
+    def R(self) -> float:
+        return self._R
+
+    @property
+    def flow_area(self) -> float:
+        return np.pi * self._R ** 2
+
+    @property
+    def wetted_perimeter(self) -> float:
+        return 2 * np.pi * self._R
+
+class RectangularCrossSection(CrossSection):
+    """Rectangular cross-sectional area
+
+    Parameters
+    ----------
+    W: float
+        Width of the rectangular pipe
+    H: float
+        Height of the rectangular pipe
+    """
+    def __init__(self, W: float, H: float):
+        self._W = W
+        self._H = H
+
+    @property
+    def W(self) -> float:
+        return self._W
+
+    @property
+    def H(self) -> float:
+        return self._H
+
+    @property
+    def flow_area(self) -> float:
+        return self._W*self._H
+
+    @property
+    def wetted_perimeter(self) -> float:
+        return 2 * (self._W + self._H)
+
+
+class SquareCrossSection(RectangularCrossSection):
+    """Square cross-sectional area
+
+    Parameters
+    ----------
+    W : float
+        Width of the square pipe (i.e. flat-to-flat)
+    """
+
+    def __init__(self, W: float):
+        super().__init__(W,W)
+
+
+class StadiumCrossSection(CrossSection):
+    """Stadium cross sectional area
+
+    Parameters
+    ----------
+    A : float
+        Length of the rectangular portion of the stadium channel
+    R : float
+        Radius of the semi cirulcar portion of the stadium channel
+    """
+    def __init__(self, A: float, R: float):
+        self._A = A
+        self._R = R
+
+    @property
+    def A(self) -> float:
+        return self._A
+
+    @property
+    def R(self) -> float:
+        return self._R
+
+    @property
+    def flow_area(self) -> float:
+        return np.pi * (self._R)**2 + 2 * self._R * self._A
+
+    @property
+    def wetted_perimeter(self) -> float:
+        return 2 * (np.pi * self._R + self._A)
+
+cross_section_classes = {
+    "circular" : CircularCrossSection,
+    "square": SquareCrossSection,
+    "rectangular": RectangularCrossSection,
+    "stadium": StadiumCrossSection}
+cross_section_param_lists = {
+    "circular": ["R"],
+    "square": ["W"],
+    "rectangular": ["H", "W"],
+    "stadium": ["A", "R"]
+}
+
 class Pipe(Component):
     """A pipe component
 
@@ -316,8 +443,8 @@ class Pipe(Component):
     ----------
     L : float
         Length of the pipe
-    R : float
-        Inner radius of the pipe
+    Cross_section_name : string
+        Geometry of the cross section of the pipe. Allowed names are circular, square, rectangular, and stadium.
     Ac : float
         Flow area of the pipe
     Dh : float
@@ -344,9 +471,7 @@ class Pipe(Component):
     def __init__(
         self,
         L: float,
-        R: float = None,
-        Ac: float = None,
-        Dh: float = None,
+        cross_section_name="circular",
         n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
@@ -354,7 +479,7 @@ class Pipe(Component):
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
         roughness: float = 0.0,
-        pctHeated: float = 1,
+        pctHeated: float = 1.0,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -369,24 +494,14 @@ class Pipe(Component):
         self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
-        if R is None:
-            assert Dh is not None and Ac is not None
-            self._R = 0.5 * Dh
-        else:
-            self._R = R
-        if Ac is None:
-            self._Ac = np.pi * R * R
-        else:
-            self._Ac = Ac
-        if Dh is None:
-            self._Pw = 2 * np.pi * self._R
-            self._Dh = 4.0 * self._Ac / self._Pw
-        else:
-            self._Dh = Dh
-            self._Pw = 4.0 * self._Ac / self._Dh
-
+        self._cross_section = cross_section_classes[cross_section_name](
+            **{k: v for k, v in kwargs.items()
+               if k in cross_section_param_lists[cross_section_name]}
+        )
+        self._Ac = self._cross_section.flow_area
+        self._Pw = self._cross_section.wetted_perimeter
+        self._Dh = self._cross_section.hydraulic_diameter
         self._heatedPerimeter = pctHeated * self._Pw
-
         self._temps = np.zeros(self.nCell)
 
     @property
@@ -423,51 +538,26 @@ class Pipe(Component):
         return (x, y, z)
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genUniformCylinder(self._L, self._R, naxial_layers=self._n, **self._kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
-        )
+        # Fix to prevent R from being passed twice in case a circular cross section is used
+        filtered_kwargs = {k: v for k,v in self._kwargs.items() if k!= 'R'}
+        return genUniformCylinder(self._L, self._Dh/2, naxial_layers=self._n, **filtered_kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._R, self._R, self._L, self._theta, self._alpha]
+        return [inlet, outlet, self._Dh/2, self._Dh/2, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
-        self._R *= uc.lengthConversion
         self._Ac *= uc.areaConversion
         self._Dh *= uc.lengthConversion
         self._Pw *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
         self._heatedPerimeter *= uc.lengthConversion
 
-
 component_list["pipe"] = Pipe
-
-
-class SquarePipe(Pipe):
-    """A square pipe component
-
-    Parameters
-    ----------
-    L : float
-        Length of the pipe
-    W : float
-        Width of the pipe (i.e. flat-to-flat)
-    """
-
-    def __init__(self, L: float, W: float, **kwargs) -> None:
-        super().__init__(L=L, Dh=W, Ac=W**2, **kwargs)
-
-    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genUniformCube(self._Dh, self._Dh, self._L, nz=self._n).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
-        )
-
-
-component_list["square_pipe"] = SquarePipe
-
 
 class Tee(Pipe):
     """A Tee pipe component
@@ -482,95 +572,7 @@ class Tee(Pipe):
         super().__init__(**kwargs)
         assert self._n == 1
 
-
 component_list["tee"] = Tee
-
-
-class RectangularPipe(Pipe):
-    """A rectangular pipe component
-    Parameters
-    ----------
-    L : float
-        Length of the pipe
-    W : float
-        Width of the pipe
-    H : float
-        Height of the pipe
-    n : int
-        Number of segments the pipe is divided into
-    theta : float
-        Orientation angle of the pipe in the polar direction
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
-    roughness : float
-        Pipe roughness
-    """
-
-    def __init__(
-        self,
-        L: float,
-        W: float,
-        H: float,
-        n: int = 1,
-        theta: float = 0.0,
-        Kloss: float = 0.0,
-        roughness: float = 0.0,
-        **kwargs,
-    ) -> None:
-        Ac = W * H
-        Pw = 2 * (W + H)
-        Dh = 4 * Ac / Pw
-        super().__init__(L=L, Ac=Ac, Dh=Dh, n=n, theta=theta, Kloss=Kloss, roughness=roughness, **kwargs)
-        self._W = W
-        self._H = H
-
-    @property
-    def width(self) -> float:
-        return self._W
-
-    @property
-    def height(self) -> float:
-        return self._H
-
-
-class Stadium(Pipe):
-    """A stadium pipe component
-    Parameters
-    ----------
-    L : float
-        Length of the stadium channel
-    W : float
-        Width of the rectangular portion of the stadium channel
-    H : float
-        Height (Diameter) of the stadium channel
-    n : int
-        Number of segments the pipe is divided into
-    theta : float
-        Orientation angle of the pipe in the polar direction
-    Kloss : float
-        K-loss coefficient associated with pressure loss through the pipe
-    roughness : float
-        Pipe roughness
-    """
-
-    def __init__(
-        self, L: float, W: float, H: float, n: int, theta: float = 0.0, Kloss: float = 0.0, roughness: float = 0.0, **kwargs
-    ) -> None:
-        Ac = np.pi * (H / 2) ** 2 + W * H
-        Pw = 2 * (np.pi * (H / 2) + W)
-        Dh = 4 * Ac / Pw
-        super().__init__(L=L, Ac=Ac, Dh=Dh, n=n, theta=theta, Kloss=Kloss, roughness=roughness, **kwargs)
-        self._W = W
-        self._H = H
-
-    @property
-    def width(self) -> float:
-        return self._W
-
-    @property
-    def height(self) -> float:
-        return self._H
-
 
 class SimpleTank(Pipe):
     """
