@@ -6,54 +6,98 @@ from flowforge.materials.Material import Material
 
 
 class Solid(Material, ABC):
-    """
-    The Solid class inherits from the base Material class. The purpose of this class is to store material
-    properties that are relevant to the solid domain calculations. The solid material properties that are stored
-    are thermal conductivity, density, and specific heat of the material.
+    """Abstract base class for solid materials.
+
+    This class inherits from the base Material class and defines the interface for
+    solid material property calculations. It provides abstract methods for thermal
+    conductivity, density, and specific heat, which must be implemented by concrete
+    subclasses. It also provides a method to export these properties to HDF5 format.
+
+    Attributes
+    ----------
+    name : str
+        Name of the solid material, inherited from the Material class.
+
+    Notes
+    -----
+    This is an abstract class and cannot be instantiated directly. Subclasses must
+    implement the conductivity, density, and specific_heat methods.
     """
 
     @abstractmethod
     def conductivity(self, T: float) -> float:
-        """
-        Thermal conductivity [W/m-K]
+        """Calculate thermal conductivity at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
+
+        Returns
+        -------
+        float
+            Thermal conductivity [W/m-K].
         """
         raise NotImplementedError
 
     @abstractmethod
     def density(self, T: float) -> float:
-        """
-        Density [kg/m^3]
+        """Calculate density at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
+
+        Returns
+        -------
+        float
+            Density [kg/m^3].
         """
         raise NotImplementedError
 
     @abstractmethod
     def specific_heat(self, T: float) -> float:
-        """
-        Specific heat [kJ/kg-K]
+        """Calculate specific heat at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
+
+        Returns
+        -------
+        float
+            Specific heat [kJ/kg-K].
         """
         raise NotImplementedError
 
     def exportHDF5(
         self, filename: str, path: str = "/", Tmin: float = 273.15, Tmax: float = 1273.15, thresh: float = 0.1
     ) -> None:
-        """
-        The exportHDF5 function exports all of the property data for the Solid.
+        """Export solid material properties to HDF5 file format.
 
-        Args:
-            - filename : str, name of the HDF5 file to add data to
-            - path     : (OPTIONAL) str, path in the h5 file solid properties will be written to
-            - Tmin     : (OPTIONAL) float, [K] minimum temperature to export property values
-            - Tmax     : (OPTIONAL) float, [K] maximum temperature to export property values
-            - thresh   : (OPTIONAL) float, tolerance in the linear interpolation error
+        This method exports thermal conductivity, density, and specific heat data
+        for the solid material to an HDF5 file. The data is exported over a specified
+        temperature range with adaptive sampling to ensure accuracy.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the HDF5 file to add data to.
+        path : str, optional
+            Path in the HDF5 file where solid properties will be written, by default "/".
+        Tmin : float, optional
+            Minimum temperature [K] to export property values, by default 273.15 (0°C).
+        Tmax : float, optional
+            Maximum temperature [K] to export property values, by default 1273.15 (1000°C).
+        thresh : float, optional
+            Tolerance for the linear interpolation error, by default 0.1.
+
+        Notes
+        -----
+        If the specified group already exists in the HDF5 file, it will be deleted
+        before the new data is written.
         """
         h5file = h5py.File(filename, "a")
         group_name = path + "solid_material"
@@ -73,42 +117,81 @@ class Solid(Material, ABC):
 
 
 class Graphite(Solid):
-    """
-    The graphite Solid subclass is specific to the properties of graphite from "McEligot, Donald,
-    Swank, W. David, Cottle, David L., and Valentin, Francisco I. Thermal Properties of G-348 Graphite.
-    United States: N. p., 2016."
+    """Graphite solid material implementation.
+
+    This class provides thermal property calculations for G-348 graphite, with
+    property equations derived from published literature.
+
+    Attributes
+    ----------
+    name : str
+        Name of the material (inherited from Material class).
+
+    Notes
+    -----
+    The property equations implemented in this class are based on:
+    McEligot, Donald, Swank, W. David, Cottle, David L., and Valentin, Francisco I.
+    "Thermal Properties of G-348 Graphite." United States: N. p., 2016.
     """
 
     def conductivity(self, T: float) -> float:
-        """
-        Returns the conductivity (k) of graphite at a specified temperature.
+        """Calculate thermal conductivity of graphite at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : W/m-k
+        Returns
+        -------
+        float
+            Thermal conductivity [W/m-K].
+
+        Notes
+        -----
+        Equation uses temperature in Celsius internally:
+        k = 134.0 - 0.1074*(T-273.15) + 3.719e-5*(T-273.15)^2
         """
         return 134.0 - 0.1074 * (T - 273.15) + 3.719e-5 * (T - 273.15) ** 2
 
     def density(self, T: float) -> float:
-        """
-        Returns the density (rho) of graphite at a specified temperature.
+        """Calculate density of graphite at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : kg/m3
+        Returns
+        -------
+        float
+            Density [kg/m^3].
+
+        Notes
+        -----
+        Equation uses temperature in Celsius internally:
+        ρ = (-6e-9*(T-273.15)^2 - 3e-5*(T-273.15) + 1.8891)*1000
         """
         return (-6e-9 * (T - 273.15) ** 2 - 3e-5 * (T - 273.15) + 1.8891) * 1000
 
     def specific_heat(self, T: float) -> float:
-        """
-        Returns the specific heat (cp) of graphite at a specified temperature.
+        """Calculate specific heat of graphite at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : kJ/kg-K
+        Returns
+        -------
+        float
+            Specific heat [kJ/kg-K].
+
+        Notes
+        -----
+        The equation first converts input from K to C, then applies a complex
+        formula, and finally converts from cal/g-K to kJ/kg-K by multiplying
+        by 4.184.
         """
         # convert T from C to K
         T = T + 273.15
@@ -121,42 +204,77 @@ class Graphite(Solid):
 
 
 class SS316H(Solid):
-    """
-    The stainless steel 316H Solid subclass is specific to the properties from "Atlas Steels.
-    'Grade Data Sheet 316/316L/316H.' January 2011.
-    https://www.atlassteels.com.au/documents/Atlas_Grade_datasheet_316_rev_Jan_2011.pdf"
+    """Stainless Steel 316H solid material implementation.
+
+    This class provides thermal property calculations for SS316H stainless steel,
+    with properties based on manufacturer specifications.
+
+    Attributes
+    ----------
+    name : str
+        Name of the material (inherited from Material class).
+
+    Notes
+    -----
+    The property values implemented in this class are based on:
+    Atlas Steels. "Grade Data Sheet 316/316L/316H." January 2011.
+    https://www.atlassteels.com.au/documents/Atlas_Grade_datasheet_316_rev_Jan_2011.pdf
+
+    Some properties, like density, are considered constant across the typical
+    operational temperature range.
     """
 
     def conductivity(self, T: float) -> float:
-        """
-        Returns the conductivity (k) of SS316H at a specified temperature.
+        """Calculate thermal conductivity of SS316H at a specified temperature.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : W/m-k
+        Returns
+        -------
+        float
+            Thermal conductivity [W/m-K].
+
+        Notes
+        -----
+        Linear equation: k = 0.013*T + 11.45305
         """
         return 0.013 * T + 11.45305
 
     def density(self, T: Optional[float] = None) -> float:
-        """
-        Returns the density (rho) of SS316H at a specified temperature.
+        """Return constant density of SS316H.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float, optional
+            Temperature [K], not used in the calculation as density is constant.
 
-        Units : kg/m3
+        Returns
+        -------
+        float
+            Density [kg/m^3], constant value of 8000.
         """
         return 8000
 
     def specific_heat(self, T: Optional[float] = None) -> float:
-        """
-        Returns the specific heat (cp) of SS316H at a specified temperature.
+        """Calculate specific heat of SS316H.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float, optional
+            Temperature [K]. Only used for range validation.
 
-        Units : kJ/kg-K
+        Returns
+        -------
+        float
+            Specific heat [kJ/kg-K], constant value of 0.500.
+
+        Notes
+        -----
+        Prints a warning if temperature is outside the manufacturer's specified
+        range of 0-100°C (273.15-373.15 K).
         """
         if T is not None and T < 273.15 or T > 373.15:
             print(
@@ -167,22 +285,41 @@ class SS316H(Solid):
 
 
 class User_Solid(Solid):
-    """
-    The User_Solid subclass of the Solid base class allows for the user to
-    define their own property functions for the material being used.
+    """User-defined solid material implementation.
+
+    This class allows users to define their own property functions for custom solid
+    materials. The user provides functions for thermal conductivity, density, and
+    specific heat as a function of temperature.
+
+    Parameters
+    ----------
+    name : str
+        Name of the solid material.
+    k_funct : Callable
+        Function that takes temperature as input and returns thermal conductivity.
+    dens_funct : Callable
+        Function that takes temperature as input and returns density.
+    cp_funct : Callable
+        Function that takes temperature as input and returns specific heat.
+
+    Attributes
+    ----------
+    name : str
+        Name of the material (inherited from Material class).
+    k_funct : Callable
+        Function for calculating thermal conductivity [W/m-K].
+    dens_funct : Callable
+        Function for calculating density [kg/m^3].
+    cp_funct : Callable
+        Function for calculating specific heat [kJ/kg-K].
+
+    Notes
+    -----
+    The functions can be provided either as callable objects or as strings
+    that can be evaluated into callable objects.
     """
 
     def __init__(self, name: str, k_funct: Callable, dens_funct: Callable, cp_funct: Callable):
-        """
-        The User_Solid subclass initializes by sending the name to the base
-        class for initialization and then stores all 3 of the property functions.
-
-        Args:
-            - name : string, name of the solid material
-            - k_funct    : function of temperature which returns the conductivity of the material (k)
-            - dens_funct : function of temperature which returns the density of the material (rho)
-            - cp_funct   : function of temperature which returns the specific heat of the material (cp)
-        """
         Solid.__init__(self, name)
         if isinstance(k_funct, str) and isinstance(dens_funct, str) and isinstance(cp_funct, str):
             self.k_funct = eval(str(k_funct))
@@ -194,45 +331,104 @@ class User_Solid(Solid):
             self.cp_funct = cp_funct
 
     def conductivity(self, T: float) -> float:
-        """
-        Returns the conductivity (k) of the solid material at a specified temperature.
+        """Calculate thermal conductivity using the user-defined function.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : W/m-k
+        Returns
+        -------
+        float
+            Thermal conductivity [W/m-K].
         """
         return self.k_funct(T)
 
     def density(self, T: float) -> float:
-        """
-        Returns the density (rho) of the solid material at a specified temperature.
+        """Calculate density using the user-defined function.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : kg/m3
+        Returns
+        -------
+        float
+            Density [kg/m^3].
         """
         return self.dens_funct(T)
 
     def specific_heat(self, T: float) -> float:
-        """
-        Returns the specific heat (cp) of the solid material at a specified temperature.
+        """Calculate specific heat using the user-defined function.
 
-        Args:
-            - T (float) : temperature [K]
+        Parameters
+        ----------
+        T : float
+            Temperature [K].
 
-        Units : kJ/kg-K
+        Returns
+        -------
+        float
+            Specific heat [kJ/kg-K].
         """
         return self.cp_funct(T)
 
 
 class Solid_table(User_Solid):
-    """
-    The Solid_table subclass of Solid_functions class allows the user to input
-    tabular data and the data will be interpolated to generate property functions for the material
-    being used. These functions are then sent to the Solid_functions class to be initialized
-    there.
+    """Table-based solid material implementation.
+
+    This class allows users to define a solid material using tabular data for
+    thermal properties. The tabular data is interpolated to create property
+    functions that can be used for calculations.
+
+    Parameters
+    ----------
+    name : str
+        Name of the solid material.
+    T_k : List[float]
+        List of temperature values [°C] corresponding to conductivity values.
+    k : List[float]
+        List of thermal conductivity values [W/m-K] corresponding to T_k temperatures.
+    T_dens : List[float]
+        List of temperature values [°C] corresponding to density values.
+    dens : List[float]
+        List of density values [kg/m^3] corresponding to T_dens temperatures.
+    T_cp : List[float]
+        List of temperature values [°C] corresponding to specific heat values.
+    cp : List[float]
+        List of specific heat values [kJ/kg-K] corresponding to T_cp temperatures.
+
+    Attributes
+    ----------
+    name : str
+        Name of the material (inherited from Material class).
+    T_k : List[float]
+        List of temperatures for conductivity data.
+    k : List[float]
+        List of conductivity values.
+    T_dens : List[float]
+        List of temperatures for density data.
+    dens : List[float]
+        List of density values.
+    T_cp : List[float]
+        List of temperatures for specific heat data.
+    cp : List[float]
+        List of specific heat values.
+    Tmin : Optional[float]
+        Minimum temperature for export (set by export methods).
+    Tmax : Optional[float]
+        Maximum temperature for export (set by export methods).
+    thresh : Optional[float]
+        Error threshold for export (set by export methods).
+
+    Notes
+    -----
+    The class uses linear interpolation between data points to estimate
+    property values at any temperature within the provided ranges.
+    Each property (conductivity, density, specific heat) can have its own
+    temperature points.
     """
 
     def __init__(
@@ -245,28 +441,6 @@ class Solid_table(User_Solid):
         T_cp: List[float],
         cp: List[float],
     ):
-        """
-        The __init__ function of the Solid_table class initializes the class instance by
-        linearly interpolating between data points in a table. Solid material data of density,
-        specific heat, and conductivity often come in the form of tables.
-
-        This will allow the user to make a variable for each column that contains the values as a list.
-
-        These lists will be used to interpolate an equation for each of the material properties and
-        these equations will be initialized as a Solid_functions class using the super() method.
-
-        The list inputs for the material properties must be the same length as the corresponding list of
-        temperature values.
-
-        Args:
-            - name      : str, name of the material
-            - T_k       : float list, list of temperature values (degrees C) that coincide with the k values
-            - k         : float list, list of conductivity values (W/m-k) at each temperature in T_k
-            - T_dens    : float list, list of temperature values (degrees C) that coincide with the dens values
-            - dens      : float list, list of density values (kg/m3) at each temperature in T_dens
-            - T_cp      : float list, list of temperature values (degrees C) that coincide with the cp values
-            - cp        : float list, list of specific heat values (kJ/kg-K) at each temperature in T_cp
-        """
         self.T_k = T_k
         self.k = k
         self.T_dens = T_dens
@@ -287,11 +461,27 @@ class Solid_table(User_Solid):
     def exportConductivity(
         self, Tmin: Optional[float] = None, Tmax: Optional[float] = None, thresh: Optional[float] = None
     ) -> Tuple[List[float], List[float]]:
-        """
-        This function exports the stored thermal conductivity data values
-        and the corresponding temperature values.
+        """Export thermal conductivity data.
 
-        Args: None
+        This method returns the stored thermal conductivity data values
+        and their corresponding temperature values. It also stores the
+        provided parameters for potential future use.
+
+        Parameters
+        ----------
+        Tmin : float, optional
+            Minimum temperature [K], stored but not used for table export.
+        Tmax : float, optional
+            Maximum temperature [K], stored but not used for table export.
+        thresh : float, optional
+            Error threshold, stored but not used for table export.
+
+        Returns
+        -------
+        Tuple[List[float], List[float]]
+            A tuple containing:
+            - List of temperature values [°C]
+            - List of corresponding conductivity values [W/m-K]
         """
         self.Tmin = Tmin
         self.Tmax = Tmax
@@ -301,11 +491,27 @@ class Solid_table(User_Solid):
     def exportDensity(
         self, Tmin: Optional[float] = None, Tmax: Optional[float] = None, thresh: Optional[float] = None
     ) -> Tuple[List[float], List[float]]:
-        """
-        This function exports the stored density data values
-        and the corresponding temperature values.
+        """Export density data.
 
-        Args: None
+        This method returns the stored density data values
+        and their corresponding temperature values. It also stores the
+        provided parameters for potential future use.
+
+        Parameters
+        ----------
+        Tmin : float, optional
+            Minimum temperature [K], stored but not used for table export.
+        Tmax : float, optional
+            Maximum temperature [K], stored but not used for table export.
+        thresh : float, optional
+            Error threshold, stored but not used for table export.
+
+        Returns
+        -------
+        Tuple[List[float], List[float]]
+            A tuple containing:
+            - List of temperature values [°C]
+            - List of corresponding density values [kg/m^3]
         """
         self.Tmin = Tmin
         self.Tmax = Tmax
@@ -315,11 +521,27 @@ class Solid_table(User_Solid):
     def exportSpecificHeat(
         self, Tmin: Optional[float] = None, Tmax: Optional[float] = None, thresh: Optional[float] = None
     ) -> Tuple[List[float], List[float]]:
-        """
-        This function exports the stored specific heat data values
-        and the corresponding temperature values.
+        """Export specific heat data.
 
-        Args: None
+        This method returns the stored specific heat data values
+        and their corresponding temperature values. It also stores the
+        provided parameters for potential future use.
+
+        Parameters
+        ----------
+        Tmin : float, optional
+            Minimum temperature [K], stored but not used for table export.
+        Tmax : float, optional
+            Maximum temperature [K], stored but not used for table export.
+        thresh : float, optional
+            Error threshold, stored but not used for table export.
+
+        Returns
+        -------
+        Tuple[List[float], List[float]]
+            A tuple containing:
+            - List of temperature values [°C]
+            - List of corresponding specific heat values [kJ/kg-K]
         """
         self.Tmin = Tmin
         self.Tmax = Tmax

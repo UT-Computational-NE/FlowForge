@@ -23,16 +23,21 @@ class MassMomentumBC:
     Attributes
     ----------
     mdot : float
-        Mass flow rate [kg/s]
+        Mass flow rate [kg/s]. Accessible via the mdot property.
     surfaceP : float
-        Surface pressure [Pa]
+        Surface pressure [Pa]. Accessible via the surfaceP property.
     Pside : str
-        Side that pressure is on. "inlet" or "outlet"
+        Side that pressure is on. "inlet" or "outlet". Accessible via the Pside property.
 
     Notes
     -----
     At least one of inlet or outlet must be specified. If both are specified,
     one must contain mass flow rate and the other must contain pressure.
+
+    For a valid configuration, the following requirements must be met:
+    - If mass flow rate is specified, it must be non-zero.
+    - Pressure must always be positive.
+    - The pressure side must be either "inlet" or "outlet".
     """
 
     def __init__(self, inlet: dict = None, outlet: dict = None):
@@ -105,18 +110,25 @@ class EnthalpyBC:
 
     Attributes
     ----------
-    val_inlet : float
-        The inlet boundary condition value
-    type_inlet : str
-        The inlet boundary condition type, either "temperature" or "enthalpy"
-    val_outlet : float
-        The outlet boundary condition value
-    type_outlet : str
-        The outlet boundary condition type, either "temperature" or "enthalpy"
+    val_inlet : Optional[float]
+        The inlet boundary condition value. Accessible via the val_inlet property.
+    type_inlet : Optional[str]
+        The inlet boundary condition type, either "temperature" or "enthalpy".
+        Accessible via the type_inlet property.
+    val_outlet : Optional[float]
+        The outlet boundary condition value. Accessible via the val_outlet property.
+    type_outlet : Optional[str]
+        The outlet boundary condition type, either "temperature" or "enthalpy".
+        Accessible via the type_outlet property.
 
     Notes
     -----
-    At least one of inlet or outlet must be specified. Values must be positive.
+    At least one of inlet or outlet must be specified. All specified values must be positive.
+    Valid types for both inlet and outlet are limited to "temperature" and "enthalpy".
+
+    When a temperature type is specified, the value will be converted using the
+    temperature conversion function in the UnitConverter. When an enthalpy type is
+    specified, the value will be scaled by the enthalpy conversion factor.
     """
 
     def __init__(self, inlet: Optional[Dict] = None, outlet: Optional[Dict] = None):
@@ -148,19 +160,19 @@ class EnthalpyBC:
             assert self.type_outlet in ("temperature", "enthalpy")
 
     @property
-    def val_inlet(self) -> float:
+    def val_inlet(self) -> Optional[float]:
         return self._val_inlet
 
     @property
-    def val_outlet(self) -> float:
+    def val_outlet(self) -> Optional[float]:
         return self._val_outlet
 
     @property
-    def type_inlet(self) -> str:
+    def type_inlet(self) -> Optional[str]:
         return self._type_inlet
 
     @property
-    def type_outlet(self) -> str:
+    def type_outlet(self) -> Optional[str]:
         return self._type_outlet
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -182,14 +194,35 @@ class EnthalpyBC:
 
 
 class VoidBC:
-    """Class for void fraction BC
+    """Class for void fraction boundary conditions.
+
+    This class manages void fraction boundary conditions at system inlets and outlets.
+    It allows specifying either mass flow rate or void fraction at one boundary.
+
+    Parameters
+    ----------
+    inlet : dict, optional
+        Dictionary containing inlet boundary conditions. Can specify either
+        "mdot" (mass flow rate) or "void_fraction".
+    outlet : dict, optional
+        Dictionary containing outlet boundary conditions. Can specify either
+        "mdot" (mass flow rate) or "void_fraction".
 
     Attributes
     ----------
-    mdot : float
-        Mass flow rate [kg/s]
-    void_fraction : float
-        Void fraction [-]
+    val_inlet : Optional[float]
+        The inlet boundary condition value.
+    type_inlet : Optional[str]
+        The inlet boundary condition type, either "mdot" or "void_fraction".
+    val_outlet : Optional[float]
+        The outlet boundary condition value.
+    type_outlet : Optional[str]
+        The outlet boundary condition type, either "mdot" or "void_fraction".
+
+    Notes
+    -----
+    Only one of inlet or outlet should be specified. If both are specified,
+    the behavior is undefined.
     """
 
     def __init__(self, inlet: dict = None, outlet: dict = None):
@@ -225,19 +258,19 @@ class VoidBC:
                 assert self.val_outlet >= 0.0 and self.val_outlet <= 1.0
 
     @property
-    def val_inlet(self) -> float:
+    def val_inlet(self) -> Optional[float]:
         return self._val_inlet
 
     @property
-    def val_outlet(self) -> float:
+    def val_outlet(self) -> Optional[float]:
         return self._val_outlet
 
     @property
-    def type_inlet(self) -> str:
+    def type_inlet(self) -> Optional[str]:
         return self._type_inlet
 
     @property
-    def type_outlet(self) -> str:
+    def type_outlet(self) -> Optional[str]:
         return self._type_outlet
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -250,20 +283,34 @@ class VoidBC:
 
 
 class BoundaryConditions:
-    """
-    Container class for all input boundary conditions
+    """Container class for all input boundary conditions.
 
-    "boundary_conditions" should be defined as a dict in the form:
+    This class stores and manages all boundary conditions for the simulation. It creates
+    appropriate boundary condition objects based on the provided specifications.
 
+    Parameters
+    ----------
+    **boundary_conditions : dict
+        Keyword arguments where the key is the boundary condition name and the value
+        is a dictionary containing boundary condition specifications. Each dictionary
+        must contain 'boundary_type', 'surface', 'variable', and 'value' keys.
+
+    Attributes
+    ----------
+    boundary_conditions : dict
+        Dictionary of boundary condition objects, accessible via the bcs property.
+
+    Examples
+    --------
     boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "DirichletBC", "surface": "surface_name", "variable": "variable_name",  "value", float},
+                {"boundary_type": "DirichletBC", "surface": "surface_name", "variable": "variable_name",  "value": float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value", 25.0},
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value": 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value", 1e5},
+                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value": 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value", 700}
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value": 700}
     }
     """
 
@@ -295,17 +342,43 @@ class BoundaryConditions:
 
 
 class GeneralBC(abc.ABC):
-    """
-    General abstract class for boundary conditions
+    """General abstract base class for all boundary conditions.
 
-    Methods:
-        - _convertUnits
-        - _get_variable_conversion
+    This is the abstract base class that defines the common interface for
+    all boundary condition types in the simulation.
 
-    Attributes:
-        - _surface_name: str
-        - _variable_name : str
-        - _value: float
+    Parameters
+    ----------
+    surface : str
+        The surface name where the boundary condition is applied.
+    variable : str
+        The variable name for the boundary condition.
+    value : float or str
+        The value of the boundary condition. Can be a numeric value or an
+        equation string that will be parsed.
+
+    Attributes
+    ----------
+    boundary_type : str
+        The type of boundary condition.
+    boundary_value : EquationParser
+        The value of the boundary condition, parsed as an equation.
+    variable_name : str
+        The variable name for the boundary condition.
+    surface_name : str
+        The surface name where the boundary condition is applied.
+
+    Methods
+    -------
+    convertUnits(uc)
+        Converts units using the provided UnitConverter.
+    _get_variable_conversion(uc)
+        Gets appropriate conversion factors for the variable.
+
+    Notes
+    -----
+    Specific boundary condition types should inherit from this class
+    and override the boundary_type attribute.
     """
 
     def __init__(self, surface: str, variable: str, value):
@@ -365,8 +438,37 @@ class GeneralBC(abc.ABC):
 
 
 class DirichletBC(GeneralBC):
-    """
-    Sub-class for Dirichlet boundary conditions
+    """Dirichlet (fixed value) boundary condition implementation.
+
+    This class implements Dirichlet boundary conditions, which specify
+    a fixed value for a variable at a particular boundary surface.
+
+    Parameters
+    ----------
+    surface : str
+        The surface name where the boundary condition is applied.
+    variable : str
+        The variable name for the boundary condition.
+    value : float or str
+        The fixed value for the variable at the boundary. Can be a numeric
+        value or an equation string that will be parsed.
+
+    Attributes
+    ----------
+    boundary_type : str
+        The type of boundary condition (always "DirichletBC").
+    boundary_value : EquationParser
+        The value of the boundary condition, parsed as an equation.
+    variable_name : str
+        The variable name for the boundary condition.
+    surface_name : str
+        The surface name where the boundary condition is applied.
+
+    Notes
+    -----
+    Dirichlet boundary conditions are the most common type of boundary
+    condition and are appropriate for most variables like temperature,
+    pressure, mass flow rate, etc.
     """
 
     def __init__(self, surface: str, variable: str, value: float):
