@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 import h5py
+from typing import List, Tuple, Union, Callable, Optional
+import numpy as np
+from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 from flowforge.materials.Material import Material
 
@@ -12,7 +15,7 @@ class Solid(Material, ABC):
     """
 
     @abstractmethod
-    def conductivity(self, T):
+    def conductivity(self, T: float) -> float:
         """
         Thermal conductivity [W/m-K]
 
@@ -22,7 +25,7 @@ class Solid(Material, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def density(self, T):
+    def density(self, T: float) -> float:
         """
         Density [kg/m^3]
 
@@ -32,7 +35,7 @@ class Solid(Material, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def specific_heat(self, T):
+    def specific_heat(self, T: float) -> float:
         """
         Specific heat [kJ/kg-K]
 
@@ -41,7 +44,7 @@ class Solid(Material, ABC):
         """
         raise NotImplementedError
 
-    def exportHDF5(self, filename, path="/", Tmin=273.15, Tmax=1273.15, thresh=0.1):
+    def exportHDF5(self, filename: str, path: str="/", Tmin: float=273.15, Tmax: float=1273.15, thresh: float=0.1) -> None:
         """
         The exportHDF5 function exports all of the property data for the Solid.
 
@@ -76,7 +79,7 @@ class Graphite(Solid):
     United States: N. p., 2016."
     """
 
-    def conductivity(self, T):
+    def conductivity(self, T: float) -> float:
         """
         Returns the conductivity (k) of graphite at a specified temperature.
 
@@ -87,7 +90,7 @@ class Graphite(Solid):
         """
         return 134.0 - 0.1074 * (T - 273.15) + 3.719e-5 * (T - 273.15) ** 2
 
-    def density(self, T):
+    def density(self, T: float) -> float:
         """
         Returns the density (rho) of graphite at a specified temperature.
 
@@ -98,7 +101,7 @@ class Graphite(Solid):
         """
         return (-6e-9 * (T - 273.15) ** 2 - 3e-5 * (T - 273.15) + 1.8891) * 1000
 
-    def specific_heat(self, T):
+    def specific_heat(self, T: float) -> float:
         """
         Returns the specific heat (cp) of graphite at a specified temperature.
 
@@ -124,7 +127,7 @@ class SS316H(Solid):
     https://www.atlassteels.com.au/documents/Atlas_Grade_datasheet_316_rev_Jan_2011.pdf"
     """
 
-    def conductivity(self, T):
+    def conductivity(self, T: float) -> float:
         """
         Returns the conductivity (k) of SS316H at a specified temperature.
 
@@ -135,7 +138,7 @@ class SS316H(Solid):
         """
         return 0.013 * T + 11.45305
 
-    def density(self, T=None):
+    def density(self, T: Optional[float]=None) -> float:
         """
         Returns the density (rho) of SS316H at a specified temperature.
 
@@ -146,7 +149,7 @@ class SS316H(Solid):
         """
         return 8000
 
-    def specific_heat(self, T=None):
+    def specific_heat(self, T: Optional[float]=None) -> float:
         """
         Returns the specific heat (cp) of SS316H at a specified temperature.
 
@@ -169,7 +172,7 @@ class User_Solid(Solid):
     define their own property functions for the material being used.
     """
 
-    def __init__(self, name, k_funct, dens_funct, cp_funct):
+    def __init__(self, name: str, k_funct: Callable, dens_funct: Callable, cp_funct: Callable):
         """
         The User_Solid subclass initializes by sending the name to the base
         class for initialization and then stores all 3 of the property functions.
@@ -190,7 +193,7 @@ class User_Solid(Solid):
             self.dens_funct = dens_funct
             self.cp_funct = cp_funct
 
-    def conductivity(self, T):
+    def conductivity(self, T: float) -> float:
         """
         Returns the conductivity (k) of the solid material at a specified temperature.
 
@@ -201,7 +204,7 @@ class User_Solid(Solid):
         """
         return self.k_funct(T)
 
-    def density(self, T):
+    def density(self, T: float) -> float:
         """
         Returns the density (rho) of the solid material at a specified temperature.
 
@@ -212,7 +215,7 @@ class User_Solid(Solid):
         """
         return self.dens_funct(T)
 
-    def specific_heat(self, T):
+    def specific_heat(self, T: float) -> float:
         """
         Returns the specific heat (cp) of the solid material at a specified temperature.
 
@@ -232,7 +235,7 @@ class Solid_table(User_Solid):
     there.
     """
 
-    def __init__(self, name, T_k, k, T_dens, dens, T_cp, cp):
+    def __init__(self, name: str, T_k: List[float], k: List[float], T_dens: List[float], dens: List[float], T_cp: List[float], cp: List[float]):
         """
         The __init__ function of the Solid_table class initializes the class instance by
         linearly interpolating between data points in a table. Solid material data of density,
@@ -268,7 +271,7 @@ class Solid_table(User_Solid):
 
         User_Solid.__init__(self, name, interp1d(T_k, k), interp1d(T_dens, dens), interp1d(T_cp, cp))
 
-    def exportConductivity(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
+    def exportConductivity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
         """
         This function exports the stored thermal conductivity data values
         and the corresponding temperature values.
@@ -277,7 +280,7 @@ class Solid_table(User_Solid):
         """
         return self.T_k, self.k
 
-    def exportDensity(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
+    def exportDensity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
         """
         This function exports the stored density data values
         and the corresponding temperature values.
@@ -286,7 +289,7 @@ class Solid_table(User_Solid):
         """
         return self.T_dens, self.dens
 
-    def exportSpecificHeat(self, Tmin=None, Tmax=None, thresh=None):  # pylint:disable=unused-argument
+    def exportSpecificHeat(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
         """
         This function exports the stored specific heat data values
         and the corresponding temperature values.

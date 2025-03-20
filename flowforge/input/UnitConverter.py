@@ -173,38 +173,56 @@ class UnitConverter:
         self._tempconvfactors = [scale_temp_by, shift_temp_by]
 
     @property
+
+
     def lengthConversion(self) -> float:
         return self._lenconv
 
     @property
+
+
     def areaConversion(self) -> float:
         return self._lenconv * self._lenconv
 
     @property
+
+
     def volumeConversion(self) -> float:
         return self._volconv
 
     @property
+
+
     def timeConversion(self) -> float:
         return self._timeconv
 
     @property
+
+
     def pressureConversion(self) -> float:
         return self._presconv
 
     @property
+
+
     def massFlowRateConversion(self) -> float:
         return self._mfrconv
 
     @property
+
+
     def densityConversion(self) -> float:
         return self._densconv
 
     @property
+
+
     def powerConversion(self) -> float:
         return self._powerconv
 
     @property
+
+
     def enthalpyConversion(self) -> float:
         return self._enthalpyconv
 
@@ -224,5 +242,7 @@ class UnitConverter:
         return self._tempconv(T)
 
     @property
+
+
     def temperatureConversionFactors(self) -> list:
         return self._tempconvfactors

@@ -1,10 +1,24 @@
 import abc
+from typing import Dict, List, Union, Optional, Any
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
 
 class MassMomentumBC:
-    """Class for mass and momentum BC
-
+    """Class for mass and momentum boundary conditions.
+    
+    This class handles mass flow rate and momentum-related boundary conditions
+    for a fluid system. It enforces that a mass flow rate must be specified at one
+    end of the system, and pressure must be specified at the other end.
+    
+    Parameters
+    ----------
+    inlet : dict, optional
+        Dictionary containing inlet boundary conditions. Can include "mdot" (mass flow rate)
+        or "pressure" (inlet pressure).
+    outlet : dict, optional
+        Dictionary containing outlet boundary conditions. Can include "mdot" (mass flow rate)
+        or "pressure" (outlet pressure).
+        
     Attributes
     ----------
     mdot : float
@@ -13,6 +27,11 @@ class MassMomentumBC:
         Surface pressure [Pa]
     Pside : str
         Side that pressure is on. "inlet" or "outlet"
+        
+    Notes
+    -----
+    At least one of inlet or outlet must be specified. If both are specified,
+    one must contain mass flow rate and the other must contain pressure.
     """
 
     def __init__(self, inlet: dict = None, outlet: dict = None):
@@ -39,39 +58,67 @@ class MassMomentumBC:
         assert self.Pside in ("inlet", "outlet")
 
     @property
-    def mdot(self):
+    def mdot(self) -> Optional[float]:
         return self._mdot
 
     @property
-    def surfaceP(self):
+    def surfaceP(self) -> float:
         return self._surfaceP
 
     @property
-    def Pside(self):
+    def Pside(self) -> str:
         return self._Pside
 
     def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Convert units using the provided UnitConverter.
+        
+        This method converts pressures and mass flow rates from user-specified
+        units to SI units using the conversion factors in the UnitConverter.
+        
+        Parameters
+        ----------
+        uc : UnitConverter
+            The unit converter object containing conversion factors
+        """
         self._surfaceP *= uc.pressureConversion
         if self._mdot:
             self._mdot *= uc.massFlowRateConversion
 
 
 class EnthalpyBC:
-    """Class for enthalpy BC.
-
+    """Class for enthalpy boundary conditions.
+    
+    This class manages enthalpy or temperature boundary conditions at system inlets and outlets.
+    It allows specifying either temperature or enthalpy at each boundary and handles the
+    appropriate conversions.
+    
+    Parameters
+    ----------
+    inlet : dict, optional
+        Dictionary containing inlet boundary conditions. Can specify either 
+        temperature or enthalpy values.
+    outlet : dict, optional
+        Dictionary containing outlet boundary conditions. Can specify either
+        temperature or enthalpy values.
+        
     Attributes
     ----------
-    val_inlet : dict
-        The inlet BC value
-    type_inlet : dict
-        The inlet BC type
-    val_outlet : dict
-        The outlet BC value
-    type_outlet : dict
-        The outlet BC type
+    val_inlet : float
+        The inlet boundary condition value
+    type_inlet : str
+        The inlet boundary condition type, either "temperature" or "enthalpy"
+    val_outlet : float
+        The outlet boundary condition value  
+    type_outlet : str
+        The outlet boundary condition type, either "temperature" or "enthalpy"
+        
+    Notes
+    -----
+    At least one of inlet or outlet must be specified. Values must be positive.
     """
 
-    def __init__(self, inlet: dict = None, outlet: dict = None):
+    def __init__(self, inlet: Optional[Dict] = None, outlet: Optional[Dict] = None):
         assert inlet or outlet
 
         self._type_inlet = None
@@ -100,19 +147,27 @@ class EnthalpyBC:
             assert self.type_outlet in ("temperature", "enthalpy")
 
     @property
-    def val_inlet(self):
+
+
+    def val_inlet(self) -> float:
         return self._val_inlet
 
     @property
-    def val_outlet(self):
+
+
+    def val_outlet(self) -> float:
         return self._val_outlet
 
     @property
-    def type_inlet(self):
+
+
+    def type_inlet(self) -> str:
         return self._type_inlet
 
     @property
-    def type_outlet(self):
+
+
+    def type_outlet(self) -> str:
         return self._type_outlet
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -176,19 +231,27 @@ class VoidBC:
                 assert self.val_outlet >= 0.0 and self.val_outlet <= 1.0
 
     @property
-    def val_inlet(self):
+
+
+    def val_inlet(self) -> float:
         return self._val_inlet
 
     @property
-    def val_outlet(self):
+
+
+    def val_outlet(self) -> float:
         return self._val_outlet
 
     @property
-    def type_inlet(self):
+
+
+    def type_inlet(self) -> str:
         return self._type_inlet
 
     @property
-    def type_outlet(self):
+
+
+    def type_outlet(self) -> str:
         return self._type_outlet
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -228,14 +291,16 @@ class BoundaryConditions:
             self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
 
     @property
-    def boundary_conditions(self):
+
+
+    def boundary_conditions(self) -> Any:
         return self.bcs
 
     @boundary_conditions.setter
     def boundary_conditions(self, bc_dict):
         self.bcs = bc_dict
 
-    def _convertUnits(self, uc: UnitConverter):
+    def _convertUnits(self, uc: UnitConverter) -> None:
         converted_bcs = {}
         for bc_name in [*self.bcs]:
             bc_obj = self.bcs[bc_name]
@@ -265,7 +330,9 @@ class GeneralBC(abc.ABC):
         self.bc_type = "None"
 
     @property
-    def boundary_type(self):
+
+
+    def boundary_type(self) -> Any:
         return self.bc_type
 
     @boundary_type.setter
@@ -273,7 +340,9 @@ class GeneralBC(abc.ABC):
         self.bc_type = bc_type
 
     @property
-    def boundary_value(self):
+
+
+    def boundary_value(self) -> Any:
         return self._value
 
     @boundary_value.setter
@@ -281,11 +350,15 @@ class GeneralBC(abc.ABC):
         self._value = value
 
     @property
-    def variable_name(self):
+
+
+    def variable_name(self) -> Any:
         return self._variable_name
 
     @property
-    def surface_name(self):
+
+
+    def surface_name(self) -> Any:
         return self._surface_name
 
     def convertUnits(self, uc: UnitConverter) -> None:

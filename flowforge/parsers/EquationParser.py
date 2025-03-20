@@ -1,6 +1,8 @@
 import re
 import sympy
 
+from typing import Dict, List, Optional, Union, Any, Tuple, Callable
+
 class EquationParser:
     """
     Class for handling the parsing of input equation.
@@ -56,7 +58,9 @@ class EquationParser:
                            if var in variable_names_extracted_from_equation}
 
     @property
-    def inputEquation(self):
+
+
+    def inputEquation(self) -> Any:
         return self._input_equation
 
     @inputEquation.setter
@@ -64,7 +68,9 @@ class EquationParser:
         self._input_equation = value
 
     @property
-    def expression(self):
+
+
+    def expression(self) -> Any:
         return self._expression
 
     @expression.setter
@@ -72,7 +78,9 @@ class EquationParser:
         self._expression = value
 
     @property
-    def variables(self):
+
+
+    def variables(self) -> Any:
         return self._variables
 
     def performUnitConversion(self, scale_factor=1, shift_factor=0,):

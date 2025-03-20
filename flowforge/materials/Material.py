@@ -1,4 +1,6 @@
 import numpy as np
+from typing import Tuple, Callable
+from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 
 
@@ -8,7 +10,7 @@ class Material:
     that can be exported to hdf5. The Material class is inherited by Solid and Fluid materials.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         """
         The __init__ function initializes the Material class instance by storing the name
         of the material.
@@ -18,7 +20,7 @@ class Material:
         """
         self.name = name
 
-    def exportMaterialProperty(self, mat_property, Tmin, Tmax, thresh):
+    def exportMaterialProperty(self, mat_property: Callable, Tmin: float, Tmax: float, thresh: float) -> Tuple[NDArray, NDArray]:
         """
         This function takes a material property equation and a range of temperatures to interpolate
         property values at the corresponding temperatures. These values are added to 2 arrays which are returned. The purpose

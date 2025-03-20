@@ -1,6 +1,8 @@
 import abc
 import h5py
 import numpy as np
+from typing import List, Dict, Tuple, Union, Optional, Any, Callable
+from numpy.typing import NDArray
 from flowforge.materials.Material import Material
 
 
@@ -12,7 +14,7 @@ class Fluid(Material):
     The enthalpy function will return an enthalpy given a Temperature.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         """
         The __init__ function initializes the Fluid class instance by storing the name
         of the fluid.
@@ -31,48 +33,48 @@ class Fluid(Material):
         ]
 
     @abc.abstractmethod
-    def conductivity(self, h):
+    def conductivity(self, h: float) -> float:
         """
         Thermal conductivity [W/m-K]
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def density(self, h):
+    def density(self, h: float) -> float:
         """
         Density [kg/m^3]
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def viscosity(self, h):
+    def viscosity(self, h: float) -> float:
         """
         Viscosity [kg/m-s]
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def specific_heat(self, h):
+    def specific_heat(self, h: float) -> float:
         """
         Specific heat [J/kg-K]
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def temperature(self, h):
+    def temperature(self, h: float) -> float:
         """
         Temperature [K]
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def enthalpy(self, T):
+    def enthalpy(self, T: float) -> float:
         """
         Enthalpy [J/kg]
         """
         raise NotImplementedError
 
-    def surface_tension(self, h):
+    def surface_tension(self, h: float) -> float:
         """
         Surface tension [N/m]
 
@@ -82,13 +84,13 @@ class Fluid(Material):
         """
         raise RuntimeError("Surface tension not implemented for this fluid")
 
-    def Pr(self, h):
+    def Pr(self, h: float) -> float:
         """
         Prandtl number
         """
         return self.specific_heat(h) * self.viscosity(h) / self.conductivity(h)
 
-    def Re(self, h, V, Dh) -> float:
+    def Re(self, h: float, V: float, Dh: float) -> float:
         """
         Args:
             - h  : float, specific enthalpy
@@ -100,14 +102,14 @@ class Fluid(Material):
         """
         return self.density(h) * V * Dh / self.viscosity(h)
 
-    def fluidPropertyArray(self):
+    def fluidPropertyArray(self) -> list:
         """
         fluid property array stores property name and respective function which allows
         the export process to iterate over the array
         """
         return self._fluid_property_array
 
-    def exportHDF5(self, filename, path="/", Tmin=273.15, Tmax=1300, thresh=1e-2):
+    def exportHDF5(self, filename: str, path: str="/", Tmin: float=273.15, Tmax: float=1300, thresh: float=1e-2) -> None:
         """
         The exportHDF5 function exports all of the property data for the Fluid.
 
@@ -162,11 +164,11 @@ class FLiBe_UF4(Fluid):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(name)
         self._Tref = 273.15  # temperature where enthalpy is 0
 
-    def conductivity(self, h):
+    def conductivity(self, h: float) -> float:
         """
         Thermal conductivity [W/m-K]:
         Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
@@ -175,7 +177,7 @@ class FLiBe_UF4(Fluid):
         """
         return 1.1 + h*0
 
-    def density(self, h):
+    def density(self, h: float) -> float:
         """
         Density [kg/m^3]:
         Validated for temp range 800-1080 K,
@@ -186,7 +188,7 @@ class FLiBe_UF4(Fluid):
         assert np.all(density >= 0)
         return density
 
-    def viscosity(self, h):
+    def viscosity(self, h: float) -> float:
         """
         Dynamic viscosity [kg/m-s]:
         Validated for temp range 873-1073 K,
@@ -195,7 +197,7 @@ class FLiBe_UF4(Fluid):
         T = self.temperature(h)
         return (0.116e-3) * np.exp(3755.0 / T)
 
-    def surface_tension(self, h):
+    def surface_tension(self, h: float) -> float:
         """
         Surface tension [N/m]:
         Validated for temp range 773.15-1073.15 K with ± 3% uncertainty,
@@ -205,7 +207,7 @@ class FLiBe_UF4(Fluid):
         T = self.temperature(h)
         return 0.295778 - ((0.12e-3) * T)
 
-    def specific_heat(self, h):
+    def specific_heat(self, h: float) -> float:
         """
         Specific heat capacity [J/kg-K] (Isobaric):
         Validated for temp range 788-1093 K with ± 3% uncertainty,
@@ -214,7 +216,7 @@ class FLiBe_UF4(Fluid):
         """
         return 2386 + h*0
 
-    def temperature(self, h):
+    def temperature(self, h: float) -> float:
         """
         Temperature [K]
         """
@@ -222,7 +224,7 @@ class FLiBe_UF4(Fluid):
         assert np.all(temp >= 0)
         return temp
 
-    def enthalpy(self, T):
+    def enthalpy(self, T: float) -> float:
         """
         Specific enthalpy [J/kg]
         """
@@ -256,11 +258,11 @@ class Hitec(Fluid):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(name)
         self._Tref = 273.15  # temperature where enthalpy is 0
 
-    def conductivity(self, h):
+    def conductivity(self, h: float) -> float:
         """
         Thermal conductivity [W/m-K]:
         Validated for temp range 373-773 K with ± 5% uncertainty,
@@ -272,7 +274,7 @@ class Hitec(Fluid):
         T = self.temperature(h)
         return a + (b * T) + (c * (T**2))
 
-    def density(self, h):
+    def density(self, h: float) -> float:
         """
         Density [kg/m^3]:
         Validated for temp range 470-870 K with ± 2% uncertainty,
@@ -283,7 +285,7 @@ class Hitec(Fluid):
         T = self.temperature(h)
         return a + (b * T)
 
-    def viscosity(self, h):
+    def viscosity(self, h: float) -> float:
         """
         Dynamic viscosity [kg/m-s]:
         Validated for temp range 420-710 K with ± 16% uncertainty,
@@ -296,7 +298,7 @@ class Hitec(Fluid):
         T = self.temperature(h)
         return a + (b * T) + (c * (T**2)) + (d * (T**3))
 
-    def surface_tension(self, h):
+    def surface_tension(self, h: float) -> float:
         """
         Surface tension [N/m]:
         Validated for temp range 570-670 K with ± 10% uncertainty,
@@ -309,7 +311,7 @@ class Hitec(Fluid):
         T = self.temperature(h)
         return a + (b * T)
 
-    def specific_heat(self, h):
+    def specific_heat(self, h: float) -> float:
         """
         Specific heat capacity [J/kg-K] (Isobaric):
         Validated for temp range 426-776 K with ± 5% uncertainty,
@@ -321,7 +323,7 @@ class Hitec(Fluid):
         T = self.temperature(h)
         return a + (b * T) + (c * (T**2))
 
-    def temperature(self, h):
+    def temperature(self, h: float) -> float:
         """
         Temperature [K]
 
@@ -365,7 +367,7 @@ class Hitec(Fluid):
             T_val = T_roots[np.isclose(T_roots.imag, 0) & (T_roots.real >= 0)].real[0]
         return T_val
 
-    def enthalpy(self, T):
+    def enthalpy(self, T: float) -> float:
         """
         Specific enthalpy [J/kg]
         """
@@ -390,35 +392,35 @@ class Helium(Fluid):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(name)
         self._Tref = 273.15  # K, temperature where enthalpy is 0
 
-    def conductivity(self, h):
+    def conductivity(self, h: float) -> float:
         """
         Thermal conductivity at P=0.120 MPa, T=600 K (p.37) [W/m-K]
         """
         return 0.2524
 
-    def density(self, h):
+    def density(self, h: float) -> float:
         """
         Density at P=0.120 MPa, T=600 K (p.36) [kg/m^3]
         """
         return 0.9626e-01
 
-    def viscosity(self, h):
+    def viscosity(self, h: float) -> float:
         """
         Dynamic viscosity at P=0.120 MPa, T=600 K (p.37) [kg/m-s]
         """
         return 32.22 * 1e-6
 
-    def specific_heat(self, h):
+    def specific_heat(self, h: float) -> float:
         """
         Specific heat capacity at P=0.120 MPa, T=600 K (p.36) [J/kg-K] (Isobaric)
         """
         return 5193.0
 
-    def temperature(self, h):
+    def temperature(self, h: float) -> float:
         """
         Temperature [K]
         """
@@ -426,7 +428,7 @@ class Helium(Fluid):
         assert np.all(temp >= 0)
         return temp
 
-    def enthalpy(self, T):
+    def enthalpy(self, T: float) -> float:
         """
         Specific enthalpy [J/kg]
         """
@@ -440,7 +442,8 @@ class User_Fluid(Fluid):
     """
 
     def __init__(
-        self, name, therm_cond_funct, dens_funct, visco_funct, spec_heat_funct, temp_funct, entha_funct, surf_tens_funct=None
+        self, name: str, therm_cond_funct: callable, dens_funct: callable, visco_funct: callable, 
+        spec_heat_funct: callable, temp_funct: callable, entha_funct: callable, surf_tens_funct: callable = None
     ):
         """
         The User_Fluid subclass initializes by sending the name to the base
@@ -466,44 +469,44 @@ class User_Fluid(Fluid):
         self.temperature_fun = temp_funct
         self.enthalpy_fun = entha_funct
 
-    def conductivity(self, h):
+    def conductivity(self, h: float) -> float:
         """
         Thermal conductivity [W/m-K]
         """
         return self.thermal_conductivity_fun(h)
 
-    def density(self, h):
+    def density(self, h: float) -> float:
         """
         Density [kg/m^3]
         """
         return self.density_fun(h)
 
-    def viscosity(self, h):
+    def viscosity(self, h: float) -> float:
         """
         Viscosity [kg/m-s]
         """
         return self.viscosity_fun(h)
 
-    def surface_tension(self, h):
+    def surface_tension(self, h: float) -> float:
         """
         Surface tension [N/m]
         """
         assert self.surface_tension_fun is not None
         return self.surface_tension_fun(h)
 
-    def specific_heat(self, h):
+    def specific_heat(self, h: float) -> float:
         """
         Specific heat [J/kg-K]
         """
         return self.specific_heat_fun(h)
 
-    def temperature(self, h):
+    def temperature(self, h: float) -> float:
         """
         Temperature [K]
         """
         return self.temperature_fun(h)
 
-    def enthalpy(self, T):
+    def enthalpy(self, T: float) -> float:
         """
         Enthalpy [J/kg]
         """
