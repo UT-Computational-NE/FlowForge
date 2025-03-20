@@ -74,11 +74,11 @@ class System:
     The System class manages an entire thermal-fluid system composed of multiple components
     connected together. It handles connectivity between components, boundary conditions,
     fluid properties, and simulation setup.
-    
+
     A system can be configured as either:
     - A single segment (with distinct inlet and outlet boundaries)
     - A closed loop (circulation with no external boundaries)
-    
+
     The System class also handles unit conversions, boundary conditions, and provides
     interfaces for visualization and output parsing from various solvers.
 
@@ -286,11 +286,11 @@ class System:
 
     def _setupBoundaryConditions(self, boundary_conditions):
         """Private method for setting up boundary conditions for the system.
-        
+
         This method initializes the appropriate boundary condition objects based
         on the configuration dictionary provided. It handles mass/momentum,
         enthalpy, and void boundary conditions.
-        
+
         Parameters
         ----------
         boundary_conditions : Dict

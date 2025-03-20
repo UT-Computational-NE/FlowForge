@@ -442,7 +442,7 @@ class User_Fluid(Fluid):
     """
 
     def __init__(
-        self, name: str, therm_cond_funct: callable, dens_funct: callable, visco_funct: callable, 
+        self, name: str, therm_cond_funct: callable, dens_funct: callable, visco_funct: callable,
         spec_heat_funct: callable, temp_funct: callable, entha_funct: callable, surf_tens_funct: callable = None
     ):
         """

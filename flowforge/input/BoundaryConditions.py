@@ -5,11 +5,11 @@ from flowforge.parsers.EquationParser import EquationParser
 
 class MassMomentumBC:
     """Class for mass and momentum boundary conditions.
-    
+
     This class handles mass flow rate and momentum-related boundary conditions
     for a fluid system. It enforces that a mass flow rate must be specified at one
     end of the system, and pressure must be specified at the other end.
-    
+
     Parameters
     ----------
     inlet : dict, optional
@@ -18,7 +18,7 @@ class MassMomentumBC:
     outlet : dict, optional
         Dictionary containing outlet boundary conditions. Can include "mdot" (mass flow rate)
         or "pressure" (outlet pressure).
-        
+
     Attributes
     ----------
     mdot : float
@@ -27,7 +27,7 @@ class MassMomentumBC:
         Surface pressure [Pa]
     Pside : str
         Side that pressure is on. "inlet" or "outlet"
-        
+
     Notes
     -----
     At least one of inlet or outlet must be specified. If both are specified,
@@ -72,10 +72,10 @@ class MassMomentumBC:
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
         Convert units using the provided UnitConverter.
-        
+
         This method converts pressures and mass flow rates from user-specified
         units to SI units using the conversion factors in the UnitConverter.
-        
+
         Parameters
         ----------
         uc : UnitConverter
@@ -88,20 +88,20 @@ class MassMomentumBC:
 
 class EnthalpyBC:
     """Class for enthalpy boundary conditions.
-    
+
     This class manages enthalpy or temperature boundary conditions at system inlets and outlets.
     It allows specifying either temperature or enthalpy at each boundary and handles the
     appropriate conversions.
-    
+
     Parameters
     ----------
     inlet : dict, optional
-        Dictionary containing inlet boundary conditions. Can specify either 
+        Dictionary containing inlet boundary conditions. Can specify either
         temperature or enthalpy values.
     outlet : dict, optional
         Dictionary containing outlet boundary conditions. Can specify either
         temperature or enthalpy values.
-        
+
     Attributes
     ----------
     val_inlet : float
@@ -109,10 +109,10 @@ class EnthalpyBC:
     type_inlet : str
         The inlet boundary condition type, either "temperature" or "enthalpy"
     val_outlet : float
-        The outlet boundary condition value  
+        The outlet boundary condition value
     type_outlet : str
         The outlet boundary condition type, either "temperature" or "enthalpy"
-        
+
     Notes
     -----
     At least one of inlet or outlet must be specified. Values must be positive.
