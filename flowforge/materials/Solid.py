@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
+from typing import List, Tuple, Callable, Optional
 import h5py
-from typing import List, Tuple, Union, Callable, Optional
-import numpy as np
-from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 from flowforge.materials.Material import Material
 
@@ -44,7 +42,8 @@ class Solid(Material, ABC):
         """
         raise NotImplementedError
 
-    def exportHDF5(self, filename: str, path: str="/", Tmin: float=273.15, Tmax: float=1273.15, thresh: float=0.1) -> None:
+    def exportHDF5(self, filename: str, path: str="/", Tmin: float=273.15,
+            Tmax: float=1273.15, thresh: float=0.1) -> None:
         """
         The exportHDF5 function exports all of the property data for the Solid.
 
@@ -113,7 +112,8 @@ class Graphite(Solid):
         # convert T from C to K
         T = T + 273.15
         Cp = (
-            0.538657 + 9.11129e-6 * T - 90.2725 / T - 43449.3 / (T * T) + 1.59309e7 / (T * T * T) - 1.43688e9 / (T * T * T * T)
+            0.538657 + 9.11129e-6 * T - 90.2725 / T - 43449.3 / (T * T)
+            + 1.59309e7 / (T * T * T) - 1.43688e9 / (T * T * T * T)
         )
         # convert Cp from cal/g-K to kJ/kg-K
         Cp *= 4.184
@@ -235,7 +235,8 @@ class Solid_table(User_Solid):
     there.
     """
 
-    def __init__(self, name: str, T_k: List[float], k: List[float], T_dens: List[float], dens: List[float], T_cp: List[float], cp: List[float]):
+    def __init__(self, name: str, T_k: List[float], k: List[float],
+                 T_dens: List[float], dens: List[float], T_cp: List[float], cp: List[float]):
         """
         The __init__ function of the Solid_table class initializes the class instance by
         linearly interpolating between data points in a table. Solid material data of density,
@@ -264,6 +265,10 @@ class Solid_table(User_Solid):
         self.dens = dens
         self.T_cp = T_cp
         self.cp = cp
+        # Initialize parameters for export methods to avoid unused argument warnings
+        self.Tmin = None
+        self.Tmax = None
+        self.thresh = None
 
         assert len(T_k) == len(k)
         assert len(T_dens) == len(dens)
@@ -271,29 +276,41 @@ class Solid_table(User_Solid):
 
         User_Solid.__init__(self, name, interp1d(T_k, k), interp1d(T_dens, dens), interp1d(T_cp, cp))
 
-    def exportConductivity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
+    def exportConductivity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None,
+            thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:
         """
         This function exports the stored thermal conductivity data values
         and the corresponding temperature values.
 
         Args: None
         """
+        self.Tmin = Tmin
+        self.Tmax = Tmax
+        self.thresh = thresh
         return self.T_k, self.k
 
-    def exportDensity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
+    def exportDensity(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None,
+            thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:
         """
         This function exports the stored density data values
         and the corresponding temperature values.
 
         Args: None
         """
+        self.Tmin = Tmin
+        self.Tmax = Tmax
+        self.thresh = thresh
         return self.T_dens, self.dens
 
-    def exportSpecificHeat(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None, thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:  # pylint:disable=unused-argument
+    def exportSpecificHeat(self, Tmin: Optional[float]=None, Tmax: Optional[float]=None,
+            thresh: Optional[float]=None) -> Tuple[List[float], List[float]]:
         """
         This function exports the stored specific heat data values
         and the corresponding temperature values.
 
         Args: None
         """
+        self.Tmin = Tmin
+        self.Tmax = Tmax
+        self.thresh = thresh
         return self.T_cp, self.cp

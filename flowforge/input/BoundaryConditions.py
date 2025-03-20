@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, List, Union, Optional, Any
+from typing import Dict, Optional, Any
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
 

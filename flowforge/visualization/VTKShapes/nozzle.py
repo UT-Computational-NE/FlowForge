@@ -1,6 +1,5 @@
 import numpy as np
 from pyevtk.vtk import VtkWedge
-from typing import List, Tuple
 from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 

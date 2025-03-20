@@ -1,6 +1,6 @@
-from pyevtk.hl import unstructuredGridToVTK
-import numpy as np
 from typing import Optional
+import numpy as np
+from pyevtk.hl import unstructuredGridToVTK
 from flowforge.visualization import VTKMesh
 
 

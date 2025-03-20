@@ -1,7 +1,5 @@
 from flowforge.parsers import OutputParser
 
-from typing import Dict, List, Optional, Union, Any, Tuple, Callable
-
 
 class SythParser(OutputParser):
     """A class for parsing output from the Syth thermal-hydraulics solver.

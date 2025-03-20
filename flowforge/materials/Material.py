@@ -1,5 +1,5 @@
-import numpy as np
 from typing import Tuple, Callable
+import numpy as np
 from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 
@@ -20,11 +20,13 @@ class Material:
         """
         self.name = name
 
-    def exportMaterialProperty(self, mat_property: Callable, Tmin: float, Tmax: float, thresh: float) -> Tuple[NDArray, NDArray]:
+    def exportMaterialProperty(self, mat_property: Callable, Tmin: float,
+                                 Tmax: float, thresh: float) -> Tuple[NDArray, NDArray]:
         """
         This function takes a material property equation and a range of temperatures to interpolate
-        property values at the corresponding temperatures. These values are added to 2 arrays which are returned. The purpose
-        of this function is give the ability to export the property equations to an hdf5 file for use in the C++ code.
+        property values at the corresponding temperatures. These values are added to 2 arrays which are returned.
+        The purpose of this function is give the ability to export the property equations to an hdf5 file for use
+        in the C++ code.
 
         Args:
             - mat_property : lambda function, the material property equation being exported

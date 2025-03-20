@@ -1,8 +1,6 @@
 import abc
 import h5py
 import numpy as np
-from typing import List, Dict, Tuple, Union, Optional, Any, Callable
-from numpy.typing import NDArray
 from flowforge.materials.Material import Material
 
 

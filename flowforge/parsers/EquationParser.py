@@ -1,7 +1,6 @@
 import re
+from typing import Any
 import sympy
-
-from typing import Dict, List, Optional, Union, Any, Tuple, Callable
 
 class EquationParser:
     """

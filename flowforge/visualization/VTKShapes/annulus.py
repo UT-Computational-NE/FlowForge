@@ -1,6 +1,5 @@
 import numpy as np
 from pyevtk.vtk import VtkHexahedron
-from typing import Dict, Any
 from flowforge.visualization import VTKMesh
 from flowforge.visualization.VTKShapes import CYL_RESOLUTION
 
