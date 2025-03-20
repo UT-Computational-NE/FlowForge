@@ -107,7 +107,9 @@ class Fluid(Material):
         """
         return self._fluid_property_array
 
-    def exportHDF5(self, filename: str, path: str="/", Tmin: float=273.15, Tmax: float=1300, thresh: float=1e-2) -> None:
+    def exportHDF5(
+        self, filename: str, path: str = "/", Tmin: float = 273.15, Tmax: float = 1300, thresh: float = 1e-2
+    ) -> None:
         """
         The exportHDF5 function exports all of the property data for the Fluid.
 
@@ -173,7 +175,7 @@ class FLiBe_UF4(Fluid):
         ref. [1], pg.  10, Table 7.
         ref. [2], pg. 638, Table 3.
         """
-        return 1.1 + h*0
+        return 1.1 + h * 0
 
     def density(self, h: float) -> float:
         """
@@ -212,7 +214,7 @@ class FLiBe_UF4(Fluid):
         ref. [1], pg.   3, Table 1.
         ref. [2], pg. 637, Table 2.
         """
-        return 2386 + h*0
+        return 2386 + h * 0
 
     def temperature(self, h: float) -> float:
         """
@@ -440,8 +442,15 @@ class User_Fluid(Fluid):
     """
 
     def __init__(
-        self, name: str, therm_cond_funct: callable, dens_funct: callable, visco_funct: callable,
-        spec_heat_funct: callable, temp_funct: callable, entha_funct: callable, surf_tens_funct: callable = None
+        self,
+        name: str,
+        therm_cond_funct: callable,
+        dens_funct: callable,
+        visco_funct: callable,
+        spec_heat_funct: callable,
+        temp_funct: callable,
+        entha_funct: callable,
+        surf_tens_funct: callable = None,
     ):
         """
         The User_Fluid subclass initializes by sending the name to the base

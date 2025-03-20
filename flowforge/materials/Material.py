@@ -20,8 +20,9 @@ class Material:
         """
         self.name = name
 
-    def exportMaterialProperty(self, mat_property: Callable, Tmin: float,
-                                 Tmax: float, thresh: float) -> Tuple[NDArray, NDArray]:
+    def exportMaterialProperty(
+        self, mat_property: Callable, Tmin: float, Tmax: float, thresh: float
+    ) -> Tuple[NDArray, NDArray]:
         """
         This function takes a material property equation and a range of temperatures to interpolate
         property values at the corresponding temperatures. These values are added to 2 arrays which are returned.

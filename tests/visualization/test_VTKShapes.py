@@ -64,12 +64,18 @@ def test_Cyl1():
     assert cyl._meshmap[0] == 0
     assert cyl._meshmap[1] == 8
     for i in range(cyl._x.size):
-        assert np.isclose(cyl._x[i] ** 2 + cyl._y[i] ** 2, R ** 2) or cyl._x[i] == cyl._y[i] == 0
+        assert np.isclose(cyl._x[i] ** 2 + cyl._y[i] ** 2, R**2) or cyl._x[i] == cyl._y[i] == 0
         assert cyl._z[i] == 0 or cyl._z[i] == L
 
 
 def test_Cyl2():
-    L, R, = 9, 1
+    (
+        L,
+        R,
+    ) = (
+        9,
+        1,
+    )
     cyl = genUniformCylinder(L, R, resolution=12, naxial_layers=3)
     assert cyl._x.size == 52
     assert cyl._x[0] == 0
@@ -90,12 +96,18 @@ def test_Cyl2():
     assert cyl._meshmap[2] == 24
     assert cyl._meshmap[3] == 36
     for i in range(cyl._x.size):
-        assert round(cyl._x[i] ** 2 + cyl._y[i] ** 2) == R ** 2 or cyl._x[i] == cyl._y[i] == 0
+        assert round(cyl._x[i] ** 2 + cyl._y[i] ** 2) == R**2 or cyl._x[i] == cyl._y[i] == 0
         assert cyl._z[i] == 0 or cyl._z[i] == 3 or cyl._z[i] == 6 or cyl._z[i] == L
 
 
 def test_Cyl3():
-    L, R, = 9, 1
+    (
+        L,
+        R,
+    ) = (
+        9,
+        1,
+    )
     cyl = genUniformCylinder(L, R, resolution=12, naxial_layers=3, nradial_layers=2)
     assert cyl._x.size == 100
     assert cyl._x[0] == 0
@@ -135,8 +147,8 @@ def test_Nozzle1():
     assert nozzle._meshmap[0] == 0
     for i in range(nozzle._x.size):
         assert (
-            round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rin ** 2
-            or round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rout ** 2
+            round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rin**2
+            or round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rout**2
             or nozzle._x[i] == nozzle._y[i] == 0
         )
         assert nozzle._z[i] == 0 or nozzle._z[i] == L
@@ -162,8 +174,8 @@ def test_Nozzle2():
     assert nozzle._meshmap[0] == 0
     for i in range(nozzle._x.size):
         assert (
-            round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rin ** 2
-            or round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rout ** 2
+            round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rin**2
+            or round(nozzle._x[i] ** 2 + nozzle._y[i] ** 2) == Rout**2
             or nozzle._x[i] == nozzle._y[i] == 0
         )
         assert nozzle._z[i] == 0 or nozzle._z[i] == L
@@ -189,8 +201,8 @@ def test_Annulus1():
     assert annulus._meshmap[1] == 12
     for i in range(annulus._x.size):
         assert (
-            round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rin ** 2
-            or round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rout ** 2
+            round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rin**2
+            or round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rout**2
         )
 
 
@@ -215,8 +227,8 @@ def test_Annulus2():
     assert annulus._meshmap[2] == 24
     for i in range(annulus._x.size):
         assert (
-            round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rin ** 2
-            or round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rout ** 2
+            round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rin**2
+            or round(annulus._x[i] ** 2 + annulus._y[i] ** 2) == Rout**2
         )
 
 

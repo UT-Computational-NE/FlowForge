@@ -95,62 +95,42 @@ class Component:
         raise NotImplementedError
 
     @property
-
-
     def roughness(self) -> Any:
         return self._roughness
 
     @property
-
-
     def klossInlet(self) -> float:
         return self._klossInlet
 
     @property
-
-
     def klossOutlet(self) -> float:
         return self._klossOutlet
 
     @property
-
-
     def klossAvg(self) -> float:
         return self._klossAvg
 
     @property
-
-
     def volume(self) -> float:
         return self.flowArea * self.length
 
     @property
-
-
     def inletArea(self) -> float:
         return self.flowArea
 
     @property
-
-
     def outletArea(self) -> float:
         return self.flowArea
 
     @property
-
-
     def theta(self) -> float:
         return self._theta
 
     @property
-
-
     def alpha(self) -> float:
         return self._alpha
 
     @property
-
-
     def baseComponents(self) -> List[Component]:
         """Method for retrieving the base components of a component.
         For components that are not collections, this will be itself"""
@@ -410,38 +390,26 @@ class Pipe(Component):
         self._temps = np.zeros(self.nCell)
 
     @property
-
-
     def flowArea(self) -> float:
         return self._Ac
 
     @property
-
-
     def length(self) -> float:
         return self._L
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         return self._Dh
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         return self._heatedPerimeter
 
     @property
-
-
     def heightChange(self) -> float:
         return self._costh * self._L
 
     @property
-
-
     def nCell(self) -> int:
         return self._n
 
@@ -611,44 +579,30 @@ class Pump(Component):
         self._heatedPerimeter = ptcHeated * wettedPerimeter
 
     @property
-
-
     def flowArea(self) -> float:
         return self._Ac
 
     @property
-
-
     def length(self) -> float:
         return self._V / self._Ac
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         return self._Dh
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         return self._heatedPerimeter
 
     @property
-
-
     def heightChange(self) -> float:
         return self._h
 
     @property
-
-
     def volume(self) -> float:
         return self._V
 
     @property
-
-
     def nCell(self) -> int:
         return 1
 
@@ -763,50 +717,34 @@ class Nozzle(Component):
         self._heatedPerimeter = ptcHeated * wetted_perimeter
 
     @property
-
-
     def flowArea(self) -> float:
         return self._Ac
 
     @property
-
-
     def inletArea(self) -> float:
         return np.pi * self._Rin * self._Rin
 
     @property
-
-
     def outletArea(self) -> float:
         return np.pi * self._Rout * self._Rout
 
     @property
-
-
     def length(self) -> float:
         return self._L
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         return self._Dh
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         return self._heatedPerimeter
 
     @property
-
-
     def heightChange(self) -> float:
         return self._L * np.cos(self._theta)
 
     @property
-
-
     def nCell(self) -> int:
         return 1
 
@@ -913,50 +851,34 @@ class Annulus(Component):
         self._heatedPerimeter = ptcHeated * wettedPerimeter
 
     @property
-
-
     def flowArea(self) -> float:
         return np.pi * (self._Rout * self._Rout - self._Rin * self._Rin)
 
     @property
-
-
     def length(self) -> float:
         return self._L
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         return 2 * self.flowArea / (np.pi * (self._Rin + self._Rout))
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         return self._heatedPerimeter
 
     @property
-
-
     def heightChange(self) -> float:
         return self._L * np.cos(self._theta)
 
     @property
-
-
     def nCell(self) -> int:
         return self._n
 
     @property
-
-
     def Rout(self) -> float:
         return self._Rout
 
     @property
-
-
     def Rin(self) -> float:
         return self._Rin
 
@@ -1052,38 +974,26 @@ class Tank(Component):
         self._heatedPerimeter = ptcHeated * self._Pw
 
     @property
-
-
     def flowArea(self) -> float:
         return self._Ac
 
     @property
-
-
     def length(self) -> float:
         return self._L
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         return self._Dh
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         return self._heatedPerimeter
 
     @property
-
-
     def heightChange(self) -> float:
         return self._costh * self._L
 
     @property
-
-
     def nCell(self) -> int:
         return self._n
 
@@ -1134,62 +1044,42 @@ class ComponentCollection(Component):
         self._myComponents = components
 
     @property
-
-
     def flowArea(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def volume(self) -> float:
         return sum(component.volume for component in self.baseComponents)
 
     @property
-
-
     def inletArea(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def outletArea(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def length(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def heatedPerimeter(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def heightChange(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def myComponents(self) -> List[Component]:
         return self._myComponents
 
     @property
-
-
     def baseComponents(self) -> List[Component]:
         """Method for retrieving the base components (components that are not Component collections)
         of a component collection"""
@@ -1372,38 +1262,26 @@ class ParallelComponents(ComponentCollection):
         self._alpha = self._lowerPlenum.alpha
 
     @property
-
-
     def firstComponent(self) -> Component:
         return self._lowerPlenum
 
     @property
-
-
     def lastComponent(self) -> Component:
         return self._upperPlenum
 
     @property
-
-
     def flowArea(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def inletArea(self) -> float:
         return self._lowerPlenum.inletArea
 
     @property
-
-
     def outletArea(self) -> float:
         return self._upperPlenum.outletArea
 
     @property
-
-
     def length(self) -> float:
         L = self._lowerPlenum.length + self._upperPlenum.length
         L += self._lowerManifold.length + self._upperManifold.length
@@ -1412,20 +1290,14 @@ class ParallelComponents(ComponentCollection):
         return L
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def heightChange(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def nCell(self) -> int:
         ncell = self._lowerPlenum.nCell + self._upperPlenum.nCell
         ncell += self._lowerManifold.nCell + self._upperManifold.nCell
@@ -1437,57 +1309,39 @@ class ParallelComponents(ComponentCollection):
         return ncell
 
     @property
-
-
     def myParallelComponents(self) -> Dict[str, Component]:
         """Returns only the parallel components (not including the lower plenum, upper plenum, or annulus)."""
         return self._myParallelComponents
 
     @property
-
-
     def centroids(self) -> Dict[str, List[float]]:
         return self._centroids
 
     @property
-
-
     def lowerPlenum(self) -> Component:
         return self._lowerPlenum
 
     @property
-
-
     def upperPlenum(self) -> Component:
         return self._upperPlenum
 
     @property
-
-
     def lowerManifold(self) -> Component:
         return self._lowerManifold
 
     @property
-
-
     def upperManifold(self) -> Component:
         return self._upperManifold
 
     @property
-
-
     def lowerNozzle(self) -> Component:
         return self._lowerNozzle
 
     @property
-
-
     def upperNozzle(self) -> Component:
         return self._upperNozzle
 
     @property
-
-
     def annulus(self) -> Component:
         return self._annulus
 
@@ -1738,8 +1592,6 @@ class SerialComponents(ComponentCollection):
         self._alpha = cont_components[order[0]]._alpha
 
     @property
-
-
     def firstComponent(self) -> Component:
         """Always returns the first component.
         If the first component is a collection, it will return the first component of that collection recursively"""
@@ -1749,8 +1601,6 @@ class SerialComponents(ComponentCollection):
         return first_component
 
     @property
-
-
     def lastComponent(self) -> Component:
         """Always returns the last component.
         If the last component is a collection, it will return the last component of that collection recursively"""
@@ -1760,33 +1610,23 @@ class SerialComponents(ComponentCollection):
         return last_component
 
     @property
-
-
     def orderedComponentsList(self) -> List[Component]:
         """Returns a list of the components in the order they are listed in the order attribute."""
         return [self._myComponents[comp_key] for comp_key in self.order]
 
     @property
-
-
     def flowArea(self) -> float:
         return self._myComponents[self._order[0]].flowArea
 
     @property
-
-
     def inletArea(self) -> float:
         return self._myComponents[self._order[0]].inletArea
 
     @property
-
-
     def outletArea(self) -> float:
         return self._myComponents[self._order[-1]].outletArea
 
     @property
-
-
     def length(self) -> float:
         L = 0
         for c in self._myComponents.values():
@@ -1794,8 +1634,6 @@ class SerialComponents(ComponentCollection):
         return round(L, 5)
 
     @property
-
-
     def hydraulicDiameter(self) -> float:
         names = list(self._myComponents.keys())
         for c in names:
@@ -1804,14 +1642,10 @@ class SerialComponents(ComponentCollection):
         raise Exception("Component with hydraulic diameter not found.")
 
     @property
-
-
     def heightChange(self) -> float:
         raise NotImplementedError
 
     @property
-
-
     def nCell(self) -> int:
         ncell = 0
         for cname in self._order:
@@ -1819,8 +1653,6 @@ class SerialComponents(ComponentCollection):
         return ncell
 
     @property
-
-
     def order(self) -> List[str]:
         return self._order
 

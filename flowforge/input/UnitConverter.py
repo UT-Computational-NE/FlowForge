@@ -164,65 +164,47 @@ class UnitConverter:
                 scale_temp_by, shift_temp_by = 1, 273.15
             elif unitdict["temperature"] == "F":
                 self._tempconv = lambda T: (T - 32) * 5 / 9 + 273.15
-                scale_temp_by, shift_temp_by = 5.0/9.0, 273.15 - (32.0*5.0/9.0)
+                scale_temp_by, shift_temp_by = 5.0 / 9.0, 273.15 - (32.0 * 5.0 / 9.0)
             elif unitdict["temperature"] == "R":
                 self._tempconv = lambda T: T * 5 / 9
-                scale_temp_by, shift_temp_by = 5.0/9.0, 0
+                scale_temp_by, shift_temp_by = 5.0 / 9.0, 0
             else:
                 raise Exception("Unknown temperature input type: " + unitdict["temperature"])
         self._tempconvfactors = [scale_temp_by, shift_temp_by]
 
     @property
-
-
     def lengthConversion(self) -> float:
         return self._lenconv
 
     @property
-
-
     def areaConversion(self) -> float:
         return self._lenconv * self._lenconv
 
     @property
-
-
     def volumeConversion(self) -> float:
         return self._volconv
 
     @property
-
-
     def timeConversion(self) -> float:
         return self._timeconv
 
     @property
-
-
     def pressureConversion(self) -> float:
         return self._presconv
 
     @property
-
-
     def massFlowRateConversion(self) -> float:
         return self._mfrconv
 
     @property
-
-
     def densityConversion(self) -> float:
         return self._densconv
 
     @property
-
-
     def powerConversion(self) -> float:
         return self._powerconv
 
     @property
-
-
     def enthalpyConversion(self) -> float:
         return self._enthalpyconv
 
@@ -242,7 +224,5 @@ class UnitConverter:
         return self._tempconv(T)
 
     @property
-
-
     def temperatureConversionFactors(self) -> list:
         return self._tempconvfactors

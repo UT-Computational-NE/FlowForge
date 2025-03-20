@@ -1,4 +1,14 @@
-from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, SerialComponents, ComponentCollection
+from flowforge.input.Components import (
+    Pipe,
+    Pump,
+    Nozzle,
+    Annulus,
+    Tank,
+    ParallelComponents,
+    HexCore,
+    SerialComponents,
+    ComponentCollection,
+)
 from flowforge import UnitConverter
 
 _cm2m = 0.01
@@ -218,6 +228,7 @@ def test_firstLastComponent():
             assert component.firstComponent == component._myComponents[component.order[0]]
             assert component.lastComponent == component._myComponents[component.order[-1]]
 
+
 def test_orderedComponentsList():
     """Test SerialComponents.orderedComponentsList()"""
     components = generate_components()
@@ -230,6 +241,7 @@ def test_orderedComponentsList():
         component_order = component.order
         for i, comp in enumerate(ordered_components):
             assert comp == component._myComponents[component_order[i]]
+
 
 if __name__ == "__main__":
     test_pipe()

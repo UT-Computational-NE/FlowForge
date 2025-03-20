@@ -155,8 +155,6 @@ class System:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
-
-
     def core(self) -> Any:
         """
         Returns the core component of the system.
@@ -168,13 +166,13 @@ class System:
         return Exception
 
     def _setupSimpleLoop(
-        self, components: Dict[str, Component],
+        self,
+        components: Dict[str, Component],
         loop: List[dict],
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
-        gas = None
-        ) -> None:
-
+        gas=None,
+    ) -> None:
         """Private method for setting up a loop of components
 
         Here, a 'loop of components' means that the last component's outlet
@@ -224,13 +222,8 @@ class System:
         self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSegment(
-        self,
-        components: List[Component],
-        order: List[dict],
-        boundary_conditions: Dict = {},
-        fluid: str = "FLiBe",
-        gas = None
-        ) -> None:
+        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+    ) -> None:
         """Private method for setting up a segment
 
         Here, a segment refers to a model with defined inlet and outlet boundary conditions
@@ -308,8 +301,11 @@ class System:
         if "void" in boundary_conditions:
             self._VBC = VoidBC(**boundary_conditions["void"])
         self._BoundaryConditions = None
-        if ("mass_momentum" not in boundary_conditions) and ("enthalpy" not in boundary_conditions) \
-            and ("void" not in boundary_conditions) :
+        if (
+            ("mass_momentum" not in boundary_conditions)
+            and ("enthalpy" not in boundary_conditions)
+            and ("void" not in boundary_conditions)
+        ):
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
@@ -354,8 +350,6 @@ class System:
         sysFile.writeFile()
 
     @property
-
-
     def nCell(self) -> int:
         ncell = 0
         for c in self._components:

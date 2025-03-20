@@ -57,8 +57,6 @@ class VTKMesh:
             self._meshmap = meshmap
 
     @property
-
-
     def points(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (self._x, self._y, self._z)
 
@@ -67,8 +65,6 @@ class VTKMesh:
         self._x, self._y, self._z = points
 
     @property
-
-
     def connections(self) -> np.ndarray:
         """
         Returns the VTK point connections.
@@ -80,8 +76,6 @@ class VTKMesh:
         self._conn = conn
 
     @property
-
-
     def offsets(self) -> np.ndarray:
         """
         Returns the VTK offsets.
@@ -93,8 +87,6 @@ class VTKMesh:
         self._offsets = offsets
 
     @property
-
-
     def ctypes(self) -> np.ndarray:
         """
         Returns the VTK ctypes.
@@ -106,8 +98,6 @@ class VTKMesh:
         self._ctypes = ctypes
 
     @property
-
-
     def meshmap(self) -> np.ndarray:
         """
         Returns the VTK mesh map.
