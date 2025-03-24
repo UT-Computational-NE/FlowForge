@@ -16,6 +16,28 @@ def test_pipe():
     assert p.heightChange == 0.1
     assert p.nCell == 1
 
+def test_rectangular_pipe():
+    p = Pipe(cross_section_name= "rectangular", L=10, W=2.0, H=2.0)
+    p._convertUnits(uc)
+    assert p.flowArea == 0.0004
+    assert p._Pw == 0.08
+    assert p._Dh == 0.0016 / 0.08
+    assert p.volume > 0.0
+    assert p.length == 0.10
+    assert p.hydraulicDiameter > 0.0
+    assert p.nCell == 1
+
+def test_stadium_pipe():
+    p = Pipe(cross_section_name= "stadium", L=12, R=3, A=2)
+    p._convertUnits(uc)
+    assert p.flowArea > 0.0001 * (3*9 + 2*3*2)
+    assert p.flowArea < 0.0001 * (4*9 + 2*3*2)
+    assert p._Pw > 0.01 * (2 * (3*3 + 2))
+    assert p._Pw < 0.01 * (2 * (4*3 +2))
+    assert p.volume > 0.0
+    assert p.length == 0.12
+    assert p.hydraulicDiameter > 0.0
+    assert p.nCell == 1
 
 def test_pump():
     p = Pump(Ac=16.0, Dh=4.0, V=64.0, height=4.0, dP=50000.0)
@@ -116,6 +138,9 @@ def generate_components():
     components = {}
 
     components["pipe"] = Pipe(R=2.0, L=10.0)
+    components["squarepipe"] = Pipe(L=12.0, cross_section_name="square", W=3)
+    components["stadiumpipe"] = Pipe(L=13.0, cross_section_name="stadium", A=2, R=3.0)
+    components["rectangularpipe"] = Pipe(L=8.0, cross_section_name="rectangular", H=3.0, W=5.0)
     components["pump"] = Pump(Ac=16.0, Dh=4.0, V=64.0, height=4.0, dP=50000.0)
     components["nozzle"] = Nozzle(L=10, R_inlet=2, R_outlet=4)
     components["annulus"] = Annulus(L=10, R_inner=9, R_outer=10, n=10)
@@ -233,6 +258,8 @@ def test_orderedComponentsList():
 
 if __name__ == "__main__":
     test_pipe()
+    test_rectangular_pipe()
+    test_stadium_pipe()
     test_pump()
     test_nozzle()
     test_annulus()

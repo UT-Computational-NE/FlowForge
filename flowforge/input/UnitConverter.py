@@ -164,10 +164,10 @@ class UnitConverter:
                 scale_temp_by, shift_temp_by = 1, 273.15
             elif unitdict["temperature"] == "F":
                 self._tempconv = lambda T: (T - 32) * 5 / 9 + 273.15
-                scale_temp_by, shift_temp_by = 5.0/9.0, 273.15 - (32.0*5.0/9.0)
+                scale_temp_by, shift_temp_by = 5.0 / 9.0, 273.15 - (32.0 * 5.0 / 9.0)
             elif unitdict["temperature"] == "R":
                 self._tempconv = lambda T: T * 5 / 9
-                scale_temp_by, shift_temp_by = 5.0/9.0, 0
+                scale_temp_by, shift_temp_by = 5.0 / 9.0, 0
             else:
                 raise Exception("Unknown temperature input type: " + unitdict["temperature"])
         self._tempconvfactors = [scale_temp_by, shift_temp_by]

@@ -173,7 +173,7 @@ class FLiBe_UF4(Fluid):
         ref. [1], pg.  10, Table 7.
         ref. [2], pg. 638, Table 3.
         """
-        return 1.1 + h*0
+        return 1.1 + h * 0
 
     def density(self, h):
         """
@@ -212,7 +212,7 @@ class FLiBe_UF4(Fluid):
         ref. [1], pg.   3, Table 1.
         ref. [2], pg. 637, Table 2.
         """
-        return 2386 + h*0
+        return 2386 + h * 0
 
     def temperature(self, h):
         """

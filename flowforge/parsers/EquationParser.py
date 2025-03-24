@@ -1,6 +1,7 @@
 import re
 import sympy
 
+
 class EquationParser:
     """
     Class for handling the parsing of input equation.
@@ -45,15 +46,18 @@ class EquationParser:
       -> evaluate : takes in variable values and outputs the solution to the
             evaluated function.
     """
+
     def __init__(self, equation: str, *coupled_variables):
         self._input_equation = equation
         self._expression = sympy.sympify(equation)
 
-        potential_variable = ['x', 'y', 'z', 't'] + list(coupled_variables)
-        variable_names_extracted_from_equation = [var for var in re.findall(r'[\w]+', equation)
-                                                  if any(char.isalpha() for char in var)]
-        self._variables = {var: sympy.symbols(var) for var in potential_variable
-                           if var in variable_names_extracted_from_equation}
+        potential_variable = ["x", "y", "z", "t"] + list(coupled_variables)
+        variable_names_extracted_from_equation = [
+            var for var in re.findall(r"[\w]+", equation) if any(char.isalpha() for char in var)
+        ]
+        self._variables = {
+            var: sympy.symbols(var) for var in potential_variable if var in variable_names_extracted_from_equation
+        }
 
     @property
     def inputEquation(self):
@@ -75,14 +79,18 @@ class EquationParser:
     def variables(self):
         return self._variables
 
-    def performUnitConversion(self, scale_factor=1, shift_factor=0,):
+    def performUnitConversion(
+        self,
+        scale_factor=1,
+        shift_factor=0,
+    ):
         scaled_equation = "(" + str(scale_factor) + " * (" + self.inputEquation + ")) + " + str(shift_factor)
         scaled_expression = sympy.sympify(scaled_equation)
         self.inputEquation = scaled_equation
         self.expression = scaled_expression
 
     def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
-        full_input = {'x': x, 'y': y, 'z': z, 't': t} | dict(coupled_variables)
+        full_input = {"x": x, "y": y, "z": z, "t": t} | dict(coupled_variables)
         reduced_input = {self._variables[var]: full_input[var] for var in [*self._variables.keys()]}
         expression = self._expression.subs(reduced_input)
 
