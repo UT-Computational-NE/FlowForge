@@ -13,3 +13,6 @@
 
 # Ignore all files in the build directory
 build/*
+
+# Mac stuff
+.DS_Store
