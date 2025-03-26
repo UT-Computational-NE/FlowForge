@@ -112,6 +112,7 @@ def test_translate_and_rotate():
     assert round(mesh._z[3]) == round(mesh._z[8]) == 2
     assert round(mesh._z[4]) == round(mesh._z[9]) == 1
 
+
 def test_combine_hexahedron_hexahedron_2_cell_mesh():
     # generates a 2-cell mesh for testing
     cubes = genUniformCube(L=2.0, W=1.0, H=1.0, nx=2).translate(1.0, 0.5, 0.0)
@@ -119,7 +120,9 @@ def test_combine_hexahedron_hexahedron_2_cell_mesh():
     # tests combining two hexahedrons along the x-axis
     combined_mesh = cubes.combine_cells(cell_idx1=0, cell_idx2=1)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 20
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,1,7,6,4,5,11,10,12,13,14,15,16,17,18,19,2,3,9,8]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections, np.array([0, 1, 7, 6, 4, 5, 11, 10, 12, 13, 14, 15, 16, 17, 18, 19, 2, 3, 9, 8])
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([20]))
     np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkQuadraticHexahedron.tid]))
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1]))
@@ -130,7 +133,9 @@ def test_combine_hexahedron_hexahedron_2_cell_mesh():
     # tests combining two hexahedrons along the y-axis
     combined_mesh = cubes.combine_cells(cell_idx1=0, cell_idx2=1)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 20
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,1,3,2,8,9,11,10,12,13,14,15,16,17,18,19,4,5,7,6]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections, np.array([0, 1, 3, 2, 8, 9, 11, 10, 12, 13, 14, 15, 16, 17, 18, 19, 4, 5, 7, 6])
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([20]))
     np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkQuadraticHexahedron.tid]))
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1]))
@@ -141,7 +146,9 @@ def test_combine_hexahedron_hexahedron_2_cell_mesh():
     # tests combining two hexahedrons along the z-axis
     combined_mesh = cubes.combine_cells(cell_idx1=0, cell_idx2=1)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 20
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,3,9,6,2,5,11,8,12,13,14,15,16,17,18,19,1,4,10,7]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections, np.array([0, 3, 9, 6, 2, 5, 11, 8, 12, 13, 14, 15, 16, 17, 18, 19, 1, 4, 10, 7])
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([20]))
     np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkQuadraticHexahedron.tid]))
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1]))
@@ -154,9 +161,53 @@ def test_combine_hexahedron_hexahedron_multi_cell():
     # tests combining two hexahedrons in a multi-cell mesh along the x-axis
     combined_mesh = cubes.combine_cells(cell_idx1=0, cell_idx2=1)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 26
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,1,7,6,4,5,11,10,18,19,20,21,22,23,24,25,2,3,9,8,6,7,9,8,12,13,15,14,8,9,11,10,14,15,17,16]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections,
+        np.array(
+            [
+                0,
+                1,
+                7,
+                6,
+                4,
+                5,
+                11,
+                10,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                2,
+                3,
+                9,
+                8,
+                6,
+                7,
+                9,
+                8,
+                12,
+                13,
+                15,
+                14,
+                8,
+                9,
+                11,
+                10,
+                14,
+                15,
+                17,
+                16,
+            ]
+        ),
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([20, 28, 36]))
-    np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid, vtk.VtkHexahedron.tid]))
+    np.testing.assert_array_equal(
+        combined_mesh.ctypes, np.array([vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid, vtk.VtkHexahedron.tid])
+    )
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1, 2, 3]))
 
     # generates a multi-cell mesh for testing
@@ -165,9 +216,53 @@ def test_combine_hexahedron_hexahedron_multi_cell():
     # tests combining two hexahedrons in a multi-cell mesh along the y-axis
     combined_mesh = cubes.combine_cells(cell_idx1=1, cell_idx2=3)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 26
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,1,3,2,6,7,9,8,2,3,5,4,14,15,17,16,18,19,20,21,22,23,24,25,8,9,11,10,6,7,9,8,12,13,15,14]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections,
+        np.array(
+            [
+                0,
+                1,
+                3,
+                2,
+                6,
+                7,
+                9,
+                8,
+                2,
+                3,
+                5,
+                4,
+                14,
+                15,
+                17,
+                16,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                8,
+                9,
+                11,
+                10,
+                6,
+                7,
+                9,
+                8,
+                12,
+                13,
+                15,
+                14,
+            ]
+        ),
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([8, 28, 36]))
-    np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkHexahedron.tid, vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid]))
+    np.testing.assert_array_equal(
+        combined_mesh.ctypes, np.array([vtk.VtkHexahedron.tid, vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid])
+    )
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1, 2, 3]))
 
     # generates a multi-cell mesh for testing
@@ -176,7 +271,51 @@ def test_combine_hexahedron_hexahedron_multi_cell():
     # tests combining two hexahedrons in a multi-cell mesh along the z-axis
     combined_mesh = cubes.combine_cells(cell_idx1=1, cell_idx2=3)
     assert combined_mesh.points[0].size == combined_mesh.points[1].size == combined_mesh.points[2].size == 26
-    np.testing.assert_array_equal(combined_mesh.connections, np.array([0,1,4,3,9,10,13,12,3,6,15,12,5,8,17,14,18,19,20,21,22,23,24,25,4,7,16,13,1,2,5,4,10,11,14,13]))
+    np.testing.assert_array_equal(
+        combined_mesh.connections,
+        np.array(
+            [
+                0,
+                1,
+                4,
+                3,
+                9,
+                10,
+                13,
+                12,
+                3,
+                6,
+                15,
+                12,
+                5,
+                8,
+                17,
+                14,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                4,
+                7,
+                16,
+                13,
+                1,
+                2,
+                5,
+                4,
+                10,
+                11,
+                14,
+                13,
+            ]
+        ),
+    )
     np.testing.assert_array_equal(combined_mesh.offsets, np.array([8, 28, 36]))
-    np.testing.assert_array_equal(combined_mesh.ctypes, np.array([vtk.VtkHexahedron.tid, vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid]))
+    np.testing.assert_array_equal(
+        combined_mesh.ctypes, np.array([vtk.VtkHexahedron.tid, vtk.VtkQuadraticHexahedron.tid, vtk.VtkHexahedron.tid])
+    )
     np.testing.assert_array_equal(combined_mesh.meshmap, np.array([0, 1, 2, 3]))

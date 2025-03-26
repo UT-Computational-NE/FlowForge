@@ -4,6 +4,7 @@ import numpy as np
 from pytest import approx
 from flowforge.materials.Solid import Graphite, Solid_table, SS316H
 
+
 # tests the functionality of the Solid_table class
 def test_Solid_table():
     g = Graphite(name="Graphite 1")
@@ -20,13 +21,12 @@ def test_Solid_table():
     np.testing.assert_allclose(g.density(500), table_test.density(500), rtol=1)
     np.testing.assert_allclose(g.specific_heat(500), table_test.specific_heat(500), rtol=1)
 
+
 # tests that the exportHDF5 function properly exports the data
 def test_exportHDF5():
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    ref_filename = os.path.join(
-        current_dir, "testSolid/ref_SolidTest.h5"
-    )
+    ref_filename = os.path.join(current_dir, "testSolid/ref_SolidTest.h5")
     filename = os.path.join(current_dir, "SolidTest.h5")
     path = "material_properties/"
     g = Graphite(name="Graphite")
@@ -40,26 +40,33 @@ def test_exportHDF5():
 
         # conductivity
         k_path = path + "conductivity/"
-        assert(test_file[k_path+"temps"][()].size == ref_file[k_path+"temps"][()].size)
-        for i in range(test_file[k_path+"temps"][()].size):
-            np.testing.assert_almost_equal(test_file[k_path+"temps"][()][i], ref_file[k_path+"temps"][()][i], decimal=3)
-            np.testing.assert_almost_equal(test_file[k_path+"values"][()][i], ref_file[k_path+"values"][()][i], decimal=3)
+        assert test_file[k_path + "temps"][()].size == ref_file[k_path + "temps"][()].size
+        for i in range(test_file[k_path + "temps"][()].size):
+            np.testing.assert_almost_equal(test_file[k_path + "temps"][()][i], ref_file[k_path + "temps"][()][i], decimal=3)
+            np.testing.assert_almost_equal(test_file[k_path + "values"][()][i], ref_file[k_path + "values"][()][i], decimal=3)
 
         # specific heat
         cp_path = path + "specific_heat/"
-        assert(test_file[cp_path+"temps"][()].size == ref_file[cp_path+"temps"][()].size)
-        for i in range(test_file[cp_path+"temps"][()].size):
-            np.testing.assert_almost_equal(test_file[cp_path+"temps"][()][i], ref_file[cp_path+"temps"][()][i], decimal=3)
-            np.testing.assert_almost_equal(test_file[cp_path+"values"][()][i], ref_file[cp_path+"values"][()][i], decimal=3)
+        assert test_file[cp_path + "temps"][()].size == ref_file[cp_path + "temps"][()].size
+        for i in range(test_file[cp_path + "temps"][()].size):
+            np.testing.assert_almost_equal(test_file[cp_path + "temps"][()][i], ref_file[cp_path + "temps"][()][i], decimal=3)
+            np.testing.assert_almost_equal(
+                test_file[cp_path + "values"][()][i], ref_file[cp_path + "values"][()][i], decimal=3
+            )
 
         # density
         rho_path = path + "density/"
-        assert(test_file[rho_path+"temps"][()].size == ref_file[rho_path+"temps"][()].size)
-        for i in range(test_file[rho_path+"temps"][()].size):
-            np.testing.assert_almost_equal(test_file[rho_path+"temps"][()][i], ref_file[rho_path+"temps"][()][i], decimal=3)
-            np.testing.assert_almost_equal(test_file[rho_path+"values"][()][i], ref_file[rho_path+"values"][()][i], decimal=3)
+        assert test_file[rho_path + "temps"][()].size == ref_file[rho_path + "temps"][()].size
+        for i in range(test_file[rho_path + "temps"][()].size):
+            np.testing.assert_almost_equal(
+                test_file[rho_path + "temps"][()][i], ref_file[rho_path + "temps"][()][i], decimal=3
+            )
+            np.testing.assert_almost_equal(
+                test_file[rho_path + "values"][()][i], ref_file[rho_path + "values"][()][i], decimal=3
+            )
 
     os.remove(filename)
+
 
 def test_ss316h():
     ss316h = SS316H(name="SS316H")
