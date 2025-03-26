@@ -2,19 +2,10 @@ from flowforge.parsers import OutputParser
 
 
 class SythParser(OutputParser):
-    """A class for parsing output from the Syth thermal-hydraulics solver.
-
-    This class inherits from the OutputParser base class and implements
-    functionality to parse output files from the Syth solver into a format
-    that can be used by FlowForge.
+    """A class for Syth output parsing
 
     Attributes
     ----------
-
-    Notes
-    -----
-    This parser is currently marked as "To Be Implemented" and will be
-    developed in a future update.
     """
 
     def __init__(self):

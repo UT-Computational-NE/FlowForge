@@ -2,22 +2,10 @@ from flowforge.parsers import OutputParser
 
 
 class OpenFoamParser(OutputParser):
-    """A class for parsing output from OpenFOAM CFD simulations.
-
-    This class inherits from the OutputParser base class and implements
-    functionality to parse output files from OpenFOAM simulations into a format
-    that can be used by FlowForge.
-
-    OpenFOAM is a popular open-source computational fluid dynamics (CFD) toolbox
-    that can be used for simulating complex fluid flows, heat transfer, and more.
+    """A class for OpenFOAM output parsing
 
     Attributes
     ----------
-
-    Notes
-    -----
-    This parser is currently marked as "To Be Implemented" and will be
-    developed in a future update.
     """
 
     def __init__(self):
