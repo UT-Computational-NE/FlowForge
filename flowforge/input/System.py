@@ -3,16 +3,18 @@ from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
-from flowforge.input.Components import Component, Nozzle, HexCore
+from flowforge.input.Components import Component, Nozzle, HexCore, Pump
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
+from flowforge.input.BodyForces import BodyForces, GravitationalBF, PumpBF
+from flowforge.input.WallFunctions import WallFunctions, FrictionWF
 from flowforge.parsers.OutputParser import OutputParser
 
 
 def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
 
-    This method takes in a list of components and their order and inserts infitesimal nozzles between them
+    This method takes in a list of components and their order and inserts infinitesimal nozzles between them
     that make the area change transitions continuous
 
     Parameters
@@ -28,16 +30,16 @@ def make_continuous(components: List[Component], order: List[dict]):
         The new component list and order with the inserted nozzles
     """
     num_connects = 0
-    discont_found = True
-    while discont_found:
-        discont_found = False
+    discontinuity_found = True
+    while discontinuity_found:
+        discontinuity_found = False
         # initialize the previous area as the first area
         prev_area = components[order[0]["component"]].inletArea
         for i, entry in enumerate(order):
             if abs(prev_area - components[entry["component"]].inletArea) > 1.0e-12 * min(
                 prev_area, components[entry["component"]].inletArea
             ):
-                tempnozzle = Nozzle(
+                temp_nozzle = Nozzle(
                     L=1.0e-64,
                     R_inlet=np.sqrt(prev_area / np.pi),
                     R_outlet=np.sqrt(components[entry["component"]].inletArea / np.pi),
@@ -50,7 +52,7 @@ def make_continuous(components: List[Component], order: List[dict]):
                 )
                 components[
                     f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'
-                ] = deepcopy(tempnozzle)
+                ] = deepcopy(temp_nozzle)
                 order = (
                     order[0:i]
                     + [
@@ -62,7 +64,7 @@ def make_continuous(components: List[Component], order: List[dict]):
                     + order[i : len(order)]
                 )
                 num_connects += 1
-                discont_found = True
+                discontinuity_found = True
                 break
             prev_area = components[entry["component"]].outletArea
     return components, order
@@ -104,41 +106,36 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
+    def __init__(self, components: Dict[str, Component], sys_dict: Dict,
+                 unit_dict: Dict[str, str], controller_dict: Dict) -> None:
         self._components = []
         self._output_parsers = {}
         self._connectivity = []
-        self._bodyforces = []
-        self._wallfunctions = []
-        self._MMBC = None
-        self._EBC = None
+        self._body_forces = []
+        self._wall_functions = []
         self._VBC = None
         self._fluid = None
         self._gas = None
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
-        self._isLoop = False  # Boolean defining if system is a loop or segement
+        self._isLoop = False  # Boolean defining if system is a loop or segment
 
-        if "simple_loop" in sysdict:
-            self._setupSimpleLoop(components, **sysdict["simple_loop"])
-        elif "segment" in sysdict:
-            self._setupSegment(components, **sysdict["segment"])
+        if "simple_loop" in sys_dict:
+            self._setupSimpleLoop(components, **sys_dict["simple_loop"])
+        elif "segment" in sys_dict:
+            self._setupSegment(components, controller_dict, **sys_dict["segment"])
         # TODO add additional types of systems that can be set up
 
-        if "parsers" in sysdict:
-            self._setupParsers(sysdict["parsers"])
+        if "parsers" in sys_dict:
+            self._setupParsers(sys_dict["parsers"])
 
         for comp in self._components:
-            comp._convertUnits(UnitConverter(unitdict))
+            comp._convertUnits(UnitConverter(unit_dict))
         # convert BC units
-        if self._MMBC is not None:
-            self._MMBC._convertUnits(UnitConverter(unitdict))
-        if self._EBC is not None:
-            self._EBC._convertUnits(UnitConverter(unitdict))
         if self._VBC is not None:
-            self._VBC._convertUnits(UnitConverter(unitdict))
+            self._VBC._convertUnits(UnitConverter(unit_dict))
         if self._BoundaryConditions is not None:
-            self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
+            self._BoundaryConditions._convertUnits(UnitConverter(unit_dict))
 
     @property
     def core(self):
@@ -154,6 +151,8 @@ class System:
     def _setupSimpleLoop(
         self,
         components: Dict[str, Component],
+        controller_dict: Dict,
+        unit_dict: Dict,
         loop: List[dict],
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
@@ -186,17 +185,21 @@ class System:
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
+            # Collect the body forces and wall functions associated with each component
+            component_body_force_names = entry.get("BodyForces", [])
+            component_wall_function_names = entry.get("BodyForces", [])
+            component_body_forces = self._setupBodyForces(controller_dict["bodyForce"],
+                                                          component_body_force_names,
+                                                          unit_dict)
+            component_wall_functions = self._setupWallFunctions(controller_dict["wallFunctions"],
+                                                                component_wall_function_names,
+                                                                unit_dict)
+
+            # Add component and its body forces and wall functions
             self._components.append(deepcopy(components[entry["component"]]))
-            bftemp = []
-            wftemp = []
-            if "BodyForces" in entry:
-                bftemp = entry["BodyForces"]
-            if "WallFunctions" in entry:
-                wftemp = entry["WallFunctions"]
-            # add a body force for the component if present
-            self._bodyforces.append(deepcopy(bftemp))
-            # add a wall function for the component if present
-            self._wallfunctions.append(deepcopy(wftemp))
+            self._body_forces.append([obj for _,obj in component_body_forces.items()])
+            self._wall_functions.append([obj for _,obj in component_wall_functions.items()])
+
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
@@ -208,7 +211,14 @@ class System:
         self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSegment(
-        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+        self,
+        components: List[Component],
+        controller_dict: Dict,
+        unit_dict: Dict,
+        order: List[dict],
+        boundary_conditions: Dict = {},
+        fluid: str = "FLiBe",
+        gas=None
     ) -> None:
         """Private method for setting up a segment
 
@@ -233,19 +243,33 @@ class System:
         components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
-        # Loop over each entry in segment, add the components, and connect the compnents to each other
+
+        # Get defaults for friction and gravity
+        default_gravity = self._getGravity(controller_dict["bodyForce"])
+        default_friction = self._getDefaultFriction(controller_dict["wallFunctions"])
+
+        # Loop over each entry in segment, add the components, and connect the components to each other
         for i, entry in enumerate(order):
+            # Collect the body forces and wall functions associated with each component
+            component_body_force_names = entry.get("BodyForces", [])
+            component_wall_function_names = entry.get("BodyForces", [])
+            component_body_forces = self._setupBodyForces(controller_dict["bodyForce"],
+                                                          component_body_force_names,
+                                                          unit_dict, default_gravity)
+            component_wall_functions = self._setupWallFunctions(controller_dict["wallFunctions"],
+                                                                component_wall_function_names,
+                                                                unit_dict, default_friction)
+
+            # Add pump body force
+            if isinstance(components[entry["component"]], Pump):
+                self._body_forces.append(PumpBF(components[entry["component"]].getPressureChange()))
+
+            # Add component and its body forces and wall functions
             self._components.append(deepcopy(components[entry["component"]]))
-            bftemp = []
-            wftemp = []
-            if "BodyForces" in entry:
-                bftemp = entry["BodyForces"]
-            if "WallFunctions" in entry:
-                wftemp = entry["WallFunctions"]
-            # add a body force for the component if present
-            self._bodyforces.append(deepcopy(bftemp))
-            # add a wall function for the component if present
-            self._wallfunctions.append(deepcopy(wftemp))
+            self._body_forces.append([obj for _,obj in component_body_forces.items()])
+            self._wall_functions.append([obj for _,obj in component_wall_functions.items()])
+
+            # Adds a connection between the current and previous component
             if i > 0:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
 
@@ -263,23 +287,79 @@ class System:
 
         raise NotImplementedError("To Be Implemented")
 
-    def _setupBoundaryConditions(self, boundary_conditions):
-        self._MMBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        self._EBC = None
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
+    def _setupBoundaryConditions(self, boundary_conditions : Dict):
         self._VBC = None
         if "void" in boundary_conditions:
             self._VBC = VoidBC(**boundary_conditions["void"])
         self._BoundaryConditions = None
-        if (
-            ("mass_momentum" not in boundary_conditions)
-            and ("enthalpy" not in boundary_conditions)
-            and ("void" not in boundary_conditions)
-        ):
+        if ("void" not in boundary_conditions):
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+
+    def _setupBodyForces(self, all_body_force_definitions : Dict, component_body_force_names, unit_dict,
+                         gravity: GravitationalBF):
+        # Extract body forces
+        component_body_force_definitions = {name: definition for name, definition in
+                                            all_body_force_definitions.items() if name in
+                                            component_body_force_names}
+        component_body_forces = BodyForces(**component_body_force_definitions)
+
+        # Handle gravity
+        if any([type(bf) == GravitationalBF for _, bf in component_body_forces.items()]):
+            raise Exception("ERROR: Please do not define 'gravity' within components. Please only define a" \
+            "single, global gravity under 'controllers'. (Note that the default gravity is set to <0, 0, -1> " \
+            "with a magnitude of 9.81 m/s^2.)")
+        component_body_forces["gravity"] = gravity
+
+        # Convert units
+        component_body_forces._convertUnits(UnitConverter(unit_dict))
+
+        return component_body_forces
+
+    def _setupWallFunctions(self, all_wall_function_definitions : Dict, component_wall_function_names, unit_dict,
+                            default_friction: FrictionWF):
+        # Extract wall functions
+        component_wall_function_definitions = {name: definition for name, definition in
+                                            all_wall_function_definitions.items() if name in
+                                            component_wall_function_names}
+        component_wall_functions = WallFunctions(**component_wall_function_definitions)
+
+        # Handle friction
+        friction_wfs = [wf for _, wf in component_wall_functions.items()]
+        if len(friction_wfs) == 0:
+            component_wall_functions["friction"] = default_friction
+        elif len(friction_wfs) > 1:
+            raise Exception("ERROR: Can only handle (1) friction formulation per component.")
+
+        # Convert units
+        component_wall_functions._convertUnits(UnitConverter(unit_dict))
+
+        return component_wall_functions
+
+
+    def _getDefaultFriction(self, wall_function_dict):
+        wall_functions = WallFunctions(**wall_function_dict)
+        friction_wfs = [wf for _, wf in wall_functions.items() if type(wf) == FrictionWF]
+        if len(friction_wfs) == 0:
+            default_friction = FrictionWF("default", True)
+        elif not any([wf.isDefault for wf in friction_wfs]):
+            default_friction = FrictionWF("default", True)
+        else:
+            defaults = [wf for wf in friction_wfs if wf.isDefault]
+            if len(defaults) > 1:
+                raise Exception("ERROR: Can only handle (1) default friction formulation.")
+            default_friction = defaults[0]
+        return default_friction
+
+    def _getGravity(self, body_force_dict):
+        body_forces = BodyForces(**body_force_dict)
+        gravity_bfs = [bf for _, bf in body_forces.items() if type(bf) == GravitationalBF]
+        if len(gravity_bfs) == 0:
+            default_gravity = GravitationalBF(tuple([0,0,-1]), 9.81)
+        elif len(gravity_bfs) > 1:
+            raise Exception("ERROR: Cannot enter more than (1) gravity BF.")
+        else:
+            default_gravity = gravity_bfs[0]
+        return default_gravity
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -324,10 +404,10 @@ class System:
 
     @property
     def nCell(self) -> int:
-        ncell = 0
+        n_cells = 0
         for c in self._components:
-            ncell += c.nCell
-        return ncell
+            n_cells += c.nCell
+        return n_cells
 
     @property
     def components(self) -> List[Component]:
@@ -343,19 +423,11 @@ class System:
 
     @property
     def bodyforces(self) -> List[str]:
-        return self._bodyforces
+        return self._body_forces
 
     @property
     def wallfunctions(self) -> List[str]:
-        return self._wallfunctions
-
-    @property
-    def EBC(self) -> EnthalpyBC:
-        return self._EBC
-
-    @property
-    def MMBC(self) -> MassMomentumBC:
-        return self._MMBC
+        return self._wall_functions
 
     @property
     def VBC(self) -> VoidBC:

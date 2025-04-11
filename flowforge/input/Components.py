@@ -697,6 +697,9 @@ class Pump(Component):
     def getMomentumSource(self) -> float:
         return self._dP * self._Ac
 
+    def getPressureChange(self) -> float:
+        return self._dP
+
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         # for now making the assumption that it comes in bottom and out the side of the pump
         x = inlet[0] + self._Dh / 2
