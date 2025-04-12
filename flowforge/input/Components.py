@@ -1,7 +1,7 @@
 from __future__ import annotations
 import abc
 from copy import deepcopy
-from typing import List, Dict, Tuple, Generator
+from typing import List, Dict, Tuple, Generator, Any
 from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
@@ -95,7 +95,7 @@ class Component:
         raise NotImplementedError
 
     @property
-    def roughness(self):
+    def roughness(self) -> Any:
         return self._roughness
 
     @property

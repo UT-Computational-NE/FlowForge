@@ -4,7 +4,17 @@ from typing import List, Any
 
 
 class OutputParser(ABC):
-    """An abstract class for parsing outputs from various solvers into a FlowForge Output object"""
+    """An abstract base class for parsing outputs from various solvers into FlowForge data structures.
+
+    This class defines the common interface that all solver output parsers must implement.
+    Each concrete implementation of this class (for example, SythParser, OpenFoamParser)
+    will handle parsing output from a specific solver format.
+
+    Notes
+    -----
+    This is an abstract base class and cannot be instantiated directly. Concrete
+    implementations must override the parse() method.
+    """
 
     @abstractmethod
     def parse(self) -> List[Any]:
