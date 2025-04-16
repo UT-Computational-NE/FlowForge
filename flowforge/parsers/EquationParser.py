@@ -95,3 +95,17 @@ class EquationParser:
         expression = self._expression.subs(reduced_input)
 
         return float(expression)
+
+    def averageValue(self, start_point, end_point, n_segments=100, average_type="default"):
+        assert n_segments > 0
+        # Define points in summation
+        delta_vector = [(i-j)/n_segments for i in end_point for j in start_point]
+        points = [tuple(i*delta_vector) for i in range(n_segments)]
+        # Perform averaging
+        if average_type == "default":
+            average = 0.0
+            for p in points:
+                average += self.evaluate(x=p[0], y=p[1], z=p[2])
+            return average / n_segments
+        else:
+            raise Exception("Error: Invalid average type ("+average_type+")")
