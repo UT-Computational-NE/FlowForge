@@ -1,4 +1,4 @@
-from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, SerialComponents, ComponentCollection
+from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, CartCore, SerialComponents, ComponentCollection
 from flowforge import UnitConverter
 
 _cm2m = 0.01
@@ -114,6 +114,24 @@ def test_hexcore():
     assert hc._pitch == 0.03
     assert hc._map == hexmap
     assert hc.getOutlet((0, 0, 0)) == (0, 0, 12 * _cm2m)
+
+def test_cartcore():
+    components = {"pipe": {"1": {"L": 5, "R": 2}, "2": {"L": 5, "R": 1}}}
+    hexmap = [[1,1,1,1], [2,2,1,2], [2,2,2,2]]
+    lowerplenum = {"nozzle": {"L": 1, "R_inlet": 2, "R_outlet": 1}}
+    upperplenum = {"nozzle": {"L": 1, "R_inlet": 1, "R_outlet": 2}}
+    annulus = {"annulus": {"L": 5, "R_inner": 1, "R_outer": 2}}
+    cartcore = CartCore(pitch=1.2, components=components, hexmap=hexmap, lower_plenum=lowerplenum, upper_plenum=upperplenum, annulus=annulus)
+    cartcore._convertUnits(uc)
+    assert cartcore.nCell == 19
+    assert cartcore._pitch == 0.012
+    assert cartcore._map == hexmap
+    print("Number of cells:")
+    print(cartcore.nCell)
+    print("Pitch:")
+    print(cartcore._pitch)
+    print("map:")
+    print(cartcore._map)
 
 
 def test_serial():
@@ -266,6 +284,7 @@ if __name__ == "__main__":
     test_tank()
     test_parallel()
     test_hexcore()
+    test_cartcore()
     test_serial()
     test_baseComponents()
     test_firstLastComponent()

@@ -1540,7 +1540,6 @@ class HexCore(ParallelComponents):
     outletArea : float
         The outlet area of the upper plenum
     """
-
     def __init__(
         self,
         pitch: float,
@@ -1629,6 +1628,89 @@ class HexCore(ParallelComponents):
 
 component_list["hex_core"] = HexCore
 
+class CartCore(HexCore):
+    """A Cartesian Cooridnate core component
+
+    Parameters
+    ----------
+    pitch : float
+        Distance between each of the fuel channels (serial components)
+    components : Dict
+        The collection parallel components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    hexmap : List[List[int]]
+        list containing the serial components in the corresponding rows and
+        columns of the hex map
+    orificing : List[List[float]]
+        list containing the kloss values associated with serial components in the corresponding rows and
+        columns of the hex map - should have the same shape as hexmap
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]]
+        The component specifications for the annulus
+        (key: component type, value: component parameters dictionary)
+
+    """
+    def __init__(
+        self,
+        pitch: float,
+        #xpitch: float,
+        #ypitch: float,
+        components: Dict,
+        hexmap: List[List[int]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Dict[str, Dict[str, float]] = None,
+        orificing: List[List[float]] = None,
+        **kwargs,
+    ) -> None:
+        self._pitch = pitch
+        self._map = hexmap
+        self._orificing = orificing
+        self.tmpComponents = Component.factory(components)
+        extended_comps = {}
+        centroids = {}
+        for r, col in enumerate(self._map):
+            for c, val in enumerate(col):
+                if val != 0:
+                    cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
+                    yc, xc = self._getChannelCoords(r, c)
+                    centroids[cname] = [xc, yc]
+                    if self._orificing is not None:
+                        self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
+                    extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
+
+        super().__init__(pitch=pitch, components=components, hexmap=hexmap,
+                         lower_plenum=lower_plenum, upper_plenum=upper_plenum,
+                         annulus=annulus, orificing=orificing, **kwargs)
+
+
+    def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
+        """Private override method which returns the calculated cartesian coordinates of map locations
+
+        Parameters
+        ----------
+        r : int
+            Row in the cartesian map
+        c : int
+            Column in the cartesian map
+
+        Returns
+        -------
+        Tuple[float, float]
+            The :math:`x-y` coordinates corresponding to the specified map location"""
+        dx = self._pitch
+        dy = self._pitch
+        xc = c * dx
+        yc = -r * dy # assuming (0,0) is top left of grid
+        return xc, yc
+
+
+component_list["cart_core"] = CartCore
 
 class SerialComponents(ComponentCollection):
     """A component for a collection of components through which flow passes in serial (i.e. from one component into the next)
