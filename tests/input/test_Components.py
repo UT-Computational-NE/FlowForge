@@ -126,12 +126,6 @@ def test_cartcore():
     assert cartcore.nCell == 19
     assert cartcore._pitch == 0.012
     assert cartcore._map == hexmap
-    print("Number of cells:")
-    print(cartcore.nCell)
-    print("Pitch:")
-    print(cartcore._pitch)
-    print("map:")
-    print(cartcore._map)
 
 
 def test_serial():

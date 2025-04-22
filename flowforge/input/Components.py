@@ -1658,8 +1658,6 @@ class CartCore(HexCore):
     def __init__(
         self,
         pitch: float,
-        #xpitch: float,
-        #ypitch: float,
         components: Dict,
         hexmap: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
