@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Generator, Any
+from typing import Dict, List, Tuple, Generator
 from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
@@ -73,11 +73,11 @@ class System:
 
     The System class manages an entire thermal-fluid system composed of multiple components
     connected together. It handles connectivity between components, boundary conditions,
-    fluid properties, and simulation setup.
+    fluid properties.
 
     A system can be configured as either:
-    - A single segment (with distinct inlet and outlet boundaries)
-    - A closed loop (circulation with no external boundaries)
+    - A single segment (possibly of multiple components) with distinct inlet and outlet boundaries
+    - A closed loop (possibly of multiple components) in circulation with no external boundaries
 
     The System class also handles unit conversions, boundary conditions, and provides
     interfaces for visualization and output parsing from various solvers.
@@ -155,7 +155,7 @@ class System:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
-    def core(self) -> Any:
+    def core(self) -> HexCore:
         """
         Returns the core component of the system.
         """

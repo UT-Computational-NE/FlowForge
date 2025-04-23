@@ -25,9 +25,8 @@ class OpenFoamParser(OutputParser):
         """
         Parse OpenFOAM output files into FlowForge data structures.
 
-        This method will read OpenFOAM output files (typically found in the case/time directories),
-        extract relevant data like velocity, pressure, temperature fields, and convert them into a
-        format that can be used by FlowForge.
+        This method will read OpenFOAM output files and extract relevant data like velocity,
+        pressure, temperature fields, and convert them into a format that can be used by FlowForge.
 
         Returns
         -------

@@ -85,13 +85,13 @@ class Solid(Material, ABC):
         ----------
         filename : str
             Name of the HDF5 file to add data to.
-        path : str, optional
+        path : Optional[str]
             Path in the HDF5 file where solid properties will be written, by default "/".
-        Tmin : float, optional
-            Minimum temperature [K] to export property values, by default 273.15 (0°C).
-        Tmax : float, optional
+        Tmin : Optional[float]
+            Optional[Minimum temperature [K] to export property values, by default 273.15 (0°C).
+        Tmax : Optional[float]
             Maximum temperature [K] to export property values, by default 1273.15 (1000°C).
-        thresh : float, optional
+        thresh : Optional[float]
             Tolerance for the linear interpolation error, by default 0.1.
 
         Notes
@@ -135,64 +135,12 @@ class Graphite(Solid):
     """
 
     def conductivity(self, T: float) -> float:
-        """Calculate thermal conductivity of graphite at a specified temperature.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Thermal conductivity [W/m-K].
-
-        Notes
-        -----
-        Equation uses temperature in Celsius internally:
-        k = 134.0 - 0.1074*(T-273.15) + 3.719e-5*(T-273.15)^2
-        """
         return 134.0 - 0.1074 * (T - 273.15) + 3.719e-5 * (T - 273.15) ** 2
 
     def density(self, T: float) -> float:
-        """Calculate density of graphite at a specified temperature.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Density [kg/m^3].
-
-        Notes
-        -----
-        Equation uses temperature in Celsius internally:
-        ρ = (-6e-9*(T-273.15)^2 - 3e-5*(T-273.15) + 1.8891)*1000
-        """
         return (-6e-9 * (T - 273.15) ** 2 - 3e-5 * (T - 273.15) + 1.8891) * 1000
 
     def specific_heat(self, T: float) -> float:
-        """Calculate specific heat of graphite at a specified temperature.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Specific heat [kJ/kg-K].
-
-        Notes
-        -----
-        The equation first converts input from K to C, then applies a complex
-        formula, and finally converts from cal/g-K to kJ/kg-K by multiplying
-        by 4.184.
-        """
         # convert T from C to K
         T = T + 273.15
         Cp = (
@@ -225,57 +173,12 @@ class SS316H(Solid):
     """
 
     def conductivity(self, T: float) -> float:
-        """Calculate thermal conductivity of SS316H at a specified temperature.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Thermal conductivity [W/m-K].
-
-        Notes
-        -----
-        Linear equation: k = 0.013*T + 11.45305
-        """
         return 0.013 * T + 11.45305
 
     def density(self, T: Optional[float] = None) -> float:
-        """Return constant density of SS316H.
-
-        Parameters
-        ----------
-        T : float, optional
-            Temperature [K], not used in the calculation as density is constant.
-
-        Returns
-        -------
-        float
-            Density [kg/m^3], constant value of 8000.
-        """
         return 8000
 
     def specific_heat(self, T: Optional[float] = None) -> float:
-        """Calculate specific heat of SS316H.
-
-        Parameters
-        ----------
-        T : float, optional
-            Temperature [K]. Only used for range validation.
-
-        Returns
-        -------
-        float
-            Specific heat [kJ/kg-K], constant value of 0.500.
-
-        Notes
-        -----
-        Prints a warning if temperature is outside the manufacturer's specified
-        range of 0-100°C (273.15-373.15 K).
-        """
         if T is not None and T < 273.15 or T > 373.15:
             print(
                 f"WARNING: Temperature {T:.2f} K ({T-273.15:.2f} C) is outside of manufacturer specifications \
@@ -331,48 +234,12 @@ class User_Solid(Solid):
             self.cp_funct = cp_funct
 
     def conductivity(self, T: float) -> float:
-        """Calculate thermal conductivity using the user-defined function.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Thermal conductivity [W/m-K].
-        """
         return self.k_funct(T)
 
     def density(self, T: float) -> float:
-        """Calculate density using the user-defined function.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Density [kg/m^3].
-        """
         return self.dens_funct(T)
 
     def specific_heat(self, T: float) -> float:
-        """Calculate specific heat using the user-defined function.
-
-        Parameters
-        ----------
-        T : float
-            Temperature [K].
-
-        Returns
-        -------
-        float
-            Specific heat [kJ/kg-K].
-        """
         return self.cp_funct(T)
 
 
@@ -469,11 +336,11 @@ class Solid_table(User_Solid):
 
         Parameters
         ----------
-        Tmin : float, optional
+        Tmin : Optional[float]
             Minimum temperature [K], stored but not used for table export.
-        Tmax : float, optional
+        Tmax : Optional[float]
             Maximum temperature [K], stored but not used for table export.
-        thresh : float, optional
+        thresh : Optional[float]
             Error threshold, stored but not used for table export.
 
         Returns
@@ -499,11 +366,11 @@ class Solid_table(User_Solid):
 
         Parameters
         ----------
-        Tmin : float, optional
+        Tmin : Optional[float]
             Minimum temperature [K], stored but not used for table export.
-        Tmax : float, optional
+        Tmax : Optional[float]
             Maximum temperature [K], stored but not used for table export.
-        thresh : float, optional
+        thresh : Optional[float]
             Error threshold, stored but not used for table export.
 
         Returns
@@ -529,11 +396,11 @@ class Solid_table(User_Solid):
 
         Parameters
         ----------
-        Tmin : float, optional
+        Tmin : Optional[float]
             Minimum temperature [K], stored but not used for table export.
-        Tmax : float, optional
+        Tmax : Optional[float]
             Maximum temperature [K], stored but not used for table export.
-        thresh : float, optional
+        thresh : Optional[float]
             Error threshold, stored but not used for table export.
 
         Returns

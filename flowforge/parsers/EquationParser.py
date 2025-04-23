@@ -1,3 +1,4 @@
+from typing import Optional
 import re
 import sympy
 
@@ -60,7 +61,7 @@ class EquationParser:
         return self._input_equation
 
     @inputEquation.setter
-    def inputEquation(self, value):
+    def inputEquation(self, value: str):
         self._input_equation = value
 
     @property
@@ -68,7 +69,7 @@ class EquationParser:
         return self._expression
 
     @expression.setter
-    def expression(self, value):
+    def expression(self, value: sympy.Basic):
         self._expression = value
 
     @property
@@ -77,8 +78,8 @@ class EquationParser:
 
     def performUnitConversion(
         self,
-        scale_factor=1,
-        shift_factor=0,
+        scale_factor: Optional[float] = 1.,
+        shift_factor: Optional[float] = 0.,
     ):
         """Apply unit conversion to the equation.
 
@@ -91,9 +92,9 @@ class EquationParser:
 
         Parameters
         ----------
-        scale_factor : float, optional
+        scale_factor : Optional[float]
             Multiplicative factor to apply to the equation, by default 1.
-        shift_factor : float, optional
+        shift_factor : Optional[float]
             Value to add to the equation after scaling, by default 0.
 
         Notes
@@ -113,7 +114,14 @@ class EquationParser:
         self.inputEquation = scaled_equation
         self.expression = scaled_expression
 
-    def evaluate(self, x=None, y=None, z=None, t=None, **coupled_variables):
+    def evaluate(
+            self,
+            x: Optional[float] = None,
+            y: Optional[float] = None,
+            z: Optional[float] = None,
+            t: Optional[float] = None,
+            **coupled_variables
+        ):
         """Evaluate the equation with the provided variable values.
 
         This method substitutes variable values into the equation and evaluates
@@ -122,13 +130,13 @@ class EquationParser:
 
         Parameters
         ----------
-        x : float, optional
+        x : Optional[float]
             Value for the 'x' spatial coordinate, by default None.
-        y : float, optional
+        y : Optional[float]
             Value for the 'y' spatial coordinate, by default None.
-        z : float, optional
+        z : Optional[float]
             Value for the 'z' spatial coordinate, by default None.
-        t : float, optional
+        t : Optional[float]
             Value for the time variable 't', by default None.
         **coupled_variables : dict
             Additional variable values for any coupled variables provided during

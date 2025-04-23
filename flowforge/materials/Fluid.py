@@ -1,5 +1,5 @@
 import abc
-from typing import Optional
+from typing import Optional, List, Dict
 import h5py
 import numpy as np
 from flowforge.materials.Material import Material
@@ -104,7 +104,8 @@ class Fluid(Material):
         """
         return self.density(h) * V * Dh / self.viscosity(h)
 
-    def fluidPropertyArray(self) -> list:
+    @property
+    def fluidPropertyArray(self) -> List[Dict[str, callable]]:
         """
         fluid property array stores property name and respective function which allows
         the export process to iterate over the array
@@ -128,7 +129,7 @@ class Fluid(Material):
         Hmax = self.enthalpy(Tmax)
         h5file = h5py.File(filename, "a")
         fluid = h5file.create_group(path + "fluid_properties")
-        prop_array = self.fluidPropertyArray()
+        prop_array = self.fluidPropertyArray
         # prop array holds name of property and property function
         # the name is used to name the dataset and the function is used to get the y data (property) and x data (enthalpy)
         for item in prop_array:
@@ -155,8 +156,6 @@ class FLiBe_UF4(Fluid):
     ----------
     name : str
         Name of the fluid material
-    _Tref : float
-        Reference temperature (273.15 K) where enthalpy is defined as zero
 
     Notes
     -----
@@ -262,8 +261,6 @@ class Hitec(Fluid):
     ----------
     name : str
         Name of the fluid material
-    _Tref : float
-        Reference temperature (273.15 K) where enthalpy is defined as zero
 
     Notes
     -----
@@ -422,8 +419,6 @@ class Helium(Fluid):
     ----------
     name : str
         Name of the fluid material
-    _Tref : float
-        Reference temperature (273.15 K) where enthalpy is defined as zero
 
     References
     ----------
@@ -498,7 +493,7 @@ class User_Fluid(Fluid):
         Function of enthalpy which returns the temperature of the fluid [K]
     entha_funct : callable
         Function of temperature which returns the enthalpy of the material [J/kg]
-    surf_tens_funct : callable, optional
+    surf_tens_funct : Optional[callable]
         Function of enthalpy which returns the surface tension of the fluid [N/m]
 
     Attributes
