@@ -1499,7 +1499,7 @@ class Core(abc.ABC):
                     x_centroid, y_centroid = self._getChannelCoords(row, column)
                     centroids[cname] = [x_centroid, y_centroid]
                     if self._orificing is not None:
-                        self._tmpComponents[str(value).addKlossInlet(self._orificing[row][column])]
+                        self._tmpComponents[str(value)].addKlossInlet(self._orificing[row][column])
                     extended_comps[cname] = deepcopy(self._tmpComponents[str(value)])
 
         return extended_comps, centroids
@@ -1516,7 +1516,7 @@ class Core(abc.ABC):
         return mesh
 
     @abc.abstractmethod
-    def _getChannelCoords(self) -> Tuple[float,float]:
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float,float]:
         """Abstract base method for Core channel coordinates"""
         pass
 
@@ -1535,7 +1535,7 @@ class HexCore(Core, ParallelComponents):
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    map : List[List[int]]
+    cmap : List[List[int]]
         list containing the serial components in the corresponding rows and
         columns of the map
     orificing : List[List[float]]
@@ -1587,7 +1587,7 @@ class HexCore(Core, ParallelComponents):
         self,
         pitch: float,
         components: Dict,
-        map: List[List[int]],
+        cmap: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
@@ -1596,9 +1596,9 @@ class HexCore(Core, ParallelComponents):
     ) -> None:
 
         assert pitch >= 0, f"pitch: {pitch} must be positive"
-        assert len(map) > 0, f"map: {map} must not be empty"
+        assert len(cmap) > 0, f"map: {cmap} must not be empty"
         self._pitch = pitch
-        self._map = map
+        self._map = cmap
         self._orificing = orificing
         self._tmpComponents = Component.factory(components)
         extended_comps, centroids = self._set_extended_compositions()
@@ -1663,7 +1663,7 @@ class CartCore(Core, ParallelComponents):
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    map : List[List[int]]
+    cmap : List[List[int]]
         list containing the serial components in the corresponding rows and
         columns of the map
     orificing : List[List[float]]
@@ -1685,7 +1685,7 @@ class CartCore(Core, ParallelComponents):
         x_pitch: float,
         y_pitch: float,
         components: Dict,
-        map: List[List[int]],
+        cmap: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
@@ -1695,15 +1695,15 @@ class CartCore(Core, ParallelComponents):
 
         assert x_pitch >= 0, f"pitch: {x_pitch} must be positive"
         assert y_pitch >= 0, f"pitch: {y_pitch} must be positive"
-        assert len(map) > 0, f"map: {map} must not be empty"
+        assert len(cmap) > 0, f"map: {cmap} must not be empty"
         self._x_pitch = x_pitch
         self._y_pitch = y_pitch
-        self._map = map
+        self._map = cmap
         self._orificing = orificing
         self._tmpComponents = Component.factory(components)
         extended_comps, centroids = self._set_extended_compositions()
 
-        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs) #initialize parallel components
+        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
 
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:

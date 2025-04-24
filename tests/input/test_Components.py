@@ -122,11 +122,11 @@ def test_hexcore():
                     }
                    }
                 }
-    hmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
+    cmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
-    hc = HexCore(pitch=3, components=components, map=hmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
+    hc = HexCore(pitch=3, components=components, cmap=cmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
     hc._convertUnits(uc)
 
     #Test Centriods
@@ -144,7 +144,7 @@ def test_hexcore():
 
     assert hc.nCell == 73
     assert abs(hc._pitch -0.03) < 1e-8
-    assert hc._map == hmap
+    assert hc._map == cmap
     outlet = hc.getOutlet((0, 0, 0))
     assert isinstance(outlet, tuple) and len(outlet) == 3
     mesh = hc._getVTKMesh((0,0,0))
@@ -175,7 +175,7 @@ def test_cartcore():
     lowerplenum = {"nozzle": {"L": 1, "R_inlet": 2, "R_outlet": 1}}
     upperplenum = {"nozzle": {"L": 1, "R_inlet": 1, "R_outlet": 2}}
     annulus = {"annulus": {"L": 5, "R_inner": 1, "R_outer": 2}}
-    cc = CartCore(x_pitch=1.2, y_pitch=1.2, components=components, map=cmap, lower_plenum=lowerplenum, upper_plenum=upperplenum, annulus=annulus)
+    cc = CartCore(x_pitch=1.2, y_pitch=1.2, components=components, cmap=cmap, lower_plenum=lowerplenum, upper_plenum=upperplenum, annulus=annulus)
     cc._convertUnits(uc)
 
     # Test centroids
@@ -243,7 +243,7 @@ def generate_components():
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     hc = HexCore(
-        pitch=3, components=hexcore_components, map=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
+        pitch=3, components=hexcore_components, cmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
     )
     components["hexcore"] = hc
 
@@ -271,7 +271,7 @@ def generate_components():
     hexmap = [[1, 2], [1, 1, 1], [1, 1]]
     lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0}}
     uplen = {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949}}
-    hc = HexCore(pitch=0.1016, components=hexcore_components, map=hexmap, lower_plenum=lplen, upper_plenum=uplen)
+    hc = HexCore(pitch=0.1016, components=hexcore_components, cmap=hexmap, lower_plenum=lplen, upper_plenum=uplen)
     components["hexcore2"] = hc
 
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}
