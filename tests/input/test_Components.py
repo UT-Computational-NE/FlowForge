@@ -1,4 +1,4 @@
-from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, CartCore, SerialComponents, ComponentCollection
+from flowforge.input.Components import Pipe, Pump, Nozzle, Annulus, Tank, ParallelComponents, HexCore, CartCore, SerialComponents, ComponentCollection, VTKMesh
 from flowforge import UnitConverter
 
 _cm2m = 0.01
@@ -103,29 +103,100 @@ def test_parallel():
 
 
 def test_hexcore():
-    components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
-    hexmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
+    components = {"serial_components": {
+                  "1": {
+                      "components": {
+                          "pipe": {
+                              "a": {"L": 10, "R": 0.1, "n": 5}
+                              }
+                          },
+                        "order": ["a"]
+                    },
+                   "2": {
+                       "components": {
+                           "pipe": {
+                               "b": {"L": 10, "R": 0.2, "n": 1}
+                           }
+                           },
+                        "order": ["b"]
+                    }
+                   }
+                }
+    hmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
-    hc = HexCore(pitch=3, components=components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
+    hc = HexCore(pitch=3, components=components, map=hmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
     hc._convertUnits(uc)
+
+    #Test Centriods
+    extended_comps, centroids = hc._set_extended_compositions()
+    assert len(extended_comps) == 13
+    assert len(centroids) == 13
+    name = "1-2-3"
+    assert name in centroids
+    xc, yc = centroids[name]
+    assert isinstance(xc, float) and isinstance(yc, float)
+    dx = 0.03
+    dy = dx * (3**(1/2)) / 2
+    assert abs(xc - (2 - 2) * dx) < 1e-6
+    assert abs(yc - (0.5 * dy)) < 1e-6
+
     assert hc.nCell == 73
-    assert hc._pitch == 0.03
-    assert hc._map == hexmap
-    assert hc.getOutlet((0, 0, 0)) == (0, 0, 12 * _cm2m)
+    assert abs(hc._pitch -0.03) < 1e-8
+    assert hc._map == hmap
+    outlet = hc.getOutlet((0, 0, 0))
+    assert isinstance(outlet, tuple) and len(outlet) == 3
+    mesh = hc._getVTKMesh((0,0,0))
+    assert isinstance(mesh, VTKMesh)
 
 def test_cartcore():
-    components = {"pipe": {"1": {"L": 5, "R": 2}, "2": {"L": 5, "R": 1}}}
-    hexmap = [[1,1,1,1], [2,2,1,2], [2,2,2,2]]
+    # Cores MUST use a serial_components or parallel_components object in order to iniatialize the VTK mesh properly
+    components = {"serial_components": {
+                  "1": {
+                      "components": {
+                          "pipe": {
+                              "a": {"L": 5, "R": 2}
+                              }
+                          },
+                        "order": ["a"]
+                    },
+                   "2": {
+                       "components": {
+                           "pipe": {
+                               "b": {"L": 5, "R": 1}
+                           }
+                           },
+                        "order": ["b"]
+                    }
+                   }
+                }
+    cmap = [[1,1,1,1], [2,2,1,2], [2,2,2,2]]
     lowerplenum = {"nozzle": {"L": 1, "R_inlet": 2, "R_outlet": 1}}
     upperplenum = {"nozzle": {"L": 1, "R_inlet": 1, "R_outlet": 2}}
     annulus = {"annulus": {"L": 5, "R_inner": 1, "R_outer": 2}}
-    cartcore = CartCore(pitch=1.2, components=components, hexmap=hexmap, lower_plenum=lowerplenum, upper_plenum=upperplenum, annulus=annulus)
-    cartcore._convertUnits(uc)
-    assert cartcore.nCell == 19
-    assert cartcore._pitch == 0.012
-    assert cartcore._map == hexmap
+    cc = CartCore(x_pitch=1.2, y_pitch=1.2, components=components, map=cmap, lower_plenum=lowerplenum, upper_plenum=upperplenum, annulus=annulus)
+    cc._convertUnits(uc)
+
+    # Test centroids
+    extended_comps, centroids = cc._set_extended_compositions()
+    assert len(extended_comps) == 12
+    assert len(centroids) == 12
+    name = "1-1-1" # Corresponds to value 1 at Row=0, Column=0
+    assert name in centroids
+    xc, yc = centroids[name]
+    assert isinstance(xc, float) and isinstance(yc, float)
+    assert abs(xc - (0 * 0.012 + 0.006)) < 1e-6  # column 0, x_pitch = 0.012, center at +0.006
+    assert abs(yc - (-(0 * 0.012) + 0.006)) < 1e-6  # row 0, top-left origin
+
+    assert cc.nCell == 19
+    assert abs(cc._x_pitch - 0.012) < 1e-8
+    assert abs(cc._y_pitch - 0.012)  < 1e-8
+    assert cc._map == cmap
+    outlet = cc.getOutlet((0, 0, 0))
+    assert isinstance(outlet, tuple) and len(outlet) == 3
+    mesh = cc._getVTKMesh((0, 0, 0))
+    assert isinstance(mesh, VTKMesh)
 
 
 def test_serial():
@@ -172,7 +243,7 @@ def generate_components():
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     hc = HexCore(
-        pitch=3, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
+        pitch=3, components=hexcore_components, map=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
     )
     components["hexcore"] = hc
 
@@ -200,7 +271,7 @@ def generate_components():
     hexmap = [[1, 2], [1, 1, 1], [1, 1]]
     lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0}}
     uplen = {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949}}
-    hc = HexCore(pitch=0.1016, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen)
+    hc = HexCore(pitch=0.1016, components=hexcore_components, map=hexmap, lower_plenum=lplen, upper_plenum=uplen)
     components["hexcore2"] = hc
 
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}

@@ -1481,8 +1481,51 @@ class ParallelComponents(ComponentCollection):
 
 component_list["parallel_components"] = ParallelComponents
 
+class Core(abc.ABC):
+    """An abstract base class for core components"""
 
-class HexCore(ParallelComponents):
+    def _set_extended_compositions(self):
+        """Method that returns the extended compositions and centroids for core geometry"""
+        extended_comps = {}
+        centroids = {}
+        if self._orificing is not None:
+            assert len(self._map) == len(self._orificing)
+            assert np.all(len(map_row) == len(orificing_row) for map_row, orificing_row in zip(self._map, self._orificing))
+
+        for row, col in enumerate(self._map):
+            for column, value in enumerate(col):
+                if value != 0:
+                    cname = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
+                    x_centroid, y_centroid = self._getChannelCoords(row, column)
+                    centroids[cname] = [x_centroid, y_centroid]
+                    if self._orificing is not None:
+                        self._tmpComponents[str(value).addKlossInlet(self._orificing[row][column])]
+                    extended_comps[cname] = deepcopy(self._tmpComponents[str(value)])
+
+        return extended_comps, centroids
+
+    def _getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+        """Method that returns the VTK mesh for a Core"""
+        core_inlet = self._lowerPlenum.getOutlet(inlet)
+        channels = self._tmpComponents[list(self._tmpComponents.keys())[0]]._myComponents
+        for c in channels.keys():
+            if c == "plate":
+                core_inlet = channels[c].getOutlet(core_inlet)
+        mesh = VTKMesh()
+        mesh += super().getVTKMesh(inlet)
+        return mesh
+
+    @abc.abstractmethod
+    def _getChannelCoords(self) -> Tuple[float,float]:
+        """Abstract base method for Core channel coordinates"""
+        pass
+
+    @abc.abstractmethod
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """Abstract base method for converting units"""
+        pass
+
+class HexCore(Core, ParallelComponents):
     """A hexagonal core component
 
     Parameters
@@ -1492,9 +1535,9 @@ class HexCore(ParallelComponents):
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    hexmap : List[List[int]]
+    map : List[List[int]]
         list containing the serial components in the corresponding rows and
-        columns of the hex map
+        columns of the map
     orificing : List[List[float]]
         list containing the kloss values associated with serial components in the corresponding rows and
         columns of the hex map - should have the same shape as hexmap
@@ -1544,57 +1587,38 @@ class HexCore(ParallelComponents):
         self,
         pitch: float,
         components: Dict,
-        hexmap: List[List[int]],
+        map: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
         **kwargs,
     ) -> None:
+
+        assert pitch >= 0, f"pitch: {pitch} must be positive"
+        assert len(map) > 0, f"map: {map} must not be empty"
         self._pitch = pitch
-        self._map = hexmap
+        self._map = map
         self._orificing = orificing
-        self.tmpComponents = Component.factory(components)
-        extended_comps = {}
-        centroids = {}
-        if self._orificing is not None:  # making sure shape of map == shape of orficing
-            assert len(self._map) == len(self._orificing)
-            assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
-        for r, col in enumerate(self._map):
-            for c, val in enumerate(col):
-                if val != 0:
-                    cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
-                    yc, xc = self._getChannelCoords(r, c)
-                    centroids[cname] = [xc, yc]
-                    if self._orificing is not None:
-                        self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
-                    extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
+        self._tmpComponents = Component.factory(components)
+        extended_comps, centroids = self._set_extended_compositions()
 
         super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
 
-    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        core_inlet = self._lowerPlenum.getOutlet(inlet)
-        channels = self.tmpComponents[list(self.tmpComponents.keys())[0]]._myComponents
-        for c in channels.keys():
-            if c == "plate":
-                core_inlet = channels[c].getOutlet(core_inlet)
-        mesh = VTKMesh()
-        mesh += super().getVTKMesh(inlet)
-        return mesh
 
-    def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
-        """Private method which returns the calculated coordinates of map locations
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
+        """Private override method which returns the calculated coordinates of map locations
 
         This method returns the :math:`x-y` coordinates of the particular location in the map,
-        which is determined by r (row) and c (col).  This method is called repeatedly from the
+        which is determined by row and column.  This method is called repeatedly from the
         getVTKMesh function and is used to determine the inlet input for the mesh generation and
         translation.
 
         Parameters
         ----------
-        r : int
+        row : int
             Row in the hexagonal map
-        c : int
+        column : int
             Column in the hexagonal map
 
         Returns
@@ -1610,13 +1634,13 @@ class HexCore(ParallelComponents):
         yoffset = 0.0
         if len(self._map) % 2 == 0:
             yoffset = -0.5 * dy  # even number of rows
-        yc = dy * (rc - r) + yoffset
+        yc = dy * (rc - row) + yoffset
 
-        cc = np.floor(len(self._map[r]) / 2)
+        cc = np.floor(len(self._map[row]) / 2)
         xoffset = 0.0
-        if len(self._map[r]) % 2 == 0:
+        if len(self._map[row]) % 2 == 0:
             xoffset = 0.5 * dx  # even columns
-        xc = dx * (c - cc) + xoffset
+        xc = dx * (column - cc) + xoffset
 
         return xc, yc
 
@@ -1625,22 +1649,23 @@ class HexCore(ParallelComponents):
         self._pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
-
 component_list["hex_core"] = HexCore
 
-class CartCore(HexCore):
+class CartCore(Core, ParallelComponents):
     """A Cartesian Cooridnate core component
 
     Parameters
     ----------
-    pitch : float
-        Distance between each of the fuel channels (serial components)
+    x_pitch : float
+        Distance between each of the fuel channels (serial components) in the horizontal direction
+    y_pitch : float
+        Distance between each of the fuel channels (serial components) in the vertical direction
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    hexmap : List[List[int]]
+    map : List[List[int]]
         list containing the serial components in the corresponding rows and
-        columns of the hex map
+        columns of the map
     orificing : List[List[float]]
         list containing the kloss values associated with serial components in the corresponding rows and
         columns of the hex map - should have the same shape as hexmap
@@ -1657,56 +1682,53 @@ class CartCore(HexCore):
     """
     def __init__(
         self,
-        pitch: float,
+        x_pitch: float,
+        y_pitch: float,
         components: Dict,
-        hexmap: List[List[int]],
+        map: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
         **kwargs,
     ) -> None:
-        self._pitch = pitch
-        self._map = hexmap
+
+        assert x_pitch >= 0, f"pitch: {x_pitch} must be positive"
+        assert y_pitch >= 0, f"pitch: {y_pitch} must be positive"
+        assert len(map) > 0, f"map: {map} must not be empty"
+        self._x_pitch = x_pitch
+        self._y_pitch = y_pitch
+        self._map = map
         self._orificing = orificing
-        self.tmpComponents = Component.factory(components)
-        extended_comps = {}
-        centroids = {}
-        for r, col in enumerate(self._map):
-            for c, val in enumerate(col):
-                if val != 0:
-                    cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
-                    yc, xc = self._getChannelCoords(r, c)
-                    centroids[cname] = [xc, yc]
-                    if self._orificing is not None:
-                        self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
-                    extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
+        self._tmpComponents = Component.factory(components)
+        extended_comps, centroids = self._set_extended_compositions()
 
-        super().__init__(pitch=pitch, components=components, hexmap=hexmap,
-                         lower_plenum=lower_plenum, upper_plenum=upper_plenum,
-                         annulus=annulus, orificing=orificing, **kwargs)
+        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs) #initialize parallel components
 
 
-    def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Private override method which returns the calculated cartesian coordinates of map locations
 
         Parameters
         ----------
-        r : int
+        row : int
             Row in the cartesian map
-        c : int
+        column : int
             Column in the cartesian map
 
         Returns
         -------
         Tuple[float, float]
             The :math:`x-y` coordinates corresponding to the specified map location"""
-        dx = self._pitch
-        dy = self._pitch
-        xc = c * dx
-        yc = -r * dy # assuming (0,0) is top left of grid
-        return xc, yc
 
+        x_centroid = (column * self._x_pitch) + (self._x_pitch /2)
+        y_centroid = -(row * self._y_pitch) + (self._y_pitch/2)# assuming (0,0) is top left of grid
+        return x_centroid, y_centroid
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        self._x_pitch *= uc.lengthConversion
+        self._y_pitch *= uc.lengthConversion
+        super()._convertUnits(uc)
 
 component_list["cart_core"] = CartCore
 
