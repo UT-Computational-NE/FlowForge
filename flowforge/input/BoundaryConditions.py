@@ -19,14 +19,14 @@ class BoundaryConditions:
                 {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value", 700}
     }
     """
-
     def __init__(self, **boundary_conditions: dict):
+
         bc_objects = {"DirichletBC": DirichletBC}
 
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
-            bc_obj = bc_objects[bc_type]
+            bc_obj  = bc_objects[bc_type]
             self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
 
     @property
@@ -59,7 +59,6 @@ class GeneralBC(abc.ABC):
         - _variable_name : str
         - _value: float
     """
-
     def __init__(self, surface: str, variable: str, value):
         self._surface_name = surface
         self._variable_name = variable
@@ -97,7 +96,7 @@ class GeneralBC(abc.ABC):
 
     def _get_variable_conversion(self, uc: UnitConverter):
         scale_factor, shift_factor = 1, 0
-        if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
+        if self.variable_name in ["mass_flow_rate","gas_mass_flow_rate"]:
             scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
             scale_factor = uc.pressureConversion
@@ -106,7 +105,7 @@ class GeneralBC(abc.ABC):
         elif self.variable_name == "enthalpy":
             scale_factor = uc.enthalpyConversion
         elif self.variable_name == "void_fraction":
-            pass  # void fraction is non-dimensional
+            pass # void fraction is non-dimensional
         elif self.variable_name.startswith("neutron_precursor_mass_concentration"):
             pass
         elif self.variable_name.startswith("decay_heat_precursor_mass_concentration"):
@@ -114,7 +113,6 @@ class GeneralBC(abc.ABC):
         else:
             raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
         return scale_factor, shift_factor
-
 
 class DirichletBC(GeneralBC):
     """

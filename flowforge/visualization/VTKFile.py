@@ -1,5 +1,6 @@
-from pyevtk.hl import unstructuredGridToVTK
+from typing import Optional
 import numpy as np
+from pyevtk.hl import unstructuredGridToVTK
 from flowforge.visualization import VTKMesh
 
 
@@ -18,7 +19,7 @@ class VTKFile:
         A fully defined :class:`VTKMesh` object to be used for file writing
     """
 
-    def __init__(self, filepath: str, mesh: VTKMesh = None) -> None:
+    def __init__(self, filepath: str, mesh: Optional[VTKMesh] = None):
         self.vtkmesh = mesh
         self.filepath = filepath
         self.data = {}
