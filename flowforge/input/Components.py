@@ -1481,11 +1481,77 @@ class ParallelComponents(ComponentCollection):
 
 component_list["parallel_components"] = ParallelComponents
 
-class Core(abc.ABC):
-    """An abstract base class for core components"""
+class Core(abc.ABC, ParallelComponents):
+    """An abstract base class for core components
 
-    def _set_extended_compositions(self):
-        """Method that returns the extended compositions and centroids for core geometry"""
+    Parameters
+    ---------
+    components : Dict
+        The collection parallel components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]]
+        The component specifications for the annulus
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]]
+        list containing the kloss values associated with serial components in the corresponding rows and
+        columns or concentric rings of the core map - should have the same shape as core map
+
+
+    Attributes
+    ----------
+    myComponents : List[Component]
+        The collection of parallel components
+    centroids : Dict[str, List[float]]
+        The centroids of the parallel components
+    lowerManifold : Component
+        The lower manifold of the parallel components
+    upperManifold : Component
+        The upper manifold of the parallel components
+    lowerNozzle : Component
+        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
+    upperNozzle : Component
+        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
+    lowerPlenum : Component
+        The lower plenum of the parallel components
+    upperPlenum : Component
+        The upper plenum of the parallel components
+    annulus : Component
+        The annulus of the parallel components
+    length : float
+        The length of the parallel components starting from the
+        lower plenum inlet, through to the upper plenum outlet
+        (all parallel components are assumed to have the same length)
+    nCell : int
+        The total number of cells of all parallel components
+    inletArea : float
+        The inlet area of the lower plenum
+    outletArea : float
+        The outlet area of the upper plenum
+        """
+    def __init__(
+        self,
+        components: Dict,
+        core_map: List[List[int]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Dict[str, Dict[str, float]],
+        orificing: List[List[float]],
+        **kwargs,
+    ):
+        self._map = core_map
+        self._orificing = orificing
+        self._tmpComponents = Component.factory(components)
+        extended_comps, centroids = self._set_extended_components()
+        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+
+    def _set_extended_components(self):
+        """Method that returns the extended components and centroids for core geometry"""
         extended_comps = {}
         centroids = {}
         if self._orificing is not None:
@@ -1525,22 +1591,48 @@ class Core(abc.ABC):
         """Abstract base method for converting units"""
         pass
 
-class HexCore(Core, ParallelComponents):
+def validate_hex_map(core_map: List[List[int]]) -> bool:
+        """Private method that validates hexcore map inputs
+
+        Valid inputs should look like:
+        [
+          [7,7,7],
+         [7,7,7,7],
+        [7,7,7,7,7],
+         [7,7,7,7],
+          [7,7,7]
+         ]
+        Where each row preceding or succeeding the central row is shorter by 1 component
+        """
+        # Calculate the longest row's length and index (center of the hexagon)
+        row_lengths = [len(row) for row in core_map]
+        max_length = max(row_lengths)
+        max_index = row_lengths.index(max_length)
+
+        # Ensure that rows preceding the center are smaller by 1 component
+        for i in range (1, max_index + 1):
+            if row_lengths[i] != row_lengths[i-1] + 1:
+                return False
+
+        # Ensure that rows succeeding the center are smaller by 1 componnet
+        for i in range(max_index + 1, len(row_lengths)):
+            if row_lengths[i] != row_lengths[i-1] -1:
+                return False
+
+        return True
+
+class HexCore(Core):
     """A hexagonal core component
 
     Parameters
     ----------
     pitch : float
         Distance between each of the fuel channels (serial components)
+    core_map : List[List[int]]
+        list containing the serial components in the corresponding rings of concentric hexagons
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    cmap : List[List[int]]
-        list containing the serial components in the corresponding rows and
-        columns of the map
-    orificing : List[List[float]]
-        list containing the kloss values associated with serial components in the corresponding rows and
-        columns of the hex map - should have the same shape as hexmap
     lower_plenum : Dict[str, Dict[str,float]]
         The component specifications for the lower plenum
         (key: component type, value: component parameters dictionary)
@@ -1550,60 +1642,26 @@ class HexCore(Core, ParallelComponents):
     annulus : Dict[str, Dict[str,float]]
         The component specifications for the annulus
         (key: component type, value: component parameters dictionary)
-
-
-    Attributes
-    ----------
-    myComponents : List[Component]
-        The collection of parallel components
-    centroids : Dict[str, List[float]]
-        The centroids of the parallel components
-    lowerManifold : Component
-        The lower manifold of the parallel components
-    upperManifold : Component
-        The upper manifold of the parallel components
-    lowerNozzle : Component
-        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
-    upperNozzle : Component
-        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
-    lowerPlenum : Component
-        The lower plenum of the parallel components
-    upperPlenum : Component
-        The upper plenum of the parallel components
-    annulus : Component
-        The annulus of the parallel components
-    length : float
-        The length of the parallel components starting from the
-        lower plenum inlet, through to the upper plenum outlet
-        (all parallel components are assumed to have the same length)
-    nCell : int
-        The total number of cells of all parallel components
-    inletArea : float
-        The inlet area of the lower plenum
-    outletArea : float
-        The outlet area of the upper plenum
+    orificing : List[List[float]]
+        list containing the kloss values associated with serial components in the corresponding rows and
+        columns or concentric rings of the core map - should have the same shape as core map
     """
     def __init__(
         self,
         pitch: float,
         components: Dict,
-        cmap: List[List[int]],
+        core_map: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
         orificing: List[List[float]] = None,
         **kwargs,
     ) -> None:
-
         assert pitch >= 0, f"pitch: {pitch} must be positive"
-        assert len(cmap) > 0, f"map: {cmap} must not be empty"
+        assert len(core_map) > 0, f"map: {core_map} must not be empty"
+        assert validate_hex_map(core_map), f"map: {core_map} must form concentric hexagonal rings"
         self._pitch = pitch
-        self._map = cmap
-        self._orificing = orificing
-        self._tmpComponents = Component.factory(components)
-        extended_comps, centroids = self._set_extended_compositions()
-
-        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+        super().__init__(components, core_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
@@ -1645,13 +1703,14 @@ class HexCore(Core, ParallelComponents):
         return xc, yc
 
     def _convertUnits(self, uc: UnitConverter) -> None:
+        """Private orride method to convert pitch units"""
         self.uc = uc
         self._pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
 component_list["hex_core"] = HexCore
 
-class CartCore(Core, ParallelComponents):
+class CartCore(Core):
     """A Cartesian Cooridnate core component
 
     Parameters
@@ -1663,7 +1722,7 @@ class CartCore(Core, ParallelComponents):
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    cmap : List[List[int]]
+    core_map : List[List[int]]
         list containing the serial components in the corresponding rows and
         columns of the map
     orificing : List[List[float]]
@@ -1685,7 +1744,7 @@ class CartCore(Core, ParallelComponents):
         x_pitch: float,
         y_pitch: float,
         components: Dict,
-        cmap: List[List[int]],
+        core_map: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
@@ -1695,15 +1754,14 @@ class CartCore(Core, ParallelComponents):
 
         assert x_pitch >= 0, f"pitch: {x_pitch} must be positive"
         assert y_pitch >= 0, f"pitch: {y_pitch} must be positive"
-        assert len(cmap) > 0, f"map: {cmap} must not be empty"
+        assert len(core_map) > 0, f"map: {core_map} must not be empty"
+        assert len(core_map[0]) >0, f"map: {core_map} must have at least 1 column"
+        assert all(len(core_map[i]) == len(core_map[0]) for i in range(len(core_map))), f"map: {core_map} must be rectangular"
         self._x_pitch = x_pitch
         self._y_pitch = y_pitch
-        self._map = cmap
-        self._orificing = orificing
-        self._tmpComponents = Component.factory(components)
-        extended_comps, centroids = self._set_extended_compositions()
-
-        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+        self._num_rows = len(core_map)
+        self._num_cols = len(core_map[0])
+        super().__init__(components, core_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
@@ -1721,11 +1779,23 @@ class CartCore(Core, ParallelComponents):
         Tuple[float, float]
             The :math:`x-y` coordinates corresponding to the specified map location"""
 
-        x_centroid = (column * self._x_pitch) + (self._x_pitch /2)
-        y_centroid = -(row * self._y_pitch) + (self._y_pitch/2)# assuming (0,0) is top left of grid
+        def get_map_center(map_element) -> float:
+            """Returns the center of a given row or column"""
+            if map_element % 2 == 1:
+                # Odd number of rows/cols,
+                return float(map_element / 2)
+            else:
+                # Even number of rows/cols; offset by 0.5
+                return float((map_element /2) - 0.5)
+
+        center_row = get_map_center(self._num_rows)
+        center_column = get_map_center(self._num_cols)
+        x_centroid = (column - center_column) * self._x_pitch
+        y_centroid = -(row - center_row)  * self._y_pitch # (0,0) is center of grid
         return x_centroid, y_centroid
 
     def _convertUnits(self, uc: UnitConverter) -> None:
+        """Private orride method to convert pitch units"""
         self._x_pitch *= uc.lengthConversion
         self._y_pitch *= uc.lengthConversion
         super()._convertUnits(uc)

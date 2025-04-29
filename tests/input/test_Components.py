@@ -126,7 +126,7 @@ def test_hexcore():
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
-    hc = HexCore(pitch=3, components=components, cmap=cmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
+    hc = HexCore(pitch=3, components=components, core_map=cmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
     hc._convertUnits(uc)
 
     #Test Centriods
