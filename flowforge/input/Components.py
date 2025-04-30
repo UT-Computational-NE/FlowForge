@@ -326,6 +326,7 @@ class CrossSection(abc.ABC):
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
+
 class CircularCrossSection(CrossSection):
     """Circular cross-sectional area
 
@@ -344,11 +345,12 @@ class CircularCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return np.pi * self._R ** 2
+        return np.pi * self._R**2
 
     @property
     def wetted_perimeter(self) -> float:
         return 2 * np.pi * self._R
+
 
 class RectangularCrossSection(CrossSection):
     """Rectangular cross-sectional area
@@ -360,6 +362,7 @@ class RectangularCrossSection(CrossSection):
     H: float
         Height of the rectangular pipe
     """
+
     def __init__(self, W: float, H: float):
         self._W = W
         self._H = H
@@ -374,7 +377,7 @@ class RectangularCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return self._W*self._H
+        return self._W * self._H
 
     @property
     def wetted_perimeter(self) -> float:
@@ -391,7 +394,7 @@ class SquareCrossSection(RectangularCrossSection):
     """
 
     def __init__(self, W: float):
-        super().__init__(W,W)
+        super().__init__(W, W)
 
 
 class StadiumCrossSection(CrossSection):
@@ -404,6 +407,7 @@ class StadiumCrossSection(CrossSection):
     R : float
         Radius of the semi cirulcar portion of the stadium channel
     """
+
     def __init__(self, A: float, R: float):
         self._A = A
         self._R = R
@@ -418,23 +422,21 @@ class StadiumCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return np.pi * (self._R)**2 + 2 * self._R * self._A
+        return np.pi * (self._R) ** 2 + 2 * self._R * self._A
 
     @property
     def wetted_perimeter(self) -> float:
         return 2 * (np.pi * self._R + self._A)
 
+
 cross_section_classes = {
-    "circular" : CircularCrossSection,
+    "circular": CircularCrossSection,
     "square": SquareCrossSection,
     "rectangular": RectangularCrossSection,
-    "stadium": StadiumCrossSection}
-cross_section_param_lists = {
-    "circular": ["R"],
-    "square": ["W"],
-    "rectangular": ["H", "W"],
-    "stadium": ["A", "R"]
+    "stadium": StadiumCrossSection,
 }
+cross_section_param_lists = {"circular": ["R"], "square": ["W"], "rectangular": ["H", "W"], "stadium": ["A", "R"]}
+
 
 class Pipe(Component):
     """A pipe component
@@ -495,8 +497,7 @@ class Pipe(Component):
         self._roughness = roughness
         self._kwargs = kwargs
         self._cross_section = cross_section_classes[cross_section_name](
-            **{k: v for k, v in kwargs.items()
-               if k in cross_section_param_lists[cross_section_name]}
+            **{k: v for k, v in kwargs.items() if k in cross_section_param_lists[cross_section_name]}
         )
         self._Ac = self._cross_section.flow_area
         self._Pw = self._cross_section.wetted_perimeter
@@ -539,15 +540,16 @@ class Pipe(Component):
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         # Fix to prevent R from being passed twice in case a circular cross section is used
-        filtered_kwargs = {k: v for k,v in self._kwargs.items() if k!= 'R'}
-        return genUniformCylinder(self._L, self._Dh/2, naxial_layers=self._n, **filtered_kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        filtered_kwargs = {k: v for k, v in self._kwargs.items() if k != "R"}
+        return genUniformCylinder(self._L, self._Dh / 2, naxial_layers=self._n, **filtered_kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._Dh/2, self._Dh/2, self._L, self._theta, self._alpha]
+        return [inlet, outlet, self._Dh / 2, self._Dh / 2, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
@@ -557,7 +559,9 @@ class Pipe(Component):
         self._roughness *= uc.lengthConversion
         self._heatedPerimeter *= uc.lengthConversion
 
+
 component_list["pipe"] = Pipe
+
 
 class Tee(Pipe):
     """A Tee pipe component
@@ -572,7 +576,9 @@ class Tee(Pipe):
         super().__init__(**kwargs)
         assert self._n == 1
 
+
 component_list["tee"] = Tee
+
 
 class SimpleTank(Pipe):
     """
@@ -1481,6 +1487,7 @@ class ParallelComponents(ComponentCollection):
 
 component_list["parallel_components"] = ParallelComponents
 
+
 class Core(abc.ABC, ParallelComponents):
     """An abstract base class for core components
 
@@ -1533,7 +1540,8 @@ class Core(abc.ABC, ParallelComponents):
         The inlet area of the lower plenum
     outletArea : float
         The outlet area of the upper plenum
-        """
+    """
+
     def __init__(
         self,
         components: Dict,
@@ -1582,44 +1590,13 @@ class Core(abc.ABC, ParallelComponents):
         return mesh
 
     @abc.abstractmethod
-    def _getChannelCoords(self, row: int, column: int) -> Tuple[float,float]:
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Abstract base method for Core channel coordinates"""
-        pass
 
     @abc.abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Abstract base method for converting units"""
-        pass
 
-def validate_hex_map(core_map: List[List[int]]) -> bool:
-        """Private method that validates hexcore map inputs
-
-        Valid inputs should look like:
-        [
-          [7,7,7],
-         [7,7,7,7],
-        [7,7,7,7,7],
-         [7,7,7,7],
-          [7,7,7]
-         ]
-        Where each row preceding or succeeding the central row is shorter by 1 component
-        """
-        # Calculate the longest row's length and index (center of the hexagon)
-        row_lengths = [len(row) for row in core_map]
-        max_length = max(row_lengths)
-        max_index = row_lengths.index(max_length)
-
-        # Ensure that rows preceding the center are smaller by 1 component
-        for i in range (1, max_index + 1):
-            if row_lengths[i] != row_lengths[i-1] + 1:
-                return False
-
-        # Ensure that rows succeeding the center are smaller by 1 componnet
-        for i in range(max_index + 1, len(row_lengths)):
-            if row_lengths[i] != row_lengths[i-1] -1:
-                return False
-
-        return True
 
 class HexCore(Core):
     """A hexagonal core component
@@ -1646,6 +1623,7 @@ class HexCore(Core):
         list containing the kloss values associated with serial components in the corresponding rows and
         columns or concentric rings of the core map - should have the same shape as core map
     """
+
     def __init__(
         self,
         pitch: float,
@@ -1659,10 +1637,46 @@ class HexCore(Core):
     ) -> None:
         assert pitch >= 0, f"pitch: {pitch} must be positive"
         assert len(core_map) > 0, f"map: {core_map} must not be empty"
-        assert validate_hex_map(core_map), f"map: {core_map} must form concentric hexagonal rings"
+        assert self._validate_hex_map(core_map), f"map: {core_map} must form concentric hexagonal rings"
         self._pitch = pitch
         super().__init__(components, core_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
+    @staticmethod
+    def _validate_hex_map(core_map: List[List[int]]) -> bool:
+        """
+        Validate that `data` is shaped like an n-ring hexagon:
+        i.e. it has 2*n-1 rows whose lengths run
+        [n, n+1, …, 2*n-1, 2*n-2, …, n].
+
+        Parameters
+        ----------
+        data : Sequence[Sequence[Any]]
+            The “rows” to validate.
+
+        Raises
+        ------
+        ValueError
+            If `data` is empty, doesn't have `2*n-1` rows,
+            or the row-lengths don't match the expected pattern.
+        """
+        rows = len(core_map)
+        if rows == 0:
+            raise ValueError("Expected at least 1 row for a 1-ring hexagon")
+
+        # Solve rows = 2*n-1  ⇒  n = (rows+1)//2, must be integer
+        if (rows + 1) % 2 != 0:
+            raise ValueError(f"{rows} rows is not of form 2*n-1")
+        n = (rows + 1) // 2
+
+        # expected lengths: [n, n+1, …, 2*n-1, 2*n-2, …, n]
+        ascending = list(range(n, 2 * n))
+        descending = list(range(2 * n - 2, n - 1, -1))
+        expected = ascending + descending
+
+        actual = [len(row) for row in core_map]
+        if actual != expected:
+            raise ValueError(f"Expected row-lengths {expected!r} for {n!r}-ring hexagon, " f"but got {actual!r}")
+        return True
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Private override method which returns the calculated coordinates of map locations
@@ -1708,7 +1722,9 @@ class HexCore(Core):
         self._pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
+
 component_list["hex_core"] = HexCore
+
 
 class CartCore(Core):
     """A Cartesian Cooridnate core component
@@ -1739,6 +1755,7 @@ class CartCore(Core):
         (key: component type, value: component parameters dictionary)
 
     """
+
     def __init__(
         self,
         x_pitch: float,
@@ -1755,14 +1772,13 @@ class CartCore(Core):
         assert x_pitch >= 0, f"pitch: {x_pitch} must be positive"
         assert y_pitch >= 0, f"pitch: {y_pitch} must be positive"
         assert len(core_map) > 0, f"map: {core_map} must not be empty"
-        assert len(core_map[0]) >0, f"map: {core_map} must have at least 1 column"
+        assert len(core_map[0]) > 0, f"map: {core_map} must have at least 1 column"
         assert all(len(core_map[i]) == len(core_map[0]) for i in range(len(core_map))), f"map: {core_map} must be rectangular"
         self._x_pitch = x_pitch
         self._y_pitch = y_pitch
         self._num_rows = len(core_map)
         self._num_cols = len(core_map[0])
         super().__init__(components, core_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
-
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Private override method which returns the calculated cartesian coordinates of map locations
@@ -1786,12 +1802,12 @@ class CartCore(Core):
                 return float(map_element / 2)
             else:
                 # Even number of rows/cols; offset by 0.5
-                return float((map_element /2) - 0.5)
+                return float((map_element / 2) - 0.5)
 
         center_row = get_map_center(self._num_rows)
         center_column = get_map_center(self._num_cols)
         x_centroid = (column - center_column) * self._x_pitch
-        y_centroid = -(row - center_row)  * self._y_pitch # (0,0) is center of grid
+        y_centroid = -(row - center_row) * self._y_pitch  # (0,0) is center of grid
         return x_centroid, y_centroid
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -1800,7 +1816,9 @@ class CartCore(Core):
         self._y_pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
+
 component_list["cart_core"] = CartCore
+
 
 class SerialComponents(ComponentCollection):
     """A component for a collection of components through which flow passes in serial (i.e. from one component into the next)
