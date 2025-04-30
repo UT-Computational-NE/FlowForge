@@ -95,7 +95,7 @@ class Component:
         raise NotImplementedError
 
     @property
-    def roughness(self):
+    def roughness(self) -> float:
         return self._roughness
 
     @property

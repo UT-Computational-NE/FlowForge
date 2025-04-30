@@ -69,28 +69,40 @@ def make_continuous(components: List[Component], order: List[dict]):
 
 
 class System:
-    """A class for representing a whole system of components
+    """A class for representing a complete thermal-fluid system of components.
 
-    Controls the whole system by initializing all components and writing vtk solution file
+    The System class manages an entire thermal-fluid system composed of multiple components
+    connected together. It handles connectivity between components, boundary conditions,
+    fluid properties.
+
+    A system can be configured as either:
+    - A single segment (possibly of multiple components) with distinct inlet and outlet boundaries
+    - A closed loop (possibly of multiple components) in circulation with no external boundaries
+
+    The System class also handles unit conversions, boundary conditions, and provides
+    interfaces for visualization and output parsing from various solvers.
 
     Parameters
     ----------
     components : Dict[str, Component]
-        Collection of initialized components with which to construct the system
+        Collection of initialized components with which to construct the system.
+        Each component is identified by a unique name.
     sysdict : Dict
-        Dictionary of system settings describing how to initialize the system
+        Dictionary of system settings describing how to initialize the system,
+        including type (segment or loop), connectivity information, and optional
+        parser configurations.
     unitdict : Dict[str, str]
-        Dictionary of units used for this system
-
+        Dictionary of units used for this system. This allows specification of
+        custom units for length, pressure, temperature, etc.
 
     Attributes
     ----------
     components : List[Component]
         The collection of components which comprise the system
     connectivity : List[Tuple[Component, Component]]
-        The connectivity map of the sections of the system.  The map is expressed as a list
+        The connectivity map of the sections of the system. The map is expressed as a list
         of component pairs, with the first element in the pair being the 'from' component and
-        the second element the 'to' component.  The list is ordered from the 'starting segement'
+        the second element the 'to' component. The list is ordered from the 'starting segment'
         to the 'ending segment'
     inBoundComp : Component
         The system inlet boundary component
@@ -98,8 +110,10 @@ class System:
         The system outlet boundary component
     nCells : int
         The number of cells in the system
-    fluid : string
-        The fluid to be used
+    fluid : str
+        The fluid to be used in the system
+    gas : str, optional
+        The gas to be used in the system (for two-phase simulations)
     output_parsers : Dict[str, OutputParser]
         The output parsers with which to parse output from various models and map to the System
     """
@@ -141,7 +155,7 @@ class System:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
-    def core(self):
+    def core(self) -> HexCore:
         """
         Returns the core component of the system.
         """
@@ -264,6 +278,19 @@ class System:
         raise NotImplementedError("To Be Implemented")
 
     def _setupBoundaryConditions(self, boundary_conditions):
+        """Private method for setting up boundary conditions for the system.
+
+        This method initializes the appropriate boundary condition objects based
+        on the configuration dictionary provided. It handles mass/momentum,
+        enthalpy, and void boundary conditions.
+
+        Parameters
+        ----------
+        boundary_conditions : Dict
+            Dictionary containing boundary condition specifications. Can include
+            'mass_momentum', 'enthalpy', and/or 'void' keys with their respective
+            configuration parameters.
+        """
         self._MMBC = None
         if "mass_momentum" in boundary_conditions:
             self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
