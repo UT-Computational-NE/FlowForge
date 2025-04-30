@@ -1800,9 +1800,8 @@ class CartCore(Core):
             if map_element % 2 == 1:
                 # Odd number of rows/cols,
                 return float(map_element / 2)
-            else:
-                # Even number of rows/cols; offset by 0.5
-                return float((map_element / 2) - 0.5)
+            # Even number of rows/cols; offset by 0.5
+            return float((map_element / 2) - 0.5)
 
         center_row = get_map_center(self._num_rows)
         center_column = get_map_center(self._num_cols)
