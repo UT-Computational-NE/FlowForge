@@ -48,9 +48,9 @@ def make_continuous(components: List[Component], order: List[dict]):
                     Klossavg=0,
                     roughness=0,
                 )
-                components[
-                    f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'
-                ] = deepcopy(tempnozzle)
+                components[f'temp_nozzle_for_make_continuous_creation_in_system_{entry["component"]}_{num_connects}'] = (
+                    deepcopy(tempnozzle)
+                )
                 order = (
                     order[0:i]
                     + [

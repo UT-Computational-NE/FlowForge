@@ -2,6 +2,7 @@ from typing import Optional
 import re
 import sympy
 
+
 class EquationParser:
     """
     Class for handling the parsing of input equation.
@@ -46,15 +47,18 @@ class EquationParser:
       -> evaluate : takes in variable values and outputs the solution to the
             evaluated function.
     """
+
     def __init__(self, equation: str, *coupled_variables):
         self._input_equation = equation
         self._expression = sympy.sympify(equation)
 
-        potential_variable = ['x', 'y', 'z', 't'] + list(coupled_variables)
-        variable_names_extracted_from_equation = [var for var in re.findall(r'[\w]+', equation)
-                                                  if any(char.isalpha() for char in var)]
-        self._variables = {var: sympy.symbols(var) for var in potential_variable
-                           if var in variable_names_extracted_from_equation}
+        potential_variable = ["x", "y", "z", "t"] + list(coupled_variables)
+        variable_names_extracted_from_equation = [
+            var for var in re.findall(r"[\w]+", equation) if any(char.isalpha() for char in var)
+        ]
+        self._variables = {
+            var: sympy.symbols(var) for var in potential_variable if var in variable_names_extracted_from_equation
+        }
 
     @property
     def inputEquation(self):
@@ -78,8 +82,8 @@ class EquationParser:
 
     def performUnitConversion(
         self,
-        scale_factor: Optional[float] = 1.,
-        shift_factor: Optional[float] = 0.,
+        scale_factor: Optional[float] = 1.0,
+        shift_factor: Optional[float] = 0.0,
     ):
         """Apply unit conversion to the equation.
 
@@ -115,13 +119,13 @@ class EquationParser:
         self.expression = scaled_expression
 
     def evaluate(
-            self,
-            x: Optional[float] = None,
-            y: Optional[float] = None,
-            z: Optional[float] = None,
-            t: Optional[float] = None,
-            **coupled_variables
-        ):
+        self,
+        x: Optional[float] = None,
+        y: Optional[float] = None,
+        z: Optional[float] = None,
+        t: Optional[float] = None,
+        **coupled_variables,
+    ):
         """Evaluate the equation with the provided variable values.
 
         This method substitutes variable values into the equation and evaluates

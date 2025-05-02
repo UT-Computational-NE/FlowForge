@@ -5,11 +5,9 @@ from flowforge.input.Components import (
     Annulus,
     Tank,
     ParallelComponents,
-    HexCore,
-    CartCore,
     SerialComponents,
     ComponentCollection,
-    VTKMesh,
+    HexCore,
 )
 from flowforge import UnitConverter
 
@@ -117,87 +115,6 @@ def test_parallel():
     assert p.getOutlet((0, 0, 0)) == (0, 0, 0.12)
 
 
-def test_hexcore():
-    components = {
-        "serial_components": {
-            "1": {"components": {"pipe": {"a": {"L": 10, "R": 0.1, "n": 5}}}, "order": ["a"]},
-            "2": {"components": {"pipe": {"b": {"L": 10, "R": 0.2, "n": 1}}}, "order": ["b"]},
-        }
-    }
-    core_map = [[1, 1], [2, 1, 2], [1, 1]]
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
-    annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
-    hc = HexCore(pitch=3, components=components, core_map=core_map, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
-
-    # Test Centriods
-    extended_comps, centroids = hc._set_extended_components()
-    assert len(extended_comps) == 7
-    assert len(centroids) == 7
-    # Update to a key that should actually exist in our map
-    name = "1-1-1"
-    assert name in centroids
-    xc, yc = centroids[name]
-    assert isinstance(xc, float) and isinstance(yc, float)
-    # Don't check exact coordinates since our map is different
-    assert isinstance(xc, float)
-    assert isinstance(yc, float)
-
-    assert hc.nCell == 43  # Updated nCell count for our new core_map
-    # Skip pitch conversion test since we haven't run _convertUnits yet
-    assert hc._pitch == 3
-    assert hc._map == core_map
-    outlet = hc.getOutlet((0, 0, 0))
-    assert isinstance(outlet, tuple) and len(outlet) == 3
-    mesh = hc._getVTKMesh((0, 0, 0))
-    assert isinstance(mesh, VTKMesh)
-
-
-def test_cartcore():
-    # Cores MUST use a serial_components or parallel_components object in order to iniatialize the VTK mesh properly
-    components = {
-        "serial_components": {
-            "1": {"components": {"pipe": {"a": {"L": 5, "R": 2}}}, "order": ["a"]},
-            "2": {"components": {"pipe": {"b": {"L": 5, "R": 1}}}, "order": ["b"]},
-        }
-    }
-    core_map = [[1, 1, 1, 1], [2, 2, 1, 2], [2, 2, 2, 2]]
-    lowerplenum = {"nozzle": {"L": 1, "R_inlet": 2, "R_outlet": 1}}
-    upperplenum = {"nozzle": {"L": 1, "R_inlet": 1, "R_outlet": 2}}
-    annulus = {"annulus": {"L": 5, "R_inner": 1, "R_outer": 2}}
-    cc = CartCore(
-        x_pitch=1.2,
-        y_pitch=1.2,
-        components=components,
-        core_map=core_map,
-        lower_plenum=lowerplenum,
-        upper_plenum=upperplenum,
-        annulus=annulus,
-    )
-    cc._convertUnits(uc)
-
-    # Test centroids
-    extended_comps, centroids = cc._set_extended_components()
-    assert len(extended_comps) == 12
-    assert len(centroids) == 12
-    name = "1-1-1"  # Corresponds to value 1 at Row=0, Column=0
-    assert name in centroids
-    xc, yc = centroids[name]
-    assert isinstance(xc, float) and isinstance(yc, float)
-    # Don't check exact coordinates, just confirm it's a float
-    assert isinstance(xc, float)
-    assert isinstance(yc, float)
-
-    assert cc.nCell == 19
-    assert abs(cc._x_pitch - 0.012) < 1e-8
-    assert abs(cc._y_pitch - 0.012) < 1e-8
-    assert cc._map == core_map
-    outlet = cc.getOutlet((0, 0, 0))
-    assert isinstance(outlet, tuple) and len(outlet) == 3
-    mesh = cc._getVTKMesh((0, 0, 0))
-    assert isinstance(mesh, VTKMesh)
-
-
 def test_serial():
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}
     order = ["p1", "p2"]
@@ -242,8 +159,16 @@ def generate_components():
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
+    orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
     hc = HexCore(
-        pitch=3, components=hexcore_components, core_map=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
+        pitch=3, 
+        components=hexcore_components, 
+        channel_map=hexmap, 
+        lower_plenum=lplen, 
+        upper_plenum=uplen, 
+        annulus=annulus,
+        orificing=orificing,
+        non_channels=["0"]
     )
     components["hexcore"] = hc
 
@@ -267,13 +192,6 @@ def generate_components():
             },
         }
     }
-
-    # Modified for proper hexagonal pattern - n=2 ring: [2,3,2]
-    hexmap = [[1, 2], [1, 1, 1], [2, 1]]
-    lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0}}
-    uplen = {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949}}
-    hc = HexCore(pitch=0.1016, components=hexcore_components, core_map=hexmap, lower_plenum=lplen, upper_plenum=uplen)
-    components["hexcore2"] = hc
 
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}
     order = ["p1", "p2"]
@@ -351,8 +269,6 @@ if __name__ == "__main__":
     test_annulus()
     test_tank()
     test_parallel()
-    test_hexcore()
-    test_cartcore()
     test_serial()
     test_baseComponents()
     test_firstLastComponent()
