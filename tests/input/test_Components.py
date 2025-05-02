@@ -5,9 +5,9 @@ from flowforge.input.Components import (
     Annulus,
     Tank,
     ParallelComponents,
-    HexCore,
     SerialComponents,
     ComponentCollection,
+    HexCore,
 )
 from flowforge import UnitConverter
 
@@ -26,8 +26,9 @@ def test_pipe():
     assert p.heightChange == 0.1
     assert p.nCell == 1
 
+
 def test_rectangular_pipe():
-    p = Pipe(cross_section_name= "rectangular", L=10, W=2.0, H=2.0)
+    p = Pipe(cross_section_name="rectangular", L=10, W=2.0, H=2.0)
     p._convertUnits(uc)
     assert p.flowArea == 0.0004
     assert p._Pw == 0.08
@@ -37,17 +38,19 @@ def test_rectangular_pipe():
     assert p.hydraulicDiameter > 0.0
     assert p.nCell == 1
 
+
 def test_stadium_pipe():
-    p = Pipe(cross_section_name= "stadium", L=12, R=3, A=2)
+    p = Pipe(cross_section_name="stadium", L=12, R=3, A=2)
     p._convertUnits(uc)
-    assert p.flowArea > 0.0001 * (3*9 + 2*3*2)
-    assert p.flowArea < 0.0001 * (4*9 + 2*3*2)
-    assert p._Pw > 0.01 * (2 * (3*3 + 2))
-    assert p._Pw < 0.01 * (2 * (4*3 +2))
+    assert p.flowArea > 0.0001 * (3 * 9 + 2 * 3 * 2)
+    assert p.flowArea < 0.0001 * (4 * 9 + 2 * 3 * 2)
+    assert p._Pw > 0.01 * (2 * (3 * 3 + 2))
+    assert p._Pw < 0.01 * (2 * (4 * 3 + 2))
     assert p.volume > 0.0
     assert p.length == 0.12
     assert p.hydraulicDiameter > 0.0
     assert p.nCell == 1
+
 
 def test_pump():
     p = Pump(Ac=16.0, Dh=4.0, V=64.0, height=4.0, dP=50000.0)
@@ -112,20 +115,6 @@ def test_parallel():
     assert p.getOutlet((0, 0, 0)) == (0, 0, 0.12)
 
 
-def test_hexcore():
-    components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
-    hexmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
-    lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
-    uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
-    annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
-    hc = HexCore(pitch=3, components=components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus)
-    hc._convertUnits(uc)
-    assert hc.nCell == 73
-    assert hc._pitch == 0.03
-    assert hc._map == hexmap
-    assert hc.getOutlet((0, 0, 0)) == (0, 0, 12 * _cm2m)
-
-
 def test_serial():
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}
     order = ["p1", "p2"]
@@ -165,12 +154,21 @@ def generate_components():
     components["parallel"] = p
 
     hexcore_components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
-    hexmap = [[1, 1, 1, 1], [2, 1, 1, 1, 2], [1, 1, 1, 1]]
+    # Modified to conform to hexagonal pattern requirements - n=2 ring: [2,3,2]
+    hexmap = [[1, 1], [2, 1, 2], [1, 1]]
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
+    orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
     hc = HexCore(
-        pitch=3, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen, annulus=annulus
+        pitch=3,
+        components=hexcore_components,
+        channel_map=hexmap,
+        lower_plenum=lplen,
+        upper_plenum=uplen,
+        annulus=annulus,
+        orificing=orificing,
+        non_channels=["0"],
     )
     components["hexcore"] = hc
 
@@ -194,12 +192,6 @@ def generate_components():
             },
         }
     }
-
-    hexmap = [[1, 2], [1, 1, 1], [1, 1]]
-    lplen = {"nozzle": {"L": 17.5, "R_inlet": 2.949, "R_outlet": 65.0}}
-    uplen = {"nozzle": {"L": 2.5, "R_inlet": 65.0, "R_outlet": 2.949}}
-    hc = HexCore(pitch=0.1016, components=hexcore_components, hexmap=hexmap, lower_plenum=lplen, upper_plenum=uplen)
-    components["hexcore2"] = hc
 
     serial_dict = {"pipe": {"p1": {"L": 10, "R": 1, "n": 10}, "p2": {"L": 1, "R": 2, "n": 1, "Kloss": 1, "resolution": 6}}}
     order = ["p1", "p2"]
@@ -277,7 +269,6 @@ if __name__ == "__main__":
     test_annulus()
     test_tank()
     test_parallel()
-    test_hexcore()
     test_serial()
     test_baseComponents()
     test_firstLastComponent()

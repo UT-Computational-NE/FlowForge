@@ -1,7 +1,7 @@
 from __future__ import annotations
 import abc
 from copy import deepcopy
-from typing import List, Dict, Tuple, Generator
+from typing import List, Dict, Tuple, Generator, Optional, Literal, TypeAlias
 from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
@@ -326,6 +326,7 @@ class CrossSection(abc.ABC):
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
+
 class CircularCrossSection(CrossSection):
     """Circular cross-sectional area
 
@@ -344,11 +345,12 @@ class CircularCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return np.pi * self._R ** 2
+        return np.pi * self._R**2
 
     @property
     def wetted_perimeter(self) -> float:
         return 2 * np.pi * self._R
+
 
 class RectangularCrossSection(CrossSection):
     """Rectangular cross-sectional area
@@ -360,6 +362,7 @@ class RectangularCrossSection(CrossSection):
     H: float
         Height of the rectangular pipe
     """
+
     def __init__(self, W: float, H: float):
         self._W = W
         self._H = H
@@ -374,7 +377,7 @@ class RectangularCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return self._W*self._H
+        return self._W * self._H
 
     @property
     def wetted_perimeter(self) -> float:
@@ -391,7 +394,7 @@ class SquareCrossSection(RectangularCrossSection):
     """
 
     def __init__(self, W: float):
-        super().__init__(W,W)
+        super().__init__(W, W)
 
 
 class StadiumCrossSection(CrossSection):
@@ -404,6 +407,7 @@ class StadiumCrossSection(CrossSection):
     R : float
         Radius of the semi cirulcar portion of the stadium channel
     """
+
     def __init__(self, A: float, R: float):
         self._A = A
         self._R = R
@@ -418,23 +422,21 @@ class StadiumCrossSection(CrossSection):
 
     @property
     def flow_area(self) -> float:
-        return np.pi * (self._R)**2 + 2 * self._R * self._A
+        return np.pi * (self._R) ** 2 + 2 * self._R * self._A
 
     @property
     def wetted_perimeter(self) -> float:
         return 2 * (np.pi * self._R + self._A)
 
+
 cross_section_classes = {
-    "circular" : CircularCrossSection,
+    "circular": CircularCrossSection,
     "square": SquareCrossSection,
     "rectangular": RectangularCrossSection,
-    "stadium": StadiumCrossSection}
-cross_section_param_lists = {
-    "circular": ["R"],
-    "square": ["W"],
-    "rectangular": ["H", "W"],
-    "stadium": ["A", "R"]
+    "stadium": StadiumCrossSection,
 }
+cross_section_param_lists = {"circular": ["R"], "square": ["W"], "rectangular": ["H", "W"], "stadium": ["A", "R"]}
+
 
 class Pipe(Component):
     """A pipe component
@@ -495,8 +497,7 @@ class Pipe(Component):
         self._roughness = roughness
         self._kwargs = kwargs
         self._cross_section = cross_section_classes[cross_section_name](
-            **{k: v for k, v in kwargs.items()
-               if k in cross_section_param_lists[cross_section_name]}
+            **{k: v for k, v in kwargs.items() if k in cross_section_param_lists[cross_section_name]}
         )
         self._Ac = self._cross_section.flow_area
         self._Pw = self._cross_section.wetted_perimeter
@@ -539,15 +540,16 @@ class Pipe(Component):
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         # Fix to prevent R from being passed twice in case a circular cross section is used
-        filtered_kwargs = {k: v for k,v in self._kwargs.items() if k!= 'R'}
-        return genUniformCylinder(self._L, self._Dh/2, naxial_layers=self._n, **filtered_kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        filtered_kwargs = {k: v for k, v in self._kwargs.items() if k != "R"}
+        return genUniformCylinder(self._L, self._Dh / 2, naxial_layers=self._n, **filtered_kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
 
     def getBoundingBox(
         self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._Dh/2, self._Dh/2, self._L, self._theta, self._alpha]
+        return [inlet, outlet, self._Dh / 2, self._Dh / 2, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
@@ -557,7 +559,9 @@ class Pipe(Component):
         self._roughness *= uc.lengthConversion
         self._heatedPerimeter *= uc.lengthConversion
 
+
 component_list["pipe"] = Pipe
+
 
 class Tee(Pipe):
     """A Tee pipe component
@@ -572,7 +576,9 @@ class Tee(Pipe):
         super().__init__(**kwargs)
         assert self._n == 1
 
+
 component_list["tee"] = Tee
+
 
 class SimpleTank(Pipe):
     """
@@ -1482,8 +1488,165 @@ class ParallelComponents(ComponentCollection):
 component_list["parallel_components"] = ParallelComponents
 
 
-class HexCore(ParallelComponents):
-    """A hexagonal core component
+class Core(abc.ABC, ParallelComponents):
+    """An abstract base class for reactor core components.
+
+    Core is an abstract base class that extends ParallelComponents to provide the foundation
+    for specific core geometry implementations like HexCore and CartCore. It manages a collection
+    of parallel channels arranged in a two-dimensional pattern (map) with specified coordinates
+    and optional orificing for flow control.
+
+    Parameters
+    ----------
+    components : Dict
+        The collection of components which comprise this core. The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    channel_map : List[List[str]]
+        A 2D grid representation of component placement in the core
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]], optional
+        The component specifications for the annulus surrounding the core
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]], optional
+        K-loss values for each position in the channel_map, used to model flow resistance
+        Must have the same dimensions as channel_map if provided
+    """
+
+    def __init__(
+        self,
+        components: Dict,
+        channel_map: List[List[str]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Optional[Dict[str, Dict[str, float]]] = None,
+        orificing: Optional[List[List[float]]] = None,
+        **kwargs,
+    ):
+        self._map = channel_map
+        self._orificing = orificing
+        self._core_components = Component.factory(components)
+
+        # Validate orificing dimensions if provided
+        if self._orificing is not None:
+            assert len(self._map) == len(self._orificing)
+            assert np.all(len(map_row) == len(orificing_row) for map_row, orificing_row in zip(self._map, self._orificing))
+
+        centroids = self._calculate_centroids()
+        extended_comps = self._create_extended_components(centroids)
+        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+
+    def _calculate_centroids(self) -> Dict[str, List[float]]:
+        """Calculate the centroid coordinates for each component in the core map.
+
+        This method processes the channel map to determine the x-y coordinates for each
+        component based on its row and column position, using the geometry-specific
+        _getChannelCoords method to calculate the actual coordinate values.
+
+        Returns
+        -------
+        Dict[str, List[float]]
+            Dictionary mapping component names to [x, y] centroid coordinates, where
+            keys follow the format "value-row-column".
+        """
+        centroids = {}
+        for row, col in enumerate(self._map):
+            for column, value in enumerate(col):
+                if value is not None:
+                    cname = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
+                    x_centroid, y_centroid = self._getChannelCoords(row, column)
+                    centroids[cname] = [x_centroid, y_centroid]
+        return centroids
+
+    def _create_extended_components(self, centroids: Dict[str, List[float]]) -> Dict[str, Component]:
+        """Create extended components with proper orificing for each position in the core map.
+
+        This method generates component instances for each position in the core map, applying
+        appropriate orificing values if specified. Each component is a deep copy of the base
+        component with a unique identifier derived from its position in the map.
+
+        Parameters
+        ----------
+        centroids : Dict[str, List[float]]
+            Dictionary mapping component names to [x, y] centroid coordinates
+
+        Returns
+        -------
+        Dict[str, Component]
+            Dictionary mapping component names to their instantiated components, with keys
+            in the format "value-row-column" corresponding to entries in the centroids dictionary.
+        """
+        extended_comps = {}
+        for cname, _ in centroids.items():
+            # Parse the component identifier from the name (format: "value-row-column")
+            parts = cname.split("-")
+            component_id = parts[0]
+            row = int(parts[1]) - 1
+            column = int(parts[2]) - 1
+
+            # Apply orificing if specified
+            if self._orificing is not None and component_id in self._core_components:
+                self._core_components[component_id].addKlossInlet(self._orificing[row][column])
+
+            # Create a deep copy of the component
+            extended_comps[cname] = deepcopy(self._core_components[component_id])
+
+        return extended_comps
+
+    def _getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+        """Method that returns the VTK mesh for a Core
+
+        This method generates a visual representation of the core by calculating the
+        core inlet position, adjusting for any plate components, and generating the
+        complete mesh using the parent class implementation.
+
+        Parameters
+        ----------
+        inlet : Tuple[float, float, float]
+            The core inlet coordinates (x, y, z)
+
+        Returns
+        -------
+        VTKMesh
+            The generated VTK mesh for the entire core
+        """
+        # Calculate the core inlet position from the lower plenum outlet
+        core_inlet = self._lowerPlenum.getOutlet(inlet)
+
+        # Get the first component's subcomponents
+        first_component_key = list(self._core_components.keys())[0]
+        component_channels = self._core_components[first_component_key]._myComponents
+
+        # Adjust inlet position if a plate component is present
+        for channel_name, channel in component_channels.items():
+            if channel_name == "plate":
+                core_inlet = channel.getOutlet(core_inlet)
+                break
+
+        # Create and return the combined mesh
+        mesh = VTKMesh()
+        mesh += super().getVTKMesh(inlet)
+        return mesh
+
+    @abc.abstractmethod
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
+        """Abstract base method for Core channel coordinates"""
+
+    @abc.abstractmethod
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """Abstract base method for converting units"""
+
+
+class HexCore(Core):
+    """A hexagonal geometry reactor core component.
+
+    HexCore implements a reactor core with components arranged in a hexagonal pattern,
+    where each component is positioned based on a hexagonal grid. The arrangement
+    follows a symmetric pattern with a specified pitch (distance between adjacent components).
 
     Parameters
     ----------
@@ -1492,142 +1655,370 @@ class HexCore(ParallelComponents):
     components : Dict
         The collection parallel components which comprise this component.  The structure of
         this dictionary follows the same convention as :func:`Component.factory`
-    hexmap : List[List[int]]
-        list containing the serial components in the corresponding rows and
-        columns of the hex map
-    orificing : List[List[float]]
-        list containing the kloss values associated with serial components in the corresponding rows and
-        columns of the hex map - should have the same shape as hexmap
+    channel_map : List[List[str]]
+        List containing the serial components in the corresponding rings of concentric hexagons
     lower_plenum : Dict[str, Dict[str,float]]
         The component specifications for the lower plenum
         (key: component type, value: component parameters dictionary)
     upper_plenum : Dict[str, Dict[str,float]]
         The component specifications for the upper plenum
         (key: component type, value: component parameters dictionary)
-    annulus : Dict[str, Dict[str,float]]
+    annulus : Dict[str, Dict[str,float]], optional
         The component specifications for the annulus
         (key: component type, value: component parameters dictionary)
-
-
-    Attributes
-    ----------
-    myComponents : List[Component]
-        The collection of parallel components
-    centroids : Dict[str, List[float]]
-        The centroids of the parallel components
-    lowerManifold : Component
-        The lower manifold of the parallel components
-    upperManifold : Component
-        The upper manifold of the parallel components
-    lowerNozzle : Component
-        The lower nozzle of the parallel components (connects lowerPlenum to lowerManifold)
-    upperNozzle : Component
-        The upper nozzle of the parallel components (connects upperPlenum to upperManifold)
-    lowerPlenum : Component
-        The lower plenum of the parallel components
-    upperPlenum : Component
-        The upper plenum of the parallel components
-    annulus : Component
-        The annulus of the parallel components
-    length : float
-        The length of the parallel components starting from the
-        lower plenum inlet, through to the upper plenum outlet
-        (all parallel components are assumed to have the same length)
-    nCell : int
-        The total number of cells of all parallel components
-    inletArea : float
-        The inlet area of the lower plenum
-    outletArea : float
-        The outlet area of the upper plenum
+    orificing : List[List[float]], optional
+        List containing the kloss values associated with serial components in the corresponding rows and
+        columns or concentric rings of the core map - should have the same shape as core map
+    non_channels : List[str], optional
+        The list of non-channels to fill the core map with. Defaults to ["0"] if not provided.
+        This is used to fill the core map with non-channels where needed.
     """
 
     def __init__(
         self,
         pitch: float,
         components: Dict,
-        hexmap: List[List[int]],
+        channel_map: List[List[str]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
-        annulus: Dict[str, Dict[str, float]] = None,
-        orificing: List[List[float]] = None,
+        annulus: Optional[Dict[str, Dict[str, float]]] = None,
+        orificing: Optional[List[List[float]]] = None,
+        non_channels: Optional[List[str]] = None,
         **kwargs,
     ) -> None:
+        if non_channels is None:
+            non_channels = ["0"]
+        assert pitch >= 0, f"pitch: {pitch} must be positive"
+        self._validate_hex_map(channel_map)
         self._pitch = pitch
-        self._map = hexmap
-        self._orificing = orificing
-        self.tmpComponents = Component.factory(components)
-        extended_comps = {}
-        centroids = {}
-        if self._orificing is not None:  # making sure shape of map == shape of orficing
-            assert len(self._map) == len(self._orificing)
-            assert np.all(len(map_row) == len(orifice_row) for map_row, orifice_row in zip(self._map, self._orificing))
-        for r, col in enumerate(self._map):
-            for c, val in enumerate(col):
-                if val != 0:
-                    cname = f"{str(val):s}-{r + 1:d}-{c + 1:d}"
-                    yc, xc = self._getChannelCoords(r, c)
-                    centroids[cname] = [xc, yc]
-                    if self._orificing is not None:
-                        self.tmpComponents[str(val)].addKlossInlet(self._orificing[r][c])
-                    extended_comps[cname] = deepcopy(self.tmpComponents[str(val)])
+        filled_map = self._fill_map(channel_map, non_channels)
+        super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
-        super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+    @staticmethod
+    def _fill_map(channel_map: List[List[int]], non_channels: List[str]) -> List[List[Optional[str]]]:
+        """Fill a hexagonal core map with components, handling void spaces appropriately.
 
-    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        core_inlet = self._lowerPlenum.getOutlet(inlet)
-        channels = self.tmpComponents[list(self.tmpComponents.keys())[0]]._myComponents
-        for c in channels.keys():
-            if c == "plate":
-                core_inlet = channels[c].getOutlet(core_inlet)
-        mesh = VTKMesh()
-        mesh += super().getVTKMesh(inlet)
-        return mesh
-
-    def _getChannelCoords(self, r: int, c: int) -> Tuple[float, float]:
-        """Private method which returns the calculated coordinates of map locations
-
-        This method returns the :math:`x-y` coordinates of the particular location in the map,
-        which is determined by r (row) and c (col).  This method is called repeatedly from the
-        getVTKMesh function and is used to determine the inlet input for the mesh generation and
-        translation.
+        This method takes a partially populated hexagonal channel map and fills it
+        with components based on the specified channels. It handles the proper alignment
+        of components in the hexagonal grid, accounting for the specific geometry
+        requirements of hexagonal patterns.
 
         Parameters
         ----------
-        r : int
-            Row in the hexagonal map
-        c : int
-            Column in the hexagonal map
+        channel_map : List[List[int]]
+            The core map to fill with component identifiers
+        non_channels : List[str]
+            The list of identifiers that should not be treated as components
+
+        Returns
+        -------
+        List[List[Optional[str]]]
+            The filled hexagonal core map with None values for positions without components
+        """
+
+        def default_map(num_rows: int) -> List[List[None]]:
+            """Create a default hexagonal map with `num_rows` rows of None."""
+            n = (num_rows - 1) // 2 + 1
+            return [[None for _ in range(n + i)] for i in range(n)] + [
+                [None for _ in range(num_rows - 1 - i)] for i in range(n - 1)
+            ]
+
+        def is_even(n: int) -> bool:
+            """Check if a number is even."""
+            if n % 2 == 0:
+                return True
+            return False
+
+        num_rows = len(channel_map)
+        filled_map = default_map(num_rows)
+        len_map_rows = [(len(filled_map[row]), len(channel_map[row])) for row in range(num_rows)]
+        for row, (len_filled_map_row, len_channel_map_row) in enumerate(len_map_rows):
+            offset = 1 if is_even(len_filled_map_row) and not is_even(len_channel_map_row) else 0
+            start = len_filled_map_row // 2 - len_channel_map_row // 2 - offset
+            stop = start + len_channel_map_row
+            for channel_map_elem, filled_map_elem in enumerate(range(start, stop)):
+                if channel_map[row][channel_map_elem] not in non_channels:
+                    filled_map[row][filled_map_elem] = channel_map[row][channel_map_elem]
+        return filled_map
+
+    @staticmethod
+    def _validate_hex_map(channel_map: List[List[str]]) -> None:
+        """Validate that a channel map conforms to hexagonal geometry requirements.
+
+        This method verifies that the provided channel map is valid for a hexagonal core:
+        - It must not be empty
+        - It must have an odd number of rows to maintain symmetry
+        - Row lengths must follow the hexagonal pattern constraint where each row's
+          length must not exceed the expected pattern [n, n+1, …, 2*n-1, 2*n-2, …, n]
+
+        Parameters
+        ----------
+        channel_map : List[List[str]]
+            The hexagonal map configuration to validate
+
+        Raises
+        ------
+        AssertionError
+            If the channel map does not conform to hexagonal geometry requirements
+        """
+        num_rows = len(channel_map)
+        assert num_rows > 0, "channel_map: must not be empty"
+        assert num_rows % 2 == 1, f"channel_map: must have an odd number of rows, not {num_rows} rows"
+        n = (num_rows + 1) // 2
+        # expected lengths: [n, n+1, …, 2*n-1, 2*n-2, …, n]
+        ascending = list(range(n, 2 * n))
+        descending = list(range(2 * n - 2, n - 1, -1))
+        expected = ascending + descending
+        actual = [len(row) for row in channel_map]
+        for row in range(num_rows):
+            assert (
+                actual[row] <= expected[row]
+            ), f"channel_map: too many elements in row {row+1}: {actual[row]} > {expected[row]}"
+
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
+        """Calculate the x-y coordinates for a position in the hexagonal core map.
+
+        This method computes the precise spatial position for a component in the hexagonal
+        grid based on its row and column indices. It accounts for hexagonal geometry spacing,
+        including appropriate offsets for even/odd row and column counts to maintain
+        the correct hexagonal packing arrangement.
+
+        Parameters
+        ----------
+        row : int
+            Row index in the hexagonal map (zero-based)
+        column : int
+            Column index in the hexagonal map (zero-based)
 
         Returns
         -------
         Tuple[float, float]
-            The :math:`x-y` coordinates corresponding to the specified map location
+            The precise (x, y) coordinate pair for the specified map location
         """
 
-        dx = self._pitch
-        dy = self._pitch * np.sqrt(3) / 2
+        # Define horizontal and vertical spacing
+        horizontal_spacing = self._pitch
+        vertical_spacing = self._pitch * np.sqrt(3) / 2  # Hexagonal geometry height factor
 
-        rc = len(self._map) / 2
-        yoffset = 0.0
+        # Calculate row center position
+        row_center_index = len(self._map) / 2
+        y_offset = 0.0
+
+        # Apply offset for even number of rows
         if len(self._map) % 2 == 0:
-            yoffset = -0.5 * dy  # even number of rows
-        yc = dy * (rc - r) + yoffset
+            y_offset = -0.5 * vertical_spacing  # Shift for even row count
 
-        cc = np.floor(len(self._map[r]) / 2)
-        xoffset = 0.0
-        if len(self._map[r]) % 2 == 0:
-            xoffset = 0.5 * dx  # even columns
-        xc = dx * (c - cc) + xoffset
+        # Calculate y-coordinate (positive upward, so row increases downward)
+        y_coordinate = vertical_spacing * (row_center_index - row) + y_offset
 
-        return xc, yc
+        # Calculate column center position
+        column_center_index = np.floor(len(self._map[row]) / 2)
+        x_offset = 0.0
+
+        # Apply offset for even number of columns in this row
+        if len(self._map[row]) % 2 == 0:
+            x_offset = 0.5 * horizontal_spacing  # Shift for even column count
+
+        # Calculate x-coordinate
+        x_coordinate = horizontal_spacing * (column - column_center_index) + x_offset
+
+        return x_coordinate, y_coordinate
 
     def _convertUnits(self, uc: UnitConverter) -> None:
+        """Convert hexagonal core dimensions to the target unit system.
+
+        This method applies unit conversion to the hexagonal core's pitch value
+        and then cascades the conversion to all child components.
+        """
         self.uc = uc
         self._pitch *= uc.lengthConversion
         super()._convertUnits(uc)
 
 
 component_list["hex_core"] = HexCore
+
+
+class CartCore(Core):
+    """A Cartesian geometry reactor core component.
+
+    CartCore implements a reactor core with components arranged in a rectangular grid pattern.
+    Components are positioned based on x-pitch and y-pitch values, which can be different
+    to create a non-square grid. The arrangement can be aligned to the left, right, or center.
+
+    Parameters
+    ----------
+    x_pitch : float
+        Distance between each of the fuel channels in the horizontal direction
+    components : Dict
+        The collection parallel components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    channel_map : List[List[str]]
+        List containing the serial components in the corresponding rows and
+        columns of the map
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]], optional
+        The component specifications for the annulus
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]], optional
+        List containing the kloss values associated with serial components in the corresponding rows and
+        columns of the map - should have the same shape as channel_map
+    non_channels : List[str], optional
+        The list of non-channels to fill the core map with. Defaults to ["0"] if not provided.
+        This is used to fill the core map with non-channels where needed.
+    y_pitch : float, optional
+        Distance between each of the fuel channels in the vertical direction.
+        Defaults to the same value as x_pitch if not provided.
+    map_alignment : {"left", "right", "center"}, optional
+        The horizontal alignment strategy for the map. Defaults to "center".
+    """
+
+    Alignment: TypeAlias = Literal["right", "left", "center"]
+
+    def __init__(
+        self,
+        x_pitch: float,
+        components: Dict,
+        channel_map: List[List[str]],
+        lower_plenum: Dict[str, Dict[str, float]],
+        upper_plenum: Dict[str, Dict[str, float]],
+        annulus: Optional[Dict[str, Dict[str, float]]] = None,
+        orificing: Optional[List[List[float]]] = None,
+        non_channels: Optional[List[str]] = None,
+        y_pitch: Optional[float] = None,
+        map_alignment: Optional[Alignment] = "center",
+        **kwargs,
+    ) -> None:
+
+        assert x_pitch >= 0, f"pitch: {x_pitch} must be positive"
+        if y_pitch is None:
+            y_pitch = x_pitch
+        assert y_pitch >= 0, f"pitch: {y_pitch} must be positive"
+        if non_channels is None:
+            non_channels = ["0"]
+        assert len(channel_map) > 0, f"map: {channel_map} must not be empty"
+        filled_map = self._fill_map(channel_map, non_channels, map_alignment)
+        num_rows = len(filled_map)
+        num_cols = len(filled_map[0])
+        self._center_column = (num_cols - 1) / 2
+        self._center_row = (num_rows - 1) / 2
+        self._x_pitch = x_pitch
+        self._y_pitch = y_pitch
+        super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
+
+    @staticmethod
+    def _fill_map(
+        channel_map: List[List[str]], non_channels: List[str], map_alignment: Alignment
+    ) -> List[List[Optional[str]]]:
+        """Fill a Cartesian core map with components based on specified alignment.
+
+        This method takes a rectangular channel map and fills it with components,
+        handling alignment options (left, right, or center). The alignment determines
+        how components are positioned when rows have varying lengths.
+
+        Parameters
+        ----------
+        channel_map : List[List[int]]
+            The rectangular core map to fill with component identifiers
+        non_channels : List[str]
+            The list of identifiers that should not be treated as components
+        map_alignment : Alignment
+            The horizontal alignment strategy for the map ("left", "right", or "center")
+
+        Returns
+        -------
+        List[List[Optional[str]]]
+            The filled Cartesian core map with None values for positions without components
+
+        Raises
+        ------
+        ValueError
+            If the map alignment is not one of the supported options
+        """
+
+        def default_map(channel_map: List[List[str]]) -> List[List[None]]:
+            num_rows = len(channel_map)
+            max_cols = max(len(row) for row in channel_map)
+            return [[None for _ in range(max_cols)] for _ in range(num_rows)]
+
+        def center_fill(channel_map: List[List[int]], non_channels: List[str]) -> None:
+            filled_map = default_map(channel_map)
+            for row_index, row in enumerate(channel_map):
+                row_length = len(row)
+                offset = (len(filled_map[row_index]) - row_length) // 2
+                for col_index, value in enumerate(row):
+                    if value not in non_channels:
+                        filled_map[row_index][col_index + offset] = value
+            return filled_map
+
+        def left_fill(channel_map: List[List[int]], non_channels: List[str]) -> None:
+            filled_map = default_map(channel_map)
+            for row_index, row in enumerate(channel_map):
+                for col_index, value in enumerate(row):
+                    if value not in non_channels:
+                        filled_map[row_index][col_index] = value
+            return filled_map
+
+        def right_fill(channel_map: List[List[int]], non_channels: List[str]) -> None:
+            filled_map = default_map(channel_map)
+            for row_index, row in enumerate(channel_map):
+                for col_index, value in enumerate(reversed(row)):
+                    if value not in non_channels:
+                        filled_map[row_index][-col_index - 1] = value
+            return filled_map
+
+        if map_alignment == "center":
+            filled_map = center_fill(channel_map, non_channels)
+        elif map_alignment == "right":
+            filled_map = right_fill(channel_map, non_channels)
+        elif map_alignment == "left":
+            filled_map = left_fill(channel_map, non_channels)
+        else:
+            raise ValueError(f"Invalid map alignment: {map_alignment}. Must be 'left', 'right', or 'center'.")
+
+        return filled_map
+
+    def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
+        """Calculate the x-y coordinates for a position in the Cartesian core map.
+
+        This method computes the precise spatial position for a component in the
+        rectangular grid based on its row and column indices. Positions are calculated
+        relative to the center of the grid, with x-pitch and y-pitch determining
+        the spacing between components.
+
+        Parameters
+        ----------
+        row : int
+            Row index in the Cartesian map (zero-based)
+        column : int
+            Column index in the Cartesian map (zero-based)
+
+        Returns
+        -------
+        Tuple[float, float]
+            The precise (x, y) coordinate pair for the specified map location
+        """
+
+        x_centroid = (column - self._center_column) * self._x_pitch
+        y_centroid = -(row - self._center_row) * self._y_pitch
+        return x_centroid, y_centroid
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """Convert Cartesian core dimensions to the target unit system.
+
+        This method applies unit conversion to both the x-pitch and y-pitch values
+        of the Cartesian core, then cascades the conversion to all child components.
+        """
+        self._x_pitch *= uc.lengthConversion
+        self._y_pitch *= uc.lengthConversion
+        super()._convertUnits(uc)
+
+
+component_list["cart_core"] = CartCore
 
 
 class SerialComponents(ComponentCollection):
