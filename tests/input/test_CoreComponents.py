@@ -41,7 +41,7 @@ def test_hexcore_validation_odd_rows():
     valid_map = [[1, 1], [2, 1, 2], [1, 1]]
     orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
 
-    # This should work fine
+    # This should be valid
     hc = HexCore(
         pitch=3,
         components=components,
@@ -81,8 +81,7 @@ def test_hexcore_validation_row_length():
     """Test hexagonal map validation with incorrect row lengths"""
     components, lplen, uplen, annulus = create_basic_components()
 
-    # The current implementation has a bug using 'i' instead of 'row'
-    # Let's test with a different approach - an invalid hexagonal pattern
+    # Let's test with an invalid hexagonal pattern
     invalid_map = [[1, 1, 1], [2, 1], [1, 1, 1]]  # Middle row should have more elements, not fewer
     orificing = [[0.0, 0.0, 0.0], [0.0, 0.0], [0.0, 0.0, 0.0]]
 
@@ -304,7 +303,7 @@ def test_cartcore_validation():
     valid_map = [[1, 1, 1], [2, 2, 1]]
     orificing = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 
-    # This should work fine - note CartCore requires y_pitch
+    # This should be valid
     cc = CartCore(
         x_pitch=3,
         y_pitch=3,
@@ -330,7 +329,7 @@ def test_cartcore_negative_pitch():
     with pytest.raises(AssertionError):
         CartCore(
             x_pitch=-3,
-            y_pitch=3,  # Must provide y_pitch
+            y_pitch=3,
             components=components,
             channel_map=valid_map,
             lower_plenum=lplen,
@@ -548,7 +547,7 @@ def test_core_set_extended_components():
 
     # Get centroids first
     centroids = hc._calculate_centroids()
-    
+
     # Then create extended components
     extended_comps = hc._create_extended_components(centroids)
 

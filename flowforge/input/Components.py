@@ -1556,7 +1556,7 @@ class Core(abc.ABC, ParallelComponents):
         centroids = {}
         for row, col in enumerate(self._map):
             for column, value in enumerate(col):
-                if value != 0:
+                if value is not None:
                     cname = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
                     x_centroid, y_centroid = self._getChannelCoords(row, column)
                     centroids[cname] = [x_centroid, y_centroid]
