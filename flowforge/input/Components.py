@@ -1495,6 +1495,26 @@ class Core(abc.ABC, ParallelComponents):
     for specific core geometry implementations like HexCore and CartCore. It manages a collection
     of parallel channels arranged in a two-dimensional pattern (map) with specified coordinates
     and optional orificing for flow control.
+
+    Parameters
+    ----------
+    components : Dict
+        The collection of components which comprise this core. The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    channel_map : List[List[str]]
+        A 2D grid representation of component placement in the core
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]], optional
+        The component specifications for the annulus surrounding the core
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]], optional
+        K-loss values for each position in the channel_map, used to model flow resistance
+        Must have the same dimensions as channel_map if provided
     """
 
     def __init__(
@@ -1628,10 +1648,30 @@ class HexCore(Core):
     where each component is positioned based on a hexagonal grid. The arrangement
     follows a symmetric pattern with a specified pitch (distance between adjacent components).
 
-    Attributes
+    Parameters
     ----------
     pitch : float
-        The distance between adjacent fuel channels in the hexagonal grid
+        Distance between each of the fuel channels (serial components)
+    components : Dict
+        The collection parallel components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    channel_map : List[List[str]]
+        List containing the serial components in the corresponding rings of concentric hexagons
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]], optional
+        The component specifications for the annulus
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]], optional
+        List containing the kloss values associated with serial components in the corresponding rows and
+        columns or concentric rings of the core map - should have the same shape as core map
+    non_channels : List[str], optional
+        The list of non-channels to fill the core map with. Defaults to ["0"] if not provided.
+        This is used to fill the core map with non-channels where needed.
     """
 
     def __init__(
@@ -1805,12 +1845,36 @@ class CartCore(Core):
     Components are positioned based on x-pitch and y-pitch values, which can be different
     to create a non-square grid. The arrangement can be aligned to the left, right, or center.
 
-    Attributes
+    Parameters
     ----------
     x_pitch : float
-        The distance between adjacent fuel channels in the horizontal direction
-    y_pitch : float
-        The distance between adjacent fuel channels in the vertical direction
+        Distance between each of the fuel channels in the horizontal direction
+    components : Dict
+        The collection parallel components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    channel_map : List[List[str]]
+        List containing the serial components in the corresponding rows and
+        columns of the map
+    lower_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the lower plenum
+        (key: component type, value: component parameters dictionary)
+    upper_plenum : Dict[str, Dict[str,float]]
+        The component specifications for the upper plenum
+        (key: component type, value: component parameters dictionary)
+    annulus : Dict[str, Dict[str,float]], optional
+        The component specifications for the annulus
+        (key: component type, value: component parameters dictionary)
+    orificing : List[List[float]], optional
+        List containing the kloss values associated with serial components in the corresponding rows and
+        columns of the map - should have the same shape as channel_map
+    non_channels : List[str], optional
+        The list of non-channels to fill the core map with. Defaults to ["0"] if not provided.
+        This is used to fill the core map with non-channels where needed.
+    y_pitch : float, optional
+        Distance between each of the fuel channels in the vertical direction.
+        Defaults to the same value as x_pitch if not provided.
+    map_alignment : {"left", "right", "center"}, optional
+        The horizontal alignment strategy for the map. Defaults to "center".
     """
 
     Alignment: TypeAlias = Literal["right", "left", "center"]
