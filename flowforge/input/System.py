@@ -5,7 +5,7 @@ from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, HexCore, Pump
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
+from flowforge.input.BoundaryConditions import VoidBC, BoundaryConditions
 from flowforge.input.BodyForces import BodyForces, GravitationalBF, PumpBF
 from flowforge.input.WallFunctions import WallFunctions, FrictionWF
 from flowforge.parsers.OutputParser import OutputParser
@@ -135,9 +135,9 @@ class System:
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         if "simple_loop" in sys_dict:
-            self._setupSimpleLoop(components, **sys_dict["simple_loop"])
+            self._setupSimpleLoop(components, unit_dict, **sys_dict["simple_loop"])
         elif "segment" in sys_dict:
-            self._setupSegment(components, controller_dict, **sys_dict["segment"])
+            self._setupSegment(components, controller_dict, unit_dict, **sys_dict["segment"])
         # TODO add additional types of systems that can be set up
 
         if "parsers" in sys_dict:
@@ -194,6 +194,20 @@ class System:
         """
         self._isLoop = True
 
+        if "bodyForce" in controller_dict.keys():
+            body_force_dict = controller_dict["bodyForce"]
+        else:
+            body_force_dict = {}
+
+        if "wallFunctions" in controller_dict.keys():
+            wall_functions_dict = controller_dict["wallFunctions"]
+        else:
+            wall_functions_dict = {}
+
+        # Get defaults for friction and gravity
+        default_gravity = self._getGravity(body_force_dict)
+        default_friction = self._getDefaultFriction(wall_functions_dict)
+
         components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
@@ -202,17 +216,17 @@ class System:
             # Collect the body forces and wall functions associated with each component
             component_body_force_names = entry.get("BodyForces", [])
             component_wall_function_names = entry.get("BodyForces", [])
-            component_body_forces = self._setupBodyForces(controller_dict["bodyForce"],
+            component_body_forces = self._setupBodyForces(body_force_dict,
                                                           component_body_force_names,
                                                           unit_dict)
-            component_wall_functions = self._setupWallFunctions(controller_dict["wallFunctions"],
+            component_wall_functions = self._setupWallFunctions(wall_functions_dict,
                                                                 component_wall_function_names,
                                                                 unit_dict)
 
             # Add component and its body forces and wall functions
             self._components.append(deepcopy(components[entry["component"]]))
-            self._body_forces.append([obj for _,obj in component_body_forces.items()])
-            self._wall_functions.append([obj for _,obj in component_wall_functions.items()])
+            self._body_forces.append(component_body_forces.body_forces)
+            self._wall_functions.append(component_wall_functions.wall_functions)
 
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
@@ -258,19 +272,29 @@ class System:
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
 
+        if "bodyForce" in controller_dict.keys():
+            body_force_dict = controller_dict["bodyForce"]
+        else:
+            body_force_dict = {}
+
+        if "wallFunctions" in controller_dict.keys():
+            wall_functions_dict = controller_dict["wallFunctions"]
+        else:
+            wall_functions_dict = {}
+
         # Get defaults for friction and gravity
-        default_gravity = self._getGravity(controller_dict["bodyForce"])
-        default_friction = self._getDefaultFriction(controller_dict["wallFunctions"])
+        default_gravity = self._getGravity(body_force_dict)
+        default_friction = self._getDefaultFriction(wall_functions_dict)
 
         # Loop over each entry in segment, add the components, and connect the components to each other
         for i, entry in enumerate(order):
             # Collect the body forces and wall functions associated with each component
             component_body_force_names = entry.get("BodyForces", [])
             component_wall_function_names = entry.get("BodyForces", [])
-            component_body_forces = self._setupBodyForces(controller_dict["bodyForce"],
+            component_body_forces = self._setupBodyForces(body_force_dict,
                                                           component_body_force_names,
                                                           unit_dict, default_gravity)
-            component_wall_functions = self._setupWallFunctions(controller_dict["wallFunctions"],
+            component_wall_functions = self._setupWallFunctions(wall_functions_dict,
                                                                 component_wall_function_names,
                                                                 unit_dict, default_friction)
 
@@ -280,8 +304,8 @@ class System:
 
             # Add component and its body forces and wall functions
             self._components.append(deepcopy(components[entry["component"]]))
-            self._body_forces.append([obj for _,obj in component_body_forces.items()])
-            self._wall_functions.append([obj for _,obj in component_wall_functions.items()])
+            self._body_forces.append(component_body_forces.body_forces)
+            self._wall_functions.append(component_wall_functions.wall_functions)
 
             # Adds a connection between the current and previous component
             if i > 0:
@@ -318,11 +342,11 @@ class System:
         component_body_forces = BodyForces(**component_body_force_definitions)
 
         # Handle gravity
-        if any([type(bf) == GravitationalBF for _, bf in component_body_forces.items()]):
+        if any([type(bf) == GravitationalBF for _, bf in component_body_forces.body_forces.items()]):
             raise Exception("ERROR: Please do not define 'gravity' within components. Please only define a" \
             "single, global gravity under 'controllers'. (Note that the default gravity is set to <0, 0, -1> " \
             "with a magnitude of 9.81 m/s^2.)")
-        component_body_forces["gravity"] = gravity
+        component_body_forces.body_forces["gravity"] = gravity
 
         # Convert units
         component_body_forces._convertUnits(UnitConverter(unit_dict))
@@ -338,9 +362,9 @@ class System:
         component_wall_functions = WallFunctions(**component_wall_function_definitions)
 
         # Handle friction
-        friction_wfs = [wf for _, wf in component_wall_functions.items()]
+        friction_wfs = [wf for _, wf in component_wall_functions.wall_functions.items()]
         if len(friction_wfs) == 0:
-            component_wall_functions["friction"] = default_friction
+            component_wall_functions.wall_functions["friction"] = default_friction
         elif len(friction_wfs) > 1:
             raise Exception("ERROR: Can only handle (1) friction formulation per component.")
 
@@ -352,7 +376,7 @@ class System:
 
     def _getDefaultFriction(self, wall_function_dict):
         wall_functions = WallFunctions(**wall_function_dict)
-        friction_wfs = [wf for _, wf in wall_functions.items() if type(wf) == FrictionWF]
+        friction_wfs = [wf for _, wf in wall_functions.wall_functions.items() if type(wf) == FrictionWF]
         if len(friction_wfs) == 0:
             default_friction = FrictionWF("default", True)
         elif not any([wf.isDefault for wf in friction_wfs]):
@@ -366,7 +390,7 @@ class System:
 
     def _getGravity(self, body_force_dict):
         body_forces = BodyForces(**body_force_dict)
-        gravity_bfs = [bf for _, bf in body_forces.items() if type(bf) == GravitationalBF]
+        gravity_bfs = [bf for _, bf in body_forces.body_forces.items() if type(bf) == GravitationalBF]
         if len(gravity_bfs) == 0:
             default_gravity = GravitationalBF(tuple([0,0,-1]), 9.81)
         elif len(gravity_bfs) > 1:
@@ -436,11 +460,11 @@ class System:
         return self._output_parsers
 
     @property
-    def bodyforces(self) -> List[str]:
+    def bodyforces(self) -> List[dict]:
         return self._body_forces
 
     @property
-    def wallfunctions(self) -> List[str]:
+    def wallfunctions(self) -> List[dict]:
         return self._wall_functions
 
     @property

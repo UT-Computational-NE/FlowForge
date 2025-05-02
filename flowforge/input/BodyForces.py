@@ -57,7 +57,7 @@ class GeneralBF(abc.ABC):
         self.body_force_type = None
 
     @property
-    def bodyForceType(self):
+    def controllerType(self):
         return self.body_force_type
 
     @property
@@ -114,14 +114,14 @@ class GravitationalBF(GeneralBF):
 
     def __init__(self, vector: tuple, magnitude = 9.81):
         all_directions = ["x", "y", "z"]
-        if len(vector != 3):
+        if len(vector) != 3:
             raise Exception("ERROR in Gravity vector -> Please input a 3D vector.")
 
         norm_vector = self.normalizeVector(vector)
         gravity_vector = tuple([magnitude * u for u in norm_vector])
 
         source_expression = ""
-        for g_component, direction in gravity_vector, all_directions:
+        for g_component, direction in zip(gravity_vector, all_directions):
             source_expression += str(g_component) + "*" + str(direction) + "+"
         if source_expression[-1] == "+":
             source_expression = source_expression[:-1]
