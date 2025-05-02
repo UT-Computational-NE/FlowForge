@@ -161,14 +161,14 @@ def generate_components():
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
     orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
     hc = HexCore(
-        pitch=3, 
-        components=hexcore_components, 
-        channel_map=hexmap, 
-        lower_plenum=lplen, 
-        upper_plenum=uplen, 
+        pitch=3,
+        components=hexcore_components,
+        channel_map=hexmap,
+        lower_plenum=lplen,
+        upper_plenum=uplen,
         annulus=annulus,
         orificing=orificing,
-        non_channels=["0"]
+        non_channels=["0"],
     )
     components["hexcore"] = hc
 
