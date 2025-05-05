@@ -1677,6 +1677,8 @@ class HexCore(Core):
     ) -> None:
 
         assert pitch >= 0, f"pitch: {pitch} must be positive"
+        self._validate_hex_map(channel_map)
+
         self._pitch = pitch
 
         super().__init__(components, channel_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
@@ -1732,6 +1734,25 @@ class HexCore(Core):
                     #      Large differences ripple downstream, and while not pressing, should be noted and
                     #      eventually changed.
         return y_coordinate, x_coordinate
+
+    @staticmethod
+    def _validate_hex_map(channel_map: List[List[str]]) -> None:
+        """Validate that a channel map conforms to hexagonal geometry requirements.
+         This method verifies that the provided channel map is valid for a hexagonal core:
+         - It must not be empty
+
+         Parameters
+         ----------
+         channel_map : List[List[str]]
+             The hexagonal map configuration to validate
+         Raises
+         ------
+         AssertionError
+             If the channel map does not conform to hexagonal geometry requirements
+         """
+
+        num_rows = len(channel_map)
+        assert num_rows > 0, "channel_map: must not be empty"
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Convert hexagonal core dimensions to the target unit system.

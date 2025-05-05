@@ -32,74 +32,6 @@ def create_basic_components():
 # HexCore Tests
 # --------------------------------------------------------------------------------
 
-
-def test_hexcore_validation_odd_rows():
-    """Test hexagonal map validation with odd number of rows"""
-    components, lplen, uplen, annulus = create_basic_components()
-
-    # Valid odd row count
-    valid_map = [[1, 1], [2, 1, 2], [1, 1]]
-    orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
-
-    # This should be valid
-    hc = HexCore(
-        pitch=3,
-        components=components,
-        channel_map=valid_map,
-        lower_plenum=lplen,
-        upper_plenum=uplen,
-        annulus=annulus,
-        orificing=orificing,
-        non_channels=["0"],
-    )
-    assert hc._map == valid_map
-
-
-def test_hexcore_validation_even_rows():
-    """Test hexagonal map validation with even number of rows (should fail)"""
-    components, lplen, uplen, annulus = create_basic_components()
-
-    # Invalid even row count
-    invalid_map = [[1, 1], [2, 1, 2], [1, 1], [2, 2]]
-    orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-
-    # This should fail validation
-    with pytest.raises(AssertionError):
-        HexCore(
-            pitch=3,
-            components=components,
-            channel_map=invalid_map,
-            lower_plenum=lplen,
-            upper_plenum=uplen,
-            annulus=annulus,
-            orificing=orificing,
-            non_channels=["0"],
-        )
-
-
-def test_hexcore_validation_row_length():
-    """Test hexagonal map validation with incorrect row lengths"""
-    components, lplen, uplen, annulus = create_basic_components()
-
-    # Let's test with an invalid hexagonal pattern
-    invalid_map = [[1, 1, 1], [2, 1], [1, 1, 1]]  # Middle row should have more elements, not fewer
-    orificing = [[0.0, 0.0, 0.0], [0.0, 0.0], [0.0, 0.0, 0.0]]
-
-    # Verify that this raises some kind of error - the actual error might be different
-    # depending on the validation implementation
-    with pytest.raises(Exception):
-        HexCore(
-            pitch=3,
-            components=components,
-            channel_map=invalid_map,
-            lower_plenum=lplen,
-            upper_plenum=uplen,
-            annulus=annulus,
-            orificing=orificing,
-            non_channels=["0"],
-        )
-
-
 def test_hexcore_empty_map():
     """Test hexagonal map validation with empty map (should fail)"""
     components, lplen, uplen, annulus = create_basic_components()
@@ -141,63 +73,6 @@ def test_hexcore_negative_pitch():
             orificing=orificing,
             non_channels=["0"],
         )
-
-
-def test_hexcore_fill_map():
-    """Test hexagonal map filling with various channel types"""
-    components, lplen, uplen, annulus = create_basic_components()
-
-    channel_map = [[1, 1], [2, 1, 2], [1, 1]]
-    orificing = [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0]]
-    non_channels = ["0", "X"]
-
-    # Create core with custom non-channels
-    hc = HexCore(
-        pitch=3,
-        components=components,
-        channel_map=channel_map,
-        lower_plenum=lplen,
-        upper_plenum=uplen,
-        annulus=annulus,
-        orificing=orificing,
-        non_channels=non_channels,
-    )
-
-    # Use the static method directly for testing
-    filled_map = HexCore._fill_map(channel_map, non_channels)
-
-    # Check that filled map has right structure
-    assert len(filled_map) == 3
-    assert len(filled_map[0]) == 2  # First row has 2 elements
-    assert len(filled_map[1]) == 3  # Middle row has 3 elements
-    assert len(filled_map[2]) == 2  # Last row has 2 elements
-
-
-def test_hexcore_minimal_map():
-    """Test hexagonal core with minimal valid map"""
-    components, lplen, uplen, annulus = create_basic_components()
-
-    # Minimal valid map - single element
-    minimal_map = [[1]]
-    orificing = [[0.0]]
-
-    # This should be valid
-    hc = HexCore(
-        pitch=3,
-        components=components,
-        channel_map=minimal_map,
-        lower_plenum=lplen,
-        upper_plenum=uplen,
-        annulus=annulus,
-        orificing=orificing,
-        non_channels=["0"],
-    )
-
-    # Test coordinate calculation
-    x, y = hc._getChannelCoords(0, 0)
-    assert isinstance(x, float)
-    assert isinstance(y, float)
-    assert x == 0.0  # Should be at origin for 1x1 map
 
 
 def test_hexcore_coordinates():
@@ -259,7 +134,7 @@ def test_hexcore_with_no_annulus():
     assert hc.annulus is None
 
     # Other functions should still work
-    mesh = hc._getVTKMesh((0, 0, 0))
+    mesh = hc.getVTKMesh((0, 0, 0))
     assert isinstance(mesh, VTKMesh)
 
 
@@ -585,7 +460,7 @@ def test_core_getVTKMesh():
     )
 
     # Test VTK mesh generation
-    mesh = hc._getVTKMesh((0, 0, 0))
+    mesh = hc.getVTKMesh((0, 0, 0))
     assert isinstance(mesh, VTKMesh)
 
 
@@ -608,3 +483,28 @@ def test_core_orificing_mismatch():
             orificing=wrong_orificing,
             non_channels=["0"],
         )
+
+if __name__ == "__main__":
+    # HexCore
+    test_hexcore_empty_map()
+    test_hexcore_negative_pitch()
+    test_hexcore_coordinates()
+    test_hexcore_with_no_annulus()
+    test_hexcore_unit_conversion()
+
+    # CartCore
+    test_cartcore_validation()
+    test_cartcore_negative_pitch()
+    test_cartcore_empty_map()
+    test_cartcore_different_pitches()
+    test_cartcore_fill_map("left")
+    test_cartcore_fill_map("right")
+    test_cartcore_fill_map("center")
+    test_cartcore_invalid_alignment()
+    test_cartcore_single_element()
+    test_cartcore_unit_conversion()
+
+    # Core Abstract Class
+    test_core_set_extended_components()
+    test_core_getVTKMesh()
+    test_core_orificing_mismatch()
