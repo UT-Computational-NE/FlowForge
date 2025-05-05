@@ -1668,7 +1668,7 @@ class HexCore(Core):
     def __init__(self,
         pitch: float,
         components: Dict,
-        channel_map: List[List[int]],
+        channel_map: List[List[str]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Dict[str, Dict[str, float]] = None,
