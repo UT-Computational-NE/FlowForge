@@ -1558,10 +1558,7 @@ class Core(abc.ABC, ParallelComponents):
             for column, value in enumerate(col):
                 if value is not None:
                     centroid_name = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
-                    # BUG: x and y centroids were flipped on creation, which has rotated all cores by 90 degrees.
-                    #      Large differences ripple downstream, and while not pressing, should be noted and
-                    #      eventually changed.
-                    y_centroid, x_centroid = self._getChannelCoords(row, column)
+                    x_centroid, y_centroid = self._getChannelCoords(row, column)
                     centroids[centroid_name] = [x_centroid, y_centroid]
         return centroids
 
@@ -1702,7 +1699,10 @@ class HexCore(Core):
         # Calculate x-coordinate
         x_coordinate = horizontal_spacing * (column - column_center_index) + x_offset
 
-        return x_coordinate, y_coordinate
+        # BUG: x and y centroids were flipped on creation, which has rotated all cores by 90 degrees.
+                    #      Large differences ripple downstream, and while not pressing, should be noted and
+                    #      eventually changed.
+        return y_coordinate, x_coordinate
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Convert hexagonal core dimensions to the target unit system.
