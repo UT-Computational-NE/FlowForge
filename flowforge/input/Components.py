@@ -1641,6 +1641,7 @@ class HexCore(Core):
      HexCore implements a reactor core with components arranged in a hexagonal pattern,
      where each component is positioned based on a hexagonal grid. The arrangement
      follows a symmetric pattern with a specified pitch (distance between adjacent components).
+
      Parameters
      ----------
      pitch : float
