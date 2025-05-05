@@ -1636,6 +1636,33 @@ class Core(abc.ABC, ParallelComponents):
         """Abstract base method for Core channel coordinates"""
 
 class HexCore(Core):
+    """A hexagonal geometry reactor core component.
+     HexCore implements a reactor core with components arranged in a hexagonal pattern,
+     where each component is positioned based on a hexagonal grid. The arrangement
+     follows a symmetric pattern with a specified pitch (distance between adjacent components).
+     Parameters
+     ----------
+     pitch : float
+         Distance between each of the fuel channels (serial components)
+     components : Dict
+         The collection parallel components which comprise this component.  The structure of
+         this dictionary follows the same convention as :func:`Component.factory`
+     channel_map : List[List[str]]
+         List containing the serial components in the corresponding rings of concentric hexagons
+     lower_plenum : Dict[str, Dict[str,float]]
+         The component specifications for the lower plenum
+         (key: component type, value: component parameters dictionary)
+     upper_plenum : Dict[str, Dict[str,float]]
+         The component specifications for the upper plenum
+         (key: component type, value: component parameters dictionary)
+     annulus : Dict[str, Dict[str,float]], optional
+         The component specifications for the annulus
+         (key: component type, value: component parameters dictionary)
+     orificing : List[List[float]], optional
+         List containing the kloss values associated with serial components in the corresponding rows and
+         columns or concentric rings of the core map - should have the same shape as core map
+     """
+
     def __init__(self,
         pitch: float,
         components: Dict,
