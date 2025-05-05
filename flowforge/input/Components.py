@@ -1637,6 +1637,7 @@ class Core(abc.ABC, ParallelComponents):
 
 class HexCore(Core):
     """A hexagonal geometry reactor core component.
+
      HexCore implements a reactor core with components arranged in a hexagonal pattern,
      where each component is positioned based on a hexagonal grid. The arrangement
      follows a symmetric pattern with a specified pitch (distance between adjacent components).
