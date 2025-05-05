@@ -1532,7 +1532,7 @@ class Core(abc.ABC, ParallelComponents):
         self._core_components = Component.factory(components)
 
         # Validate orificing dimensions if provided
-        if self._orificing is not None:
+        if self._orificing is not None:  # making sure shape of map == shape of orficing
             assert len(self._map) == len(self._orificing)
             assert np.all(len(map_row) == len(orificing_row) for map_row, orificing_row in zip(self._map, self._orificing))
 
@@ -1557,9 +1557,12 @@ class Core(abc.ABC, ParallelComponents):
         for row, col in enumerate(self._map):
             for column, value in enumerate(col):
                 if value is not None:
-                    cname = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
-                    x_centroid, y_centroid = self._getChannelCoords(row, column)
-                    centroids[cname] = [x_centroid, y_centroid]
+                    centroid_name = f"{str(value):s}-{row+ 1:d}-{column +1:d}"
+                    # BUG: x and y centroids were flipped on creation, which has rotated all cores by 90 degrees.
+                    #      Large differences ripple downstream, and while not pressing, should be noted and
+                    #      eventually changed.
+                    y_centroid, x_centroid = self._getChannelCoords(row, column)
+                    centroids[centroid_name] = [x_centroid, y_centroid]
         return centroids
 
     def _create_extended_components(self, centroids: Dict[str, List[float]]) -> Dict[str, Component]:
@@ -1581,23 +1584,23 @@ class Core(abc.ABC, ParallelComponents):
             in the format "value-row-column" corresponding to entries in the centroids dictionary.
         """
         extended_comps = {}
-        for cname, _ in centroids.items():
+        for centroid_name, _ in centroids.items():
             # Parse the component identifier from the name (format: "value-row-column")
-            parts = cname.split("-")
+            parts = centroid_name.split("-")
             component_id = parts[0]
             row = int(parts[1]) - 1
             column = int(parts[2]) - 1
 
             # Apply orificing if specified
-            if self._orificing is not None and component_id in self._core_components:
+            if self._orificing is not None:
                 self._core_components[component_id].addKlossInlet(self._orificing[row][column])
 
             # Create a deep copy of the component
-            extended_comps[cname] = deepcopy(self._core_components[component_id])
+            extended_comps[centroid_name] = deepcopy(self._core_components[component_id])
 
         return extended_comps
 
-    def _getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """Method that returns the VTK mesh for a Core
 
         This method generates a visual representation of the core by calculating the
@@ -1625,7 +1628,6 @@ class Core(abc.ABC, ParallelComponents):
         for channel_name, channel in component_channels.items():
             if channel_name == "plate":
                 core_inlet = channel.getOutlet(core_inlet)
-                break
 
         # Create and return the combined mesh
         mesh = VTKMesh()
@@ -1636,144 +1638,22 @@ class Core(abc.ABC, ParallelComponents):
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Abstract base method for Core channel coordinates"""
 
-    @abc.abstractmethod
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        """Abstract base method for converting units"""
-
-
 class HexCore(Core):
-    """A hexagonal geometry reactor core component.
-
-    HexCore implements a reactor core with components arranged in a hexagonal pattern,
-    where each component is positioned based on a hexagonal grid. The arrangement
-    follows a symmetric pattern with a specified pitch (distance between adjacent components).
-
-    Parameters
-    ----------
-    pitch : float
-        Distance between each of the fuel channels (serial components)
-    components : Dict
-        The collection parallel components which comprise this component.  The structure of
-        this dictionary follows the same convention as :func:`Component.factory`
-    channel_map : List[List[str]]
-        List containing the serial components in the corresponding rings of concentric hexagons
-    lower_plenum : Dict[str, Dict[str,float]]
-        The component specifications for the lower plenum
-        (key: component type, value: component parameters dictionary)
-    upper_plenum : Dict[str, Dict[str,float]]
-        The component specifications for the upper plenum
-        (key: component type, value: component parameters dictionary)
-    annulus : Dict[str, Dict[str,float]], optional
-        The component specifications for the annulus
-        (key: component type, value: component parameters dictionary)
-    orificing : List[List[float]], optional
-        List containing the kloss values associated with serial components in the corresponding rows and
-        columns or concentric rings of the core map - should have the same shape as core map
-    non_channels : List[str], optional
-        The list of non-channels to fill the core map with. Defaults to ["0"] if not provided.
-        This is used to fill the core map with non-channels where needed.
-    """
-
-    def __init__(
-        self,
+    def __init__(self,
         pitch: float,
         components: Dict,
-        channel_map: List[List[str]],
+        channel_map: List[List[int]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
-        annulus: Optional[Dict[str, Dict[str, float]]] = None,
-        orificing: Optional[List[List[float]]] = None,
-        non_channels: Optional[List[str]] = None,
+        annulus: Dict[str, Dict[str, float]] = None,
+        orificing: List[List[float]] = None,
         **kwargs,
     ) -> None:
-        if non_channels is None:
-            non_channels = ["0"]
+
         assert pitch >= 0, f"pitch: {pitch} must be positive"
-        self._validate_hex_map(channel_map)
         self._pitch = pitch
-        filled_map = self._fill_map(channel_map, non_channels)
-        super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
-    @staticmethod
-    def _fill_map(channel_map: List[List[int]], non_channels: List[str]) -> List[List[Optional[str]]]:
-        """Fill a hexagonal core map with components, handling void spaces appropriately.
-
-        This method takes a partially populated hexagonal channel map and fills it
-        with components based on the specified channels. It handles the proper alignment
-        of components in the hexagonal grid, accounting for the specific geometry
-        requirements of hexagonal patterns.
-
-        Parameters
-        ----------
-        channel_map : List[List[int]]
-            The core map to fill with component identifiers
-        non_channels : List[str]
-            The list of identifiers that should not be treated as components
-
-        Returns
-        -------
-        List[List[Optional[str]]]
-            The filled hexagonal core map with None values for positions without components
-        """
-
-        def default_map(num_rows: int) -> List[List[None]]:
-            """Create a default hexagonal map with `num_rows` rows of None."""
-            n = (num_rows - 1) // 2 + 1
-            return [[None for _ in range(n + i)] for i in range(n)] + [
-                [None for _ in range(num_rows - 1 - i)] for i in range(n - 1)
-            ]
-
-        def is_even(n: int) -> bool:
-            """Check if a number is even."""
-            if n % 2 == 0:
-                return True
-            return False
-
-        num_rows = len(channel_map)
-        filled_map = default_map(num_rows)
-        len_map_rows = [(len(filled_map[row]), len(channel_map[row])) for row in range(num_rows)]
-        for row, (len_filled_map_row, len_channel_map_row) in enumerate(len_map_rows):
-            offset = 1 if is_even(len_filled_map_row) and not is_even(len_channel_map_row) else 0
-            start = len_filled_map_row // 2 - len_channel_map_row // 2 - offset
-            stop = start + len_channel_map_row
-            for channel_map_elem, filled_map_elem in enumerate(range(start, stop)):
-                if channel_map[row][channel_map_elem] not in non_channels:
-                    filled_map[row][filled_map_elem] = channel_map[row][channel_map_elem]
-        return filled_map
-
-    @staticmethod
-    def _validate_hex_map(channel_map: List[List[str]]) -> None:
-        """Validate that a channel map conforms to hexagonal geometry requirements.
-
-        This method verifies that the provided channel map is valid for a hexagonal core:
-        - It must not be empty
-        - It must have an odd number of rows to maintain symmetry
-        - Row lengths must follow the hexagonal pattern constraint where each row's
-          length must not exceed the expected pattern [n, n+1, …, 2*n-1, 2*n-2, …, n]
-
-        Parameters
-        ----------
-        channel_map : List[List[str]]
-            The hexagonal map configuration to validate
-
-        Raises
-        ------
-        AssertionError
-            If the channel map does not conform to hexagonal geometry requirements
-        """
-        num_rows = len(channel_map)
-        assert num_rows > 0, "channel_map: must not be empty"
-        assert num_rows % 2 == 1, f"channel_map: must have an odd number of rows, not {num_rows} rows"
-        n = (num_rows + 1) // 2
-        # expected lengths: [n, n+1, …, 2*n-1, 2*n-2, …, n]
-        ascending = list(range(n, 2 * n))
-        descending = list(range(2 * n - 2, n - 1, -1))
-        expected = ascending + descending
-        actual = [len(row) for row in channel_map]
-        for row in range(num_rows):
-            assert (
-                actual[row] <= expected[row]
-            ), f"channel_map: too many elements in row {row+1}: {actual[row]} > {expected[row]}"
+        super().__init__(components, channel_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Calculate the x-y coordinates for a position in the hexagonal core map.
