@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
-from flowforge.input.Components import Component, Nozzle, HexCore
+from flowforge.input.Components import Component, Nozzle, Core
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
@@ -155,12 +155,12 @@ class System:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
-    def core(self) -> HexCore:
+    def core(self) -> Core:
         """
         Returns the core component of the system.
         """
         for comp in self._components:
-            if isinstance(comp, HexCore):
+            if isinstance(comp, Core):
                 return comp
 
         return Exception
