@@ -1530,6 +1530,7 @@ class Core(abc.ABC, ParallelComponents):
         self._map = channel_map
         self._orificing = orificing
         self._core_components = Component.factory(components)
+        self.tmpComponents = self._core_components
 
         # Validate orificing dimensions if provided
         if self._orificing is not None:
@@ -1597,7 +1598,7 @@ class Core(abc.ABC, ParallelComponents):
 
         return extended_comps
 
-    def _getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         """Method that returns the VTK mesh for a Core
 
         This method generates a visual representation of the core by calculating the
@@ -1678,7 +1679,7 @@ class HexCore(Core):
         self,
         pitch: float,
         components: Dict,
-        channel_map: List[List[str]],
+        hexmap: List[List[str]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Optional[Dict[str, Dict[str, float]]] = None,
@@ -1689,10 +1690,10 @@ class HexCore(Core):
         if non_channels is None:
             non_channels = ["0"]
         assert pitch >= 0, f"pitch: {pitch} must be positive"
-        self._validate_hex_map(channel_map)
+        #self._validate_hex_map(channel_map)
         self._pitch = pitch
-        filled_map = self._fill_map(channel_map, non_channels)
-        super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
+        #filled_map = self._fill_map(hexmap, non_channels)
+        super().__init__(components, hexmap, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
     @staticmethod
     def _fill_map(channel_map: List[List[int]], non_channels: List[str]) -> List[List[Optional[str]]]:
@@ -1821,8 +1822,7 @@ class HexCore(Core):
 
         # Calculate x-coordinate
         x_coordinate = horizontal_spacing * (column - column_center_index) + x_offset
-
-        return x_coordinate, y_coordinate
+        return y_coordinate, x_coordinate
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Convert hexagonal core dimensions to the target unit system.
@@ -1832,8 +1832,8 @@ class HexCore(Core):
         """
         self.uc = uc
         self._pitch *= uc.lengthConversion
-        super()._convertUnits(uc)
 
+        ParallelComponents._convertUnits(self, uc)
 
 component_list["hex_core"] = HexCore
 
