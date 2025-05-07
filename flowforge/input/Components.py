@@ -1530,7 +1530,6 @@ class Core(abc.ABC, ParallelComponents):
         self._map = channel_map
         self._orificing = orificing
         self._core_components = Component.factory(components)
-        self.tmpComponents = self._core_components
 
         # Validate orificing dimensions if provided
         if self._orificing is not None:
@@ -1540,6 +1539,10 @@ class Core(abc.ABC, ParallelComponents):
         centroids = self._calculate_centroids()
         extended_comps = self._create_extended_components(centroids)
         super().__init__(extended_comps, centroids, lower_plenum, upper_plenum, annulus, **kwargs)
+
+    @property
+    def core_components(self) -> Dict[str, Component]:
+        return self._core_components
 
     def _calculate_centroids(self) -> Dict[str, List[float]]:
         """Calculate the centroid coordinates for each component in the core map.
@@ -1637,9 +1640,9 @@ class Core(abc.ABC, ParallelComponents):
     def _getChannelCoords(self, row: int, column: int) -> Tuple[float, float]:
         """Abstract base method for Core channel coordinates"""
 
-    @abc.abstractmethod
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        """Abstract base method for converting units"""
+
+# Define the type for the orientation of the hexagonal core
+hex_orientation = Literal["x", "y", "X", "Y"]
 
 
 class HexCore(Core):
@@ -1679,24 +1682,31 @@ class HexCore(Core):
         self,
         pitch: float,
         components: Dict,
-        hexmap: List[List[str]],
+        channel_map: List[List[str]],
         lower_plenum: Dict[str, Dict[str, float]],
         upper_plenum: Dict[str, Dict[str, float]],
         annulus: Optional[Dict[str, Dict[str, float]]] = None,
         orificing: Optional[List[List[float]]] = None,
         non_channels: Optional[List[str]] = None,
+        map_orientation: Optional[hex_orientation] = "x",
         **kwargs,
     ) -> None:
         if non_channels is None:
             non_channels = ["0"]
+        assert map_orientation in ["x", "y", "X", "Y"], f"map_orientation: {map_orientation} must be one of {hex_orientation}"
+        map_orientation = map_orientation.lower()
         assert pitch >= 0, f"pitch: {pitch} must be positive"
-        #self._validate_hex_map(channel_map)
+        self._validate_hex_map(channel_map, map_orientation)
         self._pitch = pitch
-        #filled_map = self._fill_map(hexmap, non_channels)
-        super().__init__(components, hexmap, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
+        filled_map = self._fill_map(channel_map, non_channels, map_orientation)
+        super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
     @staticmethod
-    def _fill_map(channel_map: List[List[int]], non_channels: List[str]) -> List[List[Optional[str]]]:
+    def _fill_map(
+        channel_map: List[List[int]],
+        non_channels: List[str],
+        map_orientation: hex_orientation,
+    ) -> List[List[Optional[str]]]:
         """Fill a hexagonal core map with components, handling void spaces appropriately.
 
         This method takes a partially populated hexagonal channel map and fills it
@@ -1717,12 +1727,24 @@ class HexCore(Core):
             The filled hexagonal core map with None values for positions without components
         """
 
-        def default_map(num_rows: int) -> List[List[None]]:
-            """Create a default hexagonal map with `num_rows` rows of None."""
+        def default_x_map(num_rows: int) -> List[List[None]]:
+            """Create a default x oriented hexagonal map with `num_rows` rows of None."""
             n = (num_rows - 1) // 2 + 1
             return [[None for _ in range(n + i)] for i in range(n)] + [
                 [None for _ in range(num_rows - 1 - i)] for i in range(n - 1)
             ]
+
+        def default_y_map(num_rows: int) -> List[List[None]]:
+            """Create a default y oriented hexagonal map with `num_rows` rows of None."""
+            n = (num_rows - 1) // 4
+            y_map = []
+            # Ascending rows
+            y_map.extend([[None] * k for k in range(1, n + 2)])
+            # Middle alternating rows
+            y_map.extend([[None] * (n if i % 2 == 0 else n + 1) for i in range(2 * n - 1)])
+            # Descending rows
+            y_map.extend([[None] * k for k in range(n + 1, 0, -1)])
+            return y_map
 
         def is_even(n: int) -> bool:
             """Check if a number is even."""
@@ -1731,7 +1753,7 @@ class HexCore(Core):
             return False
 
         num_rows = len(channel_map)
-        filled_map = default_map(num_rows)
+        filled_map = default_x_map(num_rows) if map_orientation == "x" else default_y_map(num_rows)
         len_map_rows = [(len(filled_map[row]), len(channel_map[row])) for row in range(num_rows)]
         for row, (len_filled_map_row, len_channel_map_row) in enumerate(len_map_rows):
             offset = 1 if is_even(len_filled_map_row) and not is_even(len_channel_map_row) else 0
@@ -1743,19 +1765,42 @@ class HexCore(Core):
         return filled_map
 
     @staticmethod
-    def _validate_hex_map(channel_map: List[List[str]]) -> None:
+    def _validate_hex_map(channel_map: List[List[str]], orientation: hex_orientation) -> None:
         """Validate that a channel map conforms to hexagonal geometry requirements.
 
         This method verifies that the provided channel map is valid for a hexagonal core:
         - It must not be empty
         - It must have an odd number of rows to maintain symmetry
         - Row lengths must follow the hexagonal pattern constraint where each row's
-          length must not exceed the expected pattern [n, n+1, …, 2*n-1, 2*n-2, …, n]
+          length must not exceed the expected pattern based on the orientation
 
         Parameters
         ----------
         channel_map : List[List[str]]
             The hexagonal map configuration to validate
+        orientation : orientation
+            The orientation of the hexagonal core, either 'x' or 'y'
+            Y-oriented (pointy-top):
+                [[         1,         ],
+                 [    12,      2,     ],
+                 [11,     13,      3, ],
+                 [    18,     14,     ],
+                 [10,     19,      4, ],
+                 [    17,     15,     ],
+                 [ 9,     16,      5, ],
+                 [     8,      6,     ],
+                 [         7,         ]]
+
+            X-oriented (flat-top):
+                [[     9, 10, 11,     ],
+
+                 [   8, 17, 18, 12,   ],
+
+                 [ 7, 16, 19, 13,  1, ],
+
+                 [   6, 15, 14,  2,   ],
+
+                 [     5,  4,  3,     ]]
 
         Raises
         ------
@@ -1765,11 +1810,23 @@ class HexCore(Core):
         num_rows = len(channel_map)
         assert num_rows > 0, "channel_map: must not be empty"
         assert num_rows % 2 == 1, f"channel_map: must have an odd number of rows, not {num_rows} rows"
-        n = (num_rows + 1) // 2
-        # expected lengths: [n, n+1, …, 2*n-1, 2*n-2, …, n]
-        ascending = list(range(n, 2 * n))
-        descending = list(range(2 * n - 2, n - 1, -1))
-        expected = ascending + descending
+        if orientation == "x":
+            n = (num_rows + 1) // 2
+            # For y-oriented hexagon (flat-top)
+            ascending = list(range(n, 2 * n))
+            descending = list(range(2 * n - 2, n - 1, -1))
+            expected = ascending + descending
+        else:
+            # For x-oriented hexagon (pointy-top)
+            assert (num_rows - 1) % 4 == 0, f"for y orientation, channel_map must have 4n + 1 number of rows (i.e., 1, 5, 9, 13, 17, ...), not {num_rows} rows"
+            n = (num_rows - 1) // 4
+            # Ascending
+            ascending = list(range(1, n + 2))
+            # Middle alternating
+            middle = [n if i % 2 == 0 else n + 1 for i in range(2 * n - 1)]
+            # Descending
+            descending = list(range(n + 1, 0, -1))
+            expected = ascending + middle + descending
         actual = [len(row) for row in channel_map]
         for row in range(num_rows):
             assert (
@@ -1822,18 +1879,17 @@ class HexCore(Core):
 
         # Calculate x-coordinate
         x_coordinate = horizontal_spacing * (column - column_center_index) + x_offset
-        return y_coordinate, x_coordinate
+        return x_coordinate, y_coordinate
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Convert hexagonal core dimensions to the target unit system.
 
-        This method applies unit conversion to the hexagonal core's pitch value
-        and then cascades the conversion to all child components.
+        This method applies unit conversion to the hexagonal core's pitch value,
+        and then calls the parent method.
         """
-        self.uc = uc
         self._pitch *= uc.lengthConversion
+        super()._convertUnits(uc)
 
-        ParallelComponents._convertUnits(self, uc)
 
 component_list["hex_core"] = HexCore
 
@@ -2011,7 +2067,7 @@ class CartCore(Core):
         """Convert Cartesian core dimensions to the target unit system.
 
         This method applies unit conversion to both the x-pitch and y-pitch values
-        of the Cartesian core, then cascades the conversion to all child components.
+        of the Cartesian core, then calls the parent method.
         """
         self._x_pitch *= uc.lengthConversion
         self._y_pitch *= uc.lengthConversion
