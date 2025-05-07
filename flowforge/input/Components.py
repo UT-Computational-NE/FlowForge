@@ -1818,7 +1818,9 @@ class HexCore(Core):
             expected = ascending + descending
         else:
             # For x-oriented hexagon (pointy-top)
-            assert (num_rows - 1) % 4 == 0, f"for y orientation, channel_map must have 4n + 1 number of rows (i.e., 1, 5, 9, 13, 17, ...), not {num_rows} rows"
+            assert (
+                num_rows - 1
+            ) % 4 == 0, f"for y orientation, channel_map must have 4n + 1 number of rows (i.e., 1, 5, 9, 13, 17, ...), not {num_rows} rows"
             n = (num_rows - 1) // 4
             # Ascending
             ascending = list(range(1, n + 2))
