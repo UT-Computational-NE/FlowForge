@@ -45,7 +45,7 @@ def test_hexcore_validation_odd_rows():
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=valid_map,
+        hexmap=valid_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -68,7 +68,7 @@ def test_hexcore_validation_even_rows():
         HexCore(
             pitch=3,
             components=components,
-            channel_map=invalid_map,
+            hexmap=invalid_map,
             lower_plenum=lplen,
             upper_plenum=uplen,
             annulus=annulus,
@@ -91,7 +91,7 @@ def test_hexcore_validation_row_length():
         HexCore(
             pitch=3,
             components=components,
-            channel_map=invalid_map,
+            hexmap=invalid_map,
             lower_plenum=lplen,
             upper_plenum=uplen,
             annulus=annulus,
@@ -113,7 +113,7 @@ def test_hexcore_empty_map():
         HexCore(
             pitch=3,
             components=components,
-            channel_map=empty_map,
+            hexmap=empty_map,
             lower_plenum=lplen,
             upper_plenum=uplen,
             annulus=annulus,
@@ -134,7 +134,7 @@ def test_hexcore_negative_pitch():
         HexCore(
             pitch=-3,
             components=components,
-            channel_map=valid_map,
+            hexmap=valid_map,
             lower_plenum=lplen,
             upper_plenum=uplen,
             annulus=annulus,
@@ -155,7 +155,7 @@ def test_hexcore_fill_map():
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -185,7 +185,7 @@ def test_hexcore_minimal_map():
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=minimal_map,
+        hexmap=minimal_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -210,7 +210,7 @@ def test_hexcore_coordinates():
     hc = HexCore(
         pitch=4.0,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -247,7 +247,7 @@ def test_hexcore_with_no_annulus():
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=None,
@@ -273,7 +273,7 @@ def test_hexcore_unit_conversion():
     hc = HexCore(
         pitch=100,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -530,14 +530,14 @@ def test_core_set_extended_components():
     # Use a simple valid map for HexCore (must have odd number of rows)
     # For a single row, there's a limit to the number of elements, so we'll use
     # a small map that's valid for the HexCore validation
-    channel_map = [[1]]
+    hexmap = [[1]]
     orificing = [[0.1]]
 
     # Create an instance of HexCore
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -576,7 +576,7 @@ def test_core_getVTKMesh():
     hc = HexCore(
         pitch=3,
         components=components,
-        channel_map=channel_map,
+        hexmap=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
@@ -601,7 +601,7 @@ def test_core_orificing_mismatch():
         HexCore(
             pitch=3,
             components=components,
-            channel_map=channel_map,
+            hexmap=channel_map,
             lower_plenum=lplen,
             upper_plenum=uplen,
             annulus=annulus,

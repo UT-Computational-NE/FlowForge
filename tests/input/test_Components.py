@@ -163,7 +163,7 @@ def generate_components():
     hc = HexCore(
         pitch=3,
         components=hexcore_components,
-        channel_map=hexmap,
+        hexmap=hexmap,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
