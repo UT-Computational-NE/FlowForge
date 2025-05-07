@@ -1891,6 +1891,9 @@ class CartCore(Core):
         non_channels: Optional[List[str]] = None,
         y_pitch: Optional[float] = None,
         map_alignment: Optional[Alignment] = "center",
+        # Solid Mesh Specifications
+        solid: Optional[str] = None,
+        solid_component_type: Optional[str] = None,
         **kwargs,
     ) -> None:
 
@@ -1908,7 +1911,43 @@ class CartCore(Core):
         self._center_row = (num_rows - 1) / 2
         self._x_pitch = x_pitch
         self._y_pitch = y_pitch
+        self._map_alignment = map_alignment
+        self._channel_map = channel_map
+        self._filled_map = filled_map
+
+        # Solid Mesh Specifications
+        self._solid = solid
+        self._solid_component_type = solid_component_type
+
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
+
+    @property
+    def xPitch(self):
+        return self._x_pitch
+
+    @property
+    def yPitch(self):
+        return self._y_pitch
+
+    @property
+    def channelMap(self):
+        return self._channel_map
+
+    @property
+    def filledMap(self):
+        return self._filled_map
+
+    @property
+    def mapAlignment(self):
+        return self._map_alignment
+
+    @property
+    def solid(self):
+        return self._solid
+
+    @property
+    def solidComponentType(self):
+        return self._solid_component_type
 
     @staticmethod
     def _fill_map(

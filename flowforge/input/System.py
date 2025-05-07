@@ -155,15 +155,19 @@ class System:
             self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
 
     @property
-    def core(self) -> Core:
+    def core(self) -> List[Core]:
         """
         Returns the core component of the system.
         """
+        cores = []
         for comp in self._components:
             if isinstance(comp, Core):
-                return comp
+                cores.append(comp)
 
-        return Exception
+        if cores == []:
+            return Exception
+        else:
+            return cores
 
     def _setupSimpleLoop(
         self,
