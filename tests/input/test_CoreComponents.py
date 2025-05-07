@@ -107,24 +107,24 @@ def test_hexcore_y_oriented_validation():
     # For the y-orientation in the implementation, row count should be 4n+1
     # Create a valid map with 5 rows (4*1 + 1)
     valid_map = [[1], [1, 1], [1], [1, 1], [1]]
-    
+
     # Test the static method directly
-    HexCore._validate_hex_map(valid_map, 'y')
-    
+    HexCore._validate_hex_map(valid_map, "y")
+
     # Create a valid map with 9 rows (4*2 + 1)
     valid_map_9_rows = [[1], [1, 1], [1], [1, 1], [1], [1, 1], [1], [1, 1], [1]]
-    HexCore._validate_hex_map(valid_map_9_rows, 'y')
-    
+    HexCore._validate_hex_map(valid_map_9_rows, "y")
+
     # Invalid map for y-orientation - doesn't have 4n+1 rows
     invalid_map_7_rows = [[1], [1, 1], [1], [1, 1], [1], [1, 1], [1]]
     with pytest.raises(AssertionError):
-        HexCore._validate_hex_map(invalid_map_7_rows, 'y')
-    
+        HexCore._validate_hex_map(invalid_map_7_rows, "y")
+
     # Create a simple test case that can be instantiated as a HexCore
     # For y-orientation, use a map with 5 rows (4*1 + 1) and matching orificing
     simple_map = [[1], [1, 1], [1], [1, 1], [1]]
     simple_orificing = [[0.0], [0.0, 0.0], [0.0], [0.0, 0.0], [0.0]]
-    
+
     # This should be valid
     hc = HexCore(
         pitch=3,
@@ -135,7 +135,7 @@ def test_hexcore_y_oriented_validation():
         annulus=annulus,
         orificing=simple_orificing,
         non_channels=["0"],
-        map_orientation='y'
+        map_orientation="y",
     )
     assert len(hc._map) == 5
 
