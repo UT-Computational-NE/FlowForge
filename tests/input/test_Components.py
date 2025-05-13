@@ -155,7 +155,7 @@ def generate_components():
 
     hexcore_components = {"pipe": {"1": {"L": 10, "R": 0.1, "n": 5}, "2": {"L": 10, "R": 0.2, "n": 1}}}
     # Modified to conform to hexagonal pattern requirements - n=2 ring: [2,3,2]
-    hexmap = [[1, 1], [2, 1, 2], [1, 1]]
+    channel_map = [[1, 1], [2, 1, 2], [1, 1]]
     lplen = {"nozzle": {"L": 1, "R_inlet": 0.5, "R_outlet": 1.2}}
     uplen = {"nozzle": {"L": 1, "R_inlet": 1.2, "R_outlet": 0.5}}
     annulus = {"annulus": {"L": 10, "R_inner": 1.1, "R_outer": 1.2, "n": 10}}
@@ -163,7 +163,7 @@ def generate_components():
     hc = HexCore(
         pitch=3,
         components=hexcore_components,
-        hexmap=hexmap,
+        channel_map=channel_map,
         lower_plenum=lplen,
         upper_plenum=uplen,
         annulus=annulus,
