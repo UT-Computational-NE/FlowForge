@@ -2063,7 +2063,6 @@ class CartCore(Core):
                                       "variable": "temperature",
                                       "value": 0.0}
             if self._solid_plenum_interactions  != "True":
-                print("HERHEHEHREHRHE")
                 bcs["Top_bc"] = {"boundary_type": "AdiabaticBC",
                                  "surface": "Top",
                                  "variable": "temperature",
