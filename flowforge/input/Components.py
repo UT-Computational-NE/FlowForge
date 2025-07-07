@@ -2089,14 +2089,14 @@ class CartCore(Core):
                                     "value": self._solid_bc_temperature}
 
         # Body Forces
-        if (self._solid_power_density != None):
+        if self._solid_power_density is not None:
             bfs["power"] = {"function_type": "InternalHeatGenerationBF",
                             "variable": "temperature",
                             "value": str(self._solid_power_density)}
 
         # Wall Functions
         def _getWFs(input_wfs):
-            assert type(input_wfs) == dict, "Must input the wall functions as a dict-type."
+            assert isinstance(input_wfs, dict), "Must input the wall functions as a dict-type."
             wfs = {}
             for surface, value in wfs.items():
                 wfs[surface+"_wf"] = {"function_type": "HeatFluxWallFunction",
@@ -2105,7 +2105,7 @@ class CartCore(Core):
                                       "value": str(value)}
             return wfs
 
-        if (self._solid_outer_heat_flux != None):
+        if self._solid_outer_heat_flux is not None:
             wfs = _getWFs(self._solid_outer_heat_flux)
 
         return bcs, bfs, wfs

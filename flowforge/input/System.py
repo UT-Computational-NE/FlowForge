@@ -164,10 +164,9 @@ class System:
             if isinstance(comp, Core):
                 cores.append(comp)
 
-        if cores == []:
+        if not cores:
             return Exception
-        else:
-            return cores
+        return cores
 
     def _setupSimpleLoop(
         self,
