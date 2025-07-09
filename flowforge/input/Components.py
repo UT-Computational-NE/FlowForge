@@ -1845,6 +1845,30 @@ class CartCore(Core):
         Defaults to the same value as x_pitch if not provided.
     map_alignment : {"left", "right", "center"}, optional
         The horizontal alignment strategy for the map. Defaults to "center".
+    solid: string, optional
+        Type of solid used for the core. Is used to define the solid properties of the core. If
+        'None', the code assumes no solid-physics is active
+    solid_component_type: string, optional
+        The name of the type of solid-component used to create the core. This parameter determines which
+        solid-mesh class should be used to create the core, and is temporary and should only be included
+        until solid-compoents have been added to the system
+    solid_bc_type : {"Adiabatic", "Dirichlet"}, optional
+        Defines the type of boundary condition to be used for the outside of the solid, the user choosing
+        between a Dirchlet or Adiabatic boundary condition
+    solid_bc_temperature : float, optional
+        If the user defines the outer boundary to have a Dirichlet BC, then this parameter must be input
+        to define what that fixed temperature is
+    solid_power_density : string, optional
+        Defines the spatially-dependent q''' within the solid-core [W/m^3]. If not set, the power is assumed
+        to be 0
+    solid_outer_heat_flux : dict[string, string], optional
+        Defines the heat-flux at the surfaces of the solid. The user must input this a dict, with the key
+        being the surface name {"North", "South", "East", "West", "Top", "Bottom"}, and the value being
+        the q'' function
+    solid_plenum_interactions : string, optional
+        A string-boolean {"True", "False"} which can deavtaivte the heat-transfer interactions between the
+        upper and lower plenum and the top and bottom of the solid-core, respectivly. This is defaulted to
+        being in the active ("True") state
     """
 
     Alignment: TypeAlias = Literal["right", "left", "center"]
@@ -1867,10 +1891,10 @@ class CartCore(Core):
         solid_component_type: Optional[str] = None,
 
         # Solid Physics
-        solid_bc_type = "Adiabatic",
+        solid_bc_type: Optional[str] = "Adiabatic",
         solid_bc_temperature: Optional[float] = None,
-        solid_power_density: Optional[float] = None,
-        solid_outer_heat_flux: Optional[Dict[str, float]] = None,
+        solid_power_density: Optional[str] = None,
+        solid_outer_heat_flux: Optional[Dict[str, str]] = None,
         solid_plenum_interactions: Optional[str] = "True",
 
         **kwargs,
