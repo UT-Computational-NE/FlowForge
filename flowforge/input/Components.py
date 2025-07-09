@@ -1458,6 +1458,8 @@ class ParallelComponents(ComponentCollection):
         mesh = VTKMesh()
         mesh += self._lowerPlenum.getVTKMesh(inlet)
         inlet2 = self._lowerPlenum.getOutlet(inlet)
+        mesh += self._lowerNozzle.getVTKMesh(inlet2)
+        mesh += self._lowerManifold.getVTKMesh(inlet2)
         if self._annulus is not None:
             mesh += self._annulus.getVTKMesh(inlet2)
         for cname, centroid in self._centroids.items():
@@ -1470,6 +1472,8 @@ class ParallelComponents(ComponentCollection):
             )
             mesh += self._myParallelComponents[cname].getVTKMesh(i)
         inlet2 = list(self._myParallelComponents.items())[0][1].getOutlet(inlet2)
+        mesh += self._upperManifold.getVTKMesh(inlet2)
+        mesh += self._upperNozzle.getVTKMesh(inlet2)
         mesh += self._upperPlenum.getVTKMesh(inlet2)
         return mesh
 
@@ -1841,6 +1845,30 @@ class CartCore(Core):
         Defaults to the same value as x_pitch if not provided.
     map_alignment : {"left", "right", "center"}, optional
         The horizontal alignment strategy for the map. Defaults to "center".
+    solid: string, optional
+        Type of solid used for the core. Is used to define the solid properties of the core. If
+        'None', the code assumes no solid-physics is active
+    solid_component_type: string, optional
+        The name of the type of solid-component used to create the core. This parameter determines which
+        solid-mesh class should be used to create the core, and is temporary and should only be included
+        until solid-compoents have been added to the system
+    solid_bc_type : {"Adiabatic", "Dirichlet"}, optional
+        Defines the type of boundary condition to be used for the outside of the solid, the user choosing
+        between a Dirchlet or Adiabatic boundary condition
+    solid_bc_temperature : float, optional
+        If the user defines the outer boundary to have a Dirichlet BC, then this parameter must be input
+        to define what that fixed temperature is
+    solid_power_density : string, optional
+        Defines the spatially-dependent q''' within the solid-core [W/m^3]. If not set, the power is assumed
+        to be 0
+    solid_outer_heat_flux : dict[string, string], optional
+        Defines the heat-flux at the surfaces of the solid. The user must input this a dict, with the key
+        being the surface name {"North", "South", "East", "West", "Top", "Bottom"}, and the value being
+        the q'' function
+    solid_plenum_interactions : string, optional
+        A string-boolean {"True", "False"} which can deavtaivte the heat-transfer interactions between the
+        upper and lower plenum and the top and bottom of the solid-core, respectivly. This is defaulted to
+        being in the active ("True") state
     """
 
     Alignment: TypeAlias = Literal["right", "left", "center"]
@@ -1857,6 +1885,18 @@ class CartCore(Core):
         non_channels: Optional[List[str]] = None,
         y_pitch: Optional[float] = None,
         map_alignment: Optional[Alignment] = "center",
+
+        # Solid Mesh Specifications
+        solid: Optional[str] = None,
+        solid_component_type: Optional[str] = None,
+
+        # Solid Physics
+        solid_bc_type: Optional[str] = "Adiabatic",
+        solid_bc_temperature: Optional[float] = None,
+        solid_power_density: Optional[str] = None,
+        solid_outer_heat_flux: Optional[Dict[str, str]] = None,
+        solid_plenum_interactions: Optional[str] = "True",
+
         **kwargs,
     ) -> None:
 
@@ -1874,7 +1914,69 @@ class CartCore(Core):
         self._center_row = (num_rows - 1) / 2
         self._x_pitch = x_pitch
         self._y_pitch = y_pitch
+        self._map_alignment = map_alignment
+        self._channel_map = channel_map
+        self._filled_map = filled_map
+
+        # Solid Mesh Specifications
+        self._solid = solid
+        self._solid_component_type = solid_component_type
+
+        # Solid physics
+        self._solid_bc_type = solid_bc_type
+        self._solid_bc_temperature = solid_bc_temperature
+        self._solid_power_density = solid_power_density
+        self._solid_outer_heat_flux = solid_outer_heat_flux
+        self._solid_plenum_interactions = solid_plenum_interactions
+
+        self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = \
+            self._getSoldBoundariesAndControllers()
+
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
+
+    @property
+    def xPitch(self):
+        return self._x_pitch
+
+    @property
+    def yPitch(self):
+        return self._y_pitch
+
+    @property
+    def channelMap(self):
+        return self._channel_map
+
+    @property
+    def filledMap(self):
+        return self._filled_map
+
+    @property
+    def mapAlignment(self):
+        return self._map_alignment
+
+    @property
+    def solid(self):
+        return self._solid
+
+    @property
+    def solidComponentType(self):
+        return self._solid_component_type
+
+    @property
+    def solidBoundaryConditions(self):
+        return self._solid_boundary_conditions
+
+    @property
+    def solidBodyForces(self):
+        return self._solid_body_forces
+
+    @property
+    def solidWallFunctions(self):
+        return self._solid_wall_functions
+
+    @property
+    def solidPlenumInteractionsActive(self):
+        return self._solid_plenum_interactions
 
     @staticmethod
     def _fill_map(
@@ -1972,6 +2074,65 @@ class CartCore(Core):
         x_centroid = (column - self._center_column) * self._x_pitch
         y_centroid = -(row - self._center_row) * self._y_pitch
         return x_centroid, y_centroid
+
+    def _getSoldBoundariesAndControllers(self):
+        bcs, bfs, wfs = {}, {}, {}
+
+        # Boundary Conditions
+        assert self._solid_bc_type is not None, "Error: Must input a boundary type for the outer core {Adiabatic, Dirichlet}"
+        if self._solid_bc_type.casefold() == ("Adiabatic").casefold():
+            for surface in ["North", "South", "East", "West"]:
+                bcs[surface+"_bc"] = {"boundary_type": "AdiabaticBC",
+                                      "surface": surface,
+                                      "variable": "temperature",
+                                      "value": 0.0}
+            if self._solid_plenum_interactions  != "True":
+                bcs["Top_bc"] = {"boundary_type": "AdiabaticBC",
+                                 "surface": "Top",
+                                 "variable": "temperature",
+                                 "value": 0.0}
+                bcs["Bottom_bc"] = {"boundary_type": "AdiabaticBC",
+                                    "surface": "Bottom",
+                                    "variable": "temperature",
+                                    "value": 0.0}
+        elif self._solid_bc_type.casefold() == ("Dirichlet").casefold():
+            assert self._solid_bc_temperature is not None, "Must input an outer temperature for a Dirichlet boundary"
+            for surface in ["North", "South", "East", "West"]:
+                bcs[surface+"_bc"] = {"boundary_type": "FixedSurfaceBC",
+                                      "surface": surface,
+                                      "variable": "temperature",
+                                      "value": self._solid_bc_temperature}
+            if self._solid_plenum_interactions != "True":
+                bcs["Top_bc"] = {"boundary_type": "FixedSurfaceBC",
+                                 "surface": "Top",
+                                 "variable": "temperature",
+                                 "value": self._solid_bc_temperature}
+                bcs["Bottom_bc"] = {"boundary_type": "FixedSurfaceBC",
+                                    "surface": "Bottom",
+                                    "variable": "temperature",
+                                    "value": self._solid_bc_temperature}
+
+        # Body Forces
+        if self._solid_power_density is not None:
+            bfs["power"] = {"function_type": "InternalHeatGenerationBF",
+                            "variable": "temperature",
+                            "value": str(self._solid_power_density)}
+
+        # Wall Functions
+        def _getWFs(input_wfs):
+            assert isinstance(input_wfs, dict), "Must input the wall functions as a dict-type."
+            wfs = {}
+            for surface, value in wfs.items():
+                wfs[surface+"_wf"] = {"function_type": "HeatFluxWallFunction",
+                                      "variable": "temperature",
+                                      "surface": surface,
+                                      "value": str(value)}
+            return wfs
+
+        if self._solid_outer_heat_flux is not None:
+            wfs = _getWFs(self._solid_outer_heat_flux)
+
+        return bcs, bfs, wfs
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """Convert Cartesian core dimensions to the target unit system.
