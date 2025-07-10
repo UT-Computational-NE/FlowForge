@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Generator, Optional, Literal, TypeAlias
-from six import add_metaclass
+import abc
 import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
@@ -28,6 +28,21 @@ class SolidComponent:
 
     @property
     def nCells(self) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
         raise NotImplementedError
 
 class HexagonalPrism(SolidComponent):
@@ -89,6 +104,12 @@ class Cuboid(SolidComponent):
     @property
     def nCells(self) -> int:
         return self._n_cells
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        self._length *= uc.lengthConversion
+        self._width  *= uc.lengthConversion
+        self._height *= uc.lengthConversion
+        self._volume *= uc.volumeConversion
 
 class CuboidWithChannel(Cuboid):
     """
@@ -166,3 +187,9 @@ class CuboidWithChannel(Cuboid):
     @property
     def hydraulicDiameter(self):
         return self._hydraulic_diameter
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        super()._convertUnits(uc)
+        self._fluid_area *= uc.areaConversion
+        self._wetted_perimeter *= uc.lengthConversion
+        self._hydraulic_diameter *= uc.lengthConversion
