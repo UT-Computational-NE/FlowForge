@@ -1458,8 +1458,6 @@ class ParallelComponents(ComponentCollection):
         mesh = VTKMesh()
         mesh += self._lowerPlenum.getVTKMesh(inlet)
         inlet2 = self._lowerPlenum.getOutlet(inlet)
-        mesh += self._lowerNozzle.getVTKMesh(inlet2)
-        mesh += self._lowerManifold.getVTKMesh(inlet2)
         if self._annulus is not None:
             mesh += self._annulus.getVTKMesh(inlet2)
         for cname, centroid in self._centroids.items():
@@ -1472,8 +1470,6 @@ class ParallelComponents(ComponentCollection):
             )
             mesh += self._myParallelComponents[cname].getVTKMesh(i)
         inlet2 = list(self._myParallelComponents.items())[0][1].getOutlet(inlet2)
-        mesh += self._upperManifold.getVTKMesh(inlet2)
-        mesh += self._upperNozzle.getVTKMesh(inlet2)
         mesh += self._upperPlenum.getVTKMesh(inlet2)
         return mesh
 
