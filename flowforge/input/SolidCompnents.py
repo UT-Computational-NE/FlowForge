@@ -4,6 +4,9 @@ import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 
+from flowforge.input.Components import CrossSection, CircularCrossSection, RectangularCrossSection, SquareCrossSection, \
+                                       StadiumCrossSection, cross_section_classes, cross_section_param_lists
+
 """
 The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
@@ -96,3 +99,17 @@ class ChannelCuboid(Cuboid):
     n_cells : number of cells in the cuboid
     ???
     """
+    def __init__(self,
+                 length,
+                 width,
+                 height,
+                 n_cells = 1,
+                 pipe_cross_section_type: str = "circular",
+                 **kwargs):
+        super().__init__(length, width, height, n_cells)
+        self._cross_section = cross_section_classes[pipe_cross_section_type](
+            **{k: v for k, v in kwargs.items() if k in cross_section_param_lists[pipe_cross_section_type]}
+        )
+        self._Ac = self._cross_section.flow_area
+        self._Pw = self._cross_section.wetted_perimeter
+        self._Dh = self._cross_section.hydraulic_diameter
