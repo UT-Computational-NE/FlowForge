@@ -10,12 +10,6 @@ from flowforge import UnitConverter
 unit_dict = {"length": "cm"}
 uc = UnitConverter(unit_dict)
 
-def _computeDh(flow_area, wetted_perimeter):
-    return 4 * flow_area / wetted_perimeter
-
-def _computeVolumeWithPipe(length, width, height, fluid_area):
-    return (length * width * height) - (fluid_area * height)
-
 def test_Cuboid():
     # Inputs
     length  = 10.0     # m
@@ -56,6 +50,14 @@ def test_CuboidWithChannel():
     A = 3.81  # m
     W = 2.0   # m
     H = 3.8   # m
+
+    def _computeDh(flow_area, wetted_perimeter):
+        """ Dh := 4A/P """
+        return 4 * flow_area / wetted_perimeter
+
+    def _computeVolumeWithPipe(length, width, height, fluid_area):
+        """ V := V_solid - V_channel """
+        return (length * width * height) - (fluid_area * height)
 
     # Create objects
     circle = CuboidWithChannel(
