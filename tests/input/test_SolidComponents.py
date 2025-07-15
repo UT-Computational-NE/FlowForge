@@ -3,7 +3,11 @@ from numpy import pi, isclose
 from flowforge.input.SolidComponents import (
     Cuboid,
     CuboidWithChannel,
-    HexagonalPrism
+    HexagonalPrism,
+    SolidEncasedPipe
+)
+from flowforge.input.Components import (
+    Pipe
 )
 from flowforge import UnitConverter
 
@@ -61,16 +65,16 @@ def test_CuboidWithChannel():
 
     # Create objects
     circle = CuboidWithChannel(
-        length, width, height, n_cells, "circular",
+        length, width, height, n_cells, pipe_cross_section_type="circular",
         **{"R": R})
     stadium = CuboidWithChannel(
-        length, width, height, n_cells, "stadium",
+        length, width, height, n_cells, pipe_cross_section_type="stadium",
         **{"R": R, "A": A})
     square = CuboidWithChannel(
-        length, width, height, n_cells, "square",
+        length, width, height, n_cells, pipe_cross_section_type="square",
         **{"W": W})
     rectangle = CuboidWithChannel(
-        length, width, height, n_cells, "rectangular",
+        length, width, height, n_cells, pipe_cross_section_type="rectangular",
         **{"W": W, "H": H})
 
     # Base units
@@ -121,6 +125,46 @@ def test_CuboidWithChannel():
     assert isclose(rectangle.fluidCrossSectionalArea, (0.01**2) * W * H)
     assert isclose(rectangle.wettedPerimeter, 0.01 * (2 * W + 2 * H))
 
+def test_SolidEncasedPipe():
+    # Cuboid dimensions
+    length  = 10.0     # m
+    width   = 15.3     # m
+    height  = 11.1243  # m
+    n_cells = 12
+
+    # Pipe dimensions
+    CX_type = "circular"
+    R = 1.123 # m
+
+    # Base objects
+    pipe             = Pipe(L=height, cross_section_name=CX_type, n=n_cells, R=R)
+    cuboid           = Cuboid(length, width, height, n_cells)
+    channeled_cuboid = CuboidWithChannel(length, width, height, n_cells,
+                                         pipe_cross_section_type=CX_type, R=R)
+
+    # Test objects
+    encasedPipe_noChannel   = SolidEncasedPipe(pipe=pipe, components={"1": cuboid}, order=["1"])
+    encasedPipe_withChannel = SolidEncasedPipe(pipe=pipe, components={"1": channeled_cuboid}, order=["1"])
+
+    assert all(isinstance(comp, CuboidWithChannel) for comp in encasedPipe_noChannel.baseComponents)
+    assert all(isinstance(comp, CuboidWithChannel) for comp in encasedPipe_withChannel.baseComponents)
+    assert all(c1.volume == c2.volume for c1, c2 in zip(encasedPipe_noChannel.baseComponents,
+                                                        encasedPipe_noChannel.baseComponents))
+
+    # Test SolidEncasedPipe with multiple input components, both with and without channels pre-built
+    multi_components = {}
+    order = []
+    encasedPipe_multiSegment = SolidEncasedPipe(pipe       = pipe,
+                                                components = multi_components,
+                                                order      = order)
+
+def test_SolidCore():
+
+
+    return
+
 if __name__ == "__main__":
     test_Cuboid()
     test_CuboidWithChannel()
+    test_SolidEncasedPipe()
+    test_SolidCore

@@ -1,11 +1,14 @@
 from typing import List, Dict, Tuple, Generator, Optional, Literal, TypeAlias
 import abc
 import numpy as np
+import inspect
+
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 
 from flowforge.input.Components import cross_section_classes, cross_section_param_lists
-from flowforge.input.Components import Core
+from flowforge.input.Components import Core as FluidCore
+from flowforge.input.Components import Pipe
 
 """
 The components dictionary provides a key, value pair of each type of component.
@@ -145,15 +148,15 @@ class Cuboid(SolidComponent):
                  length         : float,
                  width          : float,
                  height         : float,
-                 n_cells        : int = 1,
-                 solid_material : str = "graphite"
+                 nCells        : int = 1,
+                 solidMaterial : str = "graphite"
                  ) -> None:
         # Basic Parameters
         self._length  = length
         self._width   = width
         self._height  = height
-        self._n_cells = n_cells
-        self._solid_material = solid_material
+        self._n_cells = nCells
+        self._solid_material = solidMaterial
         super().__init__()
         # Derived Parameters
         self._volume = self._length * self._width * self._height
@@ -227,14 +230,22 @@ class CuboidWithChannel(Cuboid):
                  n_cells                 : int = 1,
                  solid_material          : str = "graphite",
                  pipe_cross_section_type : str = "circular",
+                 pipe_flow_area          : float = None,
+                 pipe_hydraulic_diameter : float = None,
                  **kwargs
                  ) -> None:
         super().__init__(length, width, height, n_cells, solid_material)
         # Pipe cross-sectional data
-        self._cross_section = self._getChannelCrossSectionData(pipe_cross_section_type, **kwargs)
-        self._fluid_area = self._cross_section.flow_area
-        self._wetted_perimeter = self._cross_section.wetted_perimeter
-        self._hydraulic_diameter = self._cross_section.hydraulic_diameter
+        if (pipe_flow_area is None) and (pipe_hydraulic_diameter is None):
+            cross_section = self._getChannelCrossSectionData(pipe_cross_section_type, **kwargs)
+            self._fluid_area         = cross_section.flow_area
+            self._wetted_perimeter   = cross_section.wetted_perimeter
+            self._hydraulic_diameter = cross_section.hydraulic_diameter
+        else:
+            assert (pipe_flow_area is not None) and (pipe_hydraulic_diameter is not None)
+            self._fluid_area         = pipe_flow_area
+            self._hydraulic_diameter = pipe_hydraulic_diameter
+            self._wetted_perimeter   = 4.0 * pipe_flow_area / pipe_hydraulic_diameter
         # Adjusts block volume due to a carving out of the pipe from the solid
         self.volume = self.volume - (self.fluidCrossSectionalArea * self.height)
 
@@ -315,12 +326,12 @@ class SolidComponentCollection(SolidComponent):
         """Method for retrieving the base components (components that are not Component collections)
         of a component collection"""
         base_components = []
-        for component in self.myComponents.values():
+        for component in self.components.values():
             base_components.extend(component.baseComponents)
         return base_components
 
     def getNodeGenerator(self) -> Generator[SolidComponent, None, None]:
-        yield from [component.getNodeGenerator() for component in self._myComponents.values()]
+        yield from [component.getNodeGenerator() for component in self.components.values()]
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         for component in self.components.values():
@@ -352,6 +363,50 @@ class SerialSolidComponents(SolidComponentCollection):
     def height(self) -> float:
         return sum(component.height for component in self.components.values())
 
+class SolidEncasedPipe(SerialSolidComponents):
+    """
+    A single pipe encased within a solid structure.
+
+    Parameters
+    ----------
+    """
+    def __init__(self,
+                 pipe : Pipe, # TODO: make this a Dict[str, Pipe] w/ an order
+                 components: Dict[str, SolidComponent],
+                 order: List[str],
+                 **kwargs
+                 ) -> None:
+        input_components = self._addChannelToSolidComponent(components, pipe)
+        super().__init__(input_components, order, **kwargs)
+
+    def _addChannelToSolidComponent(self,
+                                    components: Dict[str, SolidComponent],
+                                    pipe: Pipe
+                                    ) -> Dict[str, SolidComponent]:
+        channeled_components = {}
+        channeled_solid_types = [CuboidWithChannel]
+        for name, comp in components.items():
+            if any(isinstance(comp, channel_comp) for channel_comp in channeled_solid_types):
+                channeled_components[name] = comp
+            else:
+                channeled_components[name] = self._carveChannelIntoBlock(comp, pipe)
+        return channeled_components
+
+    def _carveChannelIntoBlock(self, component: SolidComponent, pipe: Pipe):
+        solid_to_channeled_solid = {Cuboid: CuboidWithChannel}
+        # Extract input parameters from non-channeled object
+        comp_parameters  = inspect.signature(component.__class__.__init__).parameters
+        input_parameters = {name: getattr(component, name)
+                            for name in comp_parameters
+                            if name != 'self'}
+        # Create new channeled objects
+        channeled_component = solid_to_channeled_solid[type(component)](
+            **input_parameters,
+            pipe_flow_area=pipe.flowArea,
+            pipe_hydraulic_diameter=pipe.hydraulicDiameter
+        )
+        return channeled_component
+
 class ParallelSolidComponents(SolidComponentCollection):
     """
     A collection of components formed in parallel, with components being added
@@ -378,13 +433,63 @@ class SolidCore(ParallelSolidComponents):
 
     Parameters
     ----------
+    (Fluid-Side)
+    fluid_core : "Core" type from the fluid components. This input is required and many of the
+                core specifics will come from this object
+    (Solid-Side)
+    solid_components : a dict of SolidComponent object that could be used as blocks in the core
+    solid_component_map : maps the components in "solid_components" to specific spots in space
+    fluid_pipe_map : A 1:1 map with "solid_component_map" that specifies where in "solid_component_map"
+                the pipes are, relative to the solid blocks.
+    solid_material : if "solid_component_map" is not specified, this input is required to create a uniform
+                core with each block having the same solid properties
+    offset : A vector of the <x, y, z> offsets between the center of the fluid and solid cores, using the
+                center of the fluid core as the reference origin (0,0,0)
     """
     def __init__(self,
                  # Input Fluid Component
-                 fluid_core: Core,
+                 fluid_core          : FluidCore,
                  # Optional Solid Specifications
-                 solid_components: Optional[Dict[str, SolidComponent]] = None,
-                 solid_component_map: Optional[List[List[str]]] = None,
-                 fluid_pipe_map: Optional[List[List[str]]] = None,
+                 solid_components    : Optional[Dict[str, SolidComponent]] = None,
+                 solid_component_map : Optional[List[List[str]]] = None,
+                 fluid_pipe_map      : Optional[List[List[str]]] = None,
+                 solid_material      : Optional[str] = None,
+                 offset              : Optional[Tuple[int, int, int]] = (0,0,0)
                  ) -> None:
+
         super().__init__(components, component_map)
+
+    def _getSolidAndFluidMaps(fluid_core_map : List[List[str]], # From FluidCore object
+                              fluid_map      : Optional[List[List[str]]] = None,
+                              solid_map      : Optional[List[List[str]]] = None):
+        # If neither a fluid or solid map are input, derive a solid map from the fluid-core map
+        if (fluid_map is None) and (solid_map is None):
+            solid_map = [["_" for _ in range(len(f))] for f in fluid_core_map]
+            return fluid_core_map, solid_map
+
+        # If there is no input fluid map, ensure that the original input map is sufficient
+        if (fluid_map is None) and (solid_map is not None):
+            assert len(fluid_core_map) == len(solid_map)
+            assert all(len(f) == len(s) for f, s in zip(fluid_core_map, solid_map))
+            return fluid_core_map, solid_map
+
+        # If there is no input solid map, create it based off fluid_map
+        if (fluid_map is not None) and (solid_map is None):
+            solid_map = [["_" for _ in range(len(f))] for f in fluid_map]
+
+        # Ensure that user-input maps for the fluid and solid components are the same size
+        assert len(fluid_map) == len(solid_map)
+        assert all(len(f) == len(s) for f, s in zip(fluid_map, solid_map))
+
+        # Check if the input map is the same as the one defined by the FluidCore
+        if fluid_core_map == fluid_map:
+            return fluid_map, solid_map
+
+        # TODO: Allow for the user to have the input map NOT match the one from FluidCore.
+        #       `-> This will allow for more complex solid-mesh geometries and more refined
+        #           meshing
+        raise NotImplementedError
+
+
+    def _checkValidInputs(self, **inputs):
+        return
