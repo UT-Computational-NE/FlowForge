@@ -1544,6 +1544,10 @@ class Core(abc.ABC, ParallelComponents):
     def components(self) -> Dict[str, Component]:
         return self._components
 
+    @property
+    def componentMap(self):
+        return self._map
+
     def _calculate_centroids(self) -> Dict[str, List[float]]:
         """Calculate the centroid coordinates for each component in the core map.
 
