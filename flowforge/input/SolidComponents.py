@@ -48,6 +48,10 @@ class SolidComponent:
         For components that are not collections, this will be itself"""
         return [self]
 
+    @property
+    def hasChannel(self):
+        return False
+
     def getNodeGenerator(self):
         """Generator for marching over the nodes (i.e. cells) of a component
 
@@ -243,7 +247,8 @@ class Cuboid(SolidComponent):
                  "Material": self.solidMaterial,
                  "N-Cells": self.nCells},
             "General":
-                {"Total Volume": self.volume}
+                {"Total Volume": self.volume,
+                 "Height": H}
         }
 
         return summary_dict
@@ -339,6 +344,10 @@ class CuboidWithChannel(Cuboid):
     @property
     def hydraulicDiameter(self):
         return self._hydraulic_diameter
+
+    @property
+    def hasChannel(self):
+        return True
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         super()._convertUnits(uc)
@@ -532,14 +541,16 @@ class SolidCore(ParallelSolidComponents):
             raise Exception("Need to implement fluid/solid core offset functionality")
 
         # Validating the solid and fluid maps
-        self._fluid_pipe_map, solid_component_map = self._getSolidAndFluidMaps(
+        self._fluid_pipe_map, self._solid_component_map = self._formatSolidAndFluidMaps(
             fluid_pipe_map, solid_component_map)
 
         # Reformating the solid component list and map
-        solid_component_map, solid_components = self._reformatSolidMap(
-            solid_component_map, solid_components)
-        self._solid_component_map = solid_component_map
-        self._solid_components    = solid_components
+        solid_components = self._checkAndReformatSolidComponents(
+            self._solid_component_map,
+            self._fluid_pipe_map,
+            solid_components)
+
+        self._solid_components = solid_components
 
         super().__init__(solid_components, solid_component_map)
 
@@ -571,51 +582,176 @@ class SolidCore(ParallelSolidComponents):
     def fluidPipeMap(self):
         return self._fluid_pipe_map
 
-    def _getSolidAndFluidMaps(self,
-                              fluid_map : Optional[List[List[str]]] = None,
-                              solid_map : Optional[List[List[str]]] = None):
-        fluid_core_map = self.fluidCore.channelMap
-        # If neither a fluid or solid map are input, derive a solid map from the fluid-core map
-        if (fluid_map is None) and (solid_map is None):
-            solid_map = [["_" for _ in range(len(f))] for f in fluid_core_map]
-            return fluid_core_map, solid_map
+    # def _getSolidAndFluidMaps(self,
+    #                           fluid_map : Optional[List[List[str]]] = None,
+    #                           solid_map : Optional[List[List[str]]] = None):
+    #     fluid_core_map = self.fluidCore.channelMap
+    #     # If neither a fluid or solid map are input, derive a solid map from the fluid-core map
+    #     if (fluid_map is None) and (solid_map is None):
+    #         solid_map = [["_" for _ in range(len(f))] for f in fluid_core_map]
+    #         return fluid_core_map, solid_map
 
-        # If there is no input fluid map, ensure that the original input map is sufficient
-        if (fluid_map is None) and (solid_map is not None):
-            assert len(fluid_core_map) == len(solid_map)
-            assert all(len(f) == len(s) for f, s in zip(fluid_core_map, solid_map))
-            return fluid_core_map, solid_map
+    #     # If there is no input fluid map, ensure that the original input map is sufficient
+    #     if (fluid_map is None) and (solid_map is not None):
+    #         assert len(fluid_core_map) == len(solid_map)
+    #         assert all(len(f) == len(s) for f, s in zip(fluid_core_map, solid_map))
+    #         return fluid_core_map, solid_map
 
-        # If there is no input solid map, create it based off fluid_map
-        if (fluid_map is not None) and (solid_map is None):
-            solid_map = [["_" for _ in range(len(f))] for f in fluid_map]
+    #     # If there is no input solid map, create it based off fluid_map
+    #     if (fluid_map is not None) and (solid_map is None):
+    #         solid_map = [["_" for _ in range(len(f))] for f in fluid_map]
 
-        # Ensure that user-input maps for the fluid and solid components are the same size
-        assert len(fluid_map) == len(solid_map)
-        assert all(len(f) == len(s) for f, s in zip(fluid_map, solid_map))
+    #     # Ensure that user-input maps for the fluid and solid components are the same size
+    #     assert len(fluid_map) == len(solid_map)
+    #     assert all(len(f) == len(s) for f, s in zip(fluid_map, solid_map))
 
-        # Check if the input map is the same as the one defined by the FluidCore
-        if fluid_core_map == fluid_map:
-            return fluid_map, solid_map
+    #     # Check if the input map is the same as the one defined by the FluidCore
+    #     if fluid_core_map == fluid_map:
+    #         return fluid_map, solid_map
 
-        # TODO: Allow for the user to have the input map NOT match the one from FluidCore.
-        #       `-> This will allow for more complex solid-mesh geometries and more refined
-        #           meshing
-        raise NotImplementedError
+    #     # TODO: Allow for the user to have the input map NOT match the one from FluidCore.
+    #     #       `-> This will allow for more complex solid-mesh geometries and more refined
+    #     #           meshing
+    #     raise NotImplementedError
 
-    def _reformatSolidMap(self, solid_map, component_list):
-        if component_list is None:
+    def _formatSolidAndFluidMaps(self,
+                                 fluidMap : Optional[List[List[str]]] = None,
+                                 solidMap : Optional[List[List[str]]] = None):
+        """
+        Given a fluid and solid map, this function checks for potential input
+            scenarios and formats the maps based on these cases:
+
+        1. (No solidMap) & (No fluidMap)
+            - Assume fluidMap == fluidCore.channelMap
+            - Copy this map to solidMap, with NULL components ('_')
+              at each map location
+
+        2. (solidMap) & (No fluidMap)
+            - Assume fluidMap == fluidCore.channelMap
+            - Check that shape(solidMap) == shape(fluidMap)
+
+        3. (No solidMap) & (fluidMap)
+            3A. (fluidMap == fluidCore.channelMap)
+                - create a map of equal size and fill it with NULL
+                  components ('_'), telling later methods to build
+                  uniform components at these blocks
+            3B. (fluidMap != fluidCore.channelMap)
+                - Will need to add functionality to handle this scenario
+                - By being unequal, we are telling the code to refine the
+                  solid mesh. This refinement is not yet implemented
+
+        4. (solidMap) & (fluidMap)
+            4A. (fluidMap == fluidCore.channelMap)
+                - Checks that maps are of the same size
+                - Return both maps
+            4B. (fluidMap != fluidCore.channelMap)
+                - Will need to add functionality to handle this scenario
+                - By being unequal, we are telling the code to refine the
+                  solid mesh. This refinement is not yet implemented
+        """
+        # Loads in the map from the fluidCore component
+        fluidCoreMap = self.fluidCore.channelMap
+        # Checks to see if the two fluid maps are the same shape or not
+        if (fluidMap is not None):
+            fluidMapsAreTheSameShape = all(
+                len(fluidMap) == len(fluidCoreMap),
+                all(len(f1) == len(f2) for f1, f2 in zip(fluidMap, fluidCoreMap))
+            )
+        else: fluidMapsAreTheSameShape = False
+        # If they are the same shape, the should be the same
+        if fluidMapsAreTheSameShape:
+            assert fluidMap == fluidCoreMap
+
+        # - - - - - - - - Cases - - - - - - - - #
+        ## Case 1
+        if (solidMap is None) and (fluidMap is None):
+            # Creates 1:1 solid map and adds NULL components
+            solidMap = [["_" for _ in range(len(f))] for f in fluidCoreMap]
+            return fluidCoreMap, solidMap
+
+        ## Case 2
+        elif (solidMap is not None) and (fluidMap is None):
+            # Check consistent sizes
+            assert len(fluidCoreMap) == len(solidMap)
+            assert all(len(f) == len(s) for f, s in zip(fluidCoreMap, solidMap))
+            # Sets fluidMap to fluidCoreMap
+            return fluidCoreMap, solidMap
+
+        ## Case 3
+        elif (solidMap is None) and (fluidMap is not None):
+            # Case 3A
+            if fluidMapsAreTheSameShape:
+                solidMap = [["_" for _ in range(len(f))] for f in fluidMap]
+                return fluidMap, solidMap
+            # Case 3B
+            else:
+                raise NotImplementedError
+
+        ## Case 4
+        else: # (solidMap is not None) and (fluidMap is not None)
+            # Case 4A
+            if fluidMapsAreTheSameShape:
+                assert len(fluidCoreMap) == len(solidMap)
+                assert all(len(f) == len(s) for f, s in zip(fluidCoreMap, solidMap))
+                return fluidMap, solidMap
+            # Case 4B
+            else:
+                raise NotImplementedError
+
+
+    def _checkAndReformatSolidComponents(self, solidMap, fluidMap, componentList):
+        """
+        Using the reformatted solid and fluid maps, this method ensures that the
+        component list is completed. If not, this method fills in any gaps and
+        carves any channels into blocks which need them
+        """
+        if componentList is None:
             uniform_component_list = self._makeUniformSolidComponentList()
-            return self.fluidCore.componentMap, uniform_component_list
-        for row in solid_map:
-            for comp in row:
-                if comp not in component_list:
-                    component_list[comp] = self._makeUniformComponent()
+            return uniform_component_list
 
-        return solid_map, component_list
+        fluidComponents = self.fluidCore.components
+        # Iterates over all inputs into each map, extracting the ID of each
+        #   given component in the map
+        for solidRowIds, fluidRowIds in zip(solidMap, fluidMap):
+            for solidCompId, fluidCompId in zip(solidRowIds, fluidRowIds):
+                # Extracts the fluid component
+                fluidComp = fluidComponents[fluidCompId]
+                # If the solid component has been defined, this extracts it. If not
+                # defined, a uniform component is built.
+                if solidCompId in componentList:
+                    solidComp = componentList[solidCompId]
+                else:
+                    solidComp = self._makeUniformComponent()
+                if solidComp.hasChannel:
+                    assert solidComp.fluidCrossSectionalArea == fluidComp.flowArea
+                    assert solidComp.hydraulicDiameter == fluidComp.hydraulicDiameter
+                else:
+                    solidComp = self._carveChannelIntoBlock(solidComp, fluidComp)
+                componentList[solidCompId] = solidComp
+
+        return componentList
+
+
+
+    # def _reformatSolidMap(self, solid_map, component_list):
+    #     if component_list is None:
+    #         uniform_component_list = self._makeUniformSolidComponentList()
+    #         return self.fluidCore.componentMap, uniform_component_list
+
+    #     print("solid_map: ", solid_map)
+    #     print("component_list: ", component_list)
+    #     for row in solid_map:
+    #         for comp in row:
+    #             if comp not in component_list:
+    #                 component_list[comp] = self._makeUniformComponent()
+
+    #     return solid_map, component_list
 
     def _makeUniformComponent(self):
-
+        """
+        Creates a single component, build using the foundational geometric inputs
+        and basic input material
+        """
         x_pitch   = self.fluidCore.xPitch
         y_pitch   = self.fluidCore.yPitch
         height    = self.coreHeight
@@ -637,6 +773,15 @@ class SolidCore(ParallelSolidComponents):
         return component
 
     def _makeUniformSolidComponentList(self):
+        """
+        In the case of which no solid-component list is input, this method
+        creates uniform components (see above) for each point in the map,
+        and then carves appropriate channels into them based on the pipes
+        at those locations.
+        If the case that there is no corresponding fluid component for a
+        point in the solid map, the uniform component is kept without carving
+        a channel
+        """
         uniform_component = self._makeUniformComponent()
         parallel_fluid_components = self.fluidCore.components
 
@@ -652,9 +797,14 @@ class SolidCore(ParallelSolidComponents):
         for row in self.fluidPipeMap:
             for comp_name in row:
                 if comp_name not in parallel_fluid_components:
-                    solid_component_list[comp_name] = uniform_component
+                    solid_component_list[comp_name] = uniform_component.copy()
 
         return solid_component_list
+
+    # def _carveProperChannels(self, solid_map, fluid_map, solid_components):
+    #     for s_row, f_row in zip(solid_map, fluid_map):
+    #         for s_comp, f_comp in zip(s_row, f_row):
+
 
     def _checkValidInputs(self, **inputs):
         return

@@ -363,37 +363,44 @@ def _createSolidCoreComponents(fluid_core):
 
 def _test_solidCoreComponent(component_name, solid_core):
 
-    def _testUniformCore(component_name, solid_core):
-        if component_name != "uniform_core":
-            return
+    assert isinstance(solid_core, SolidCore)
+    assert isinstance(solid_core.fluidCore, Core)
+    fluidCore       = solid_core.fluidCore
+    components      = solid_core.components
+    baseComponents  = solid_core.baseComponents
+    pipeMap         = solid_core.fluidPipeMap
 
-        assert isinstance(solid_core.fluidCore, Core)
-        fluidCore       = solid_core.fluidCore
-        components      = solid_core.components
-        baseComponents  = solid_core.baseComponents
-        volume          = solid_core.volume
-        pipeMap         = solid_core.fluidPipeMap
-        nAxialCells     = solid_core.nAxialCells
-        coreHeight      = solid_core.coreHeight
+    assert pipeMap == fluidCore.channelMap
 
-        # print(f"fluidCore: \n      {fluidCore}")
-        # print(f"components: \n      {components}")
-        # print(f"baseComponents: \n      {baseComponents}")
-        # print(f"volume: \n      {volume}")
-        # print(f"pipeMap: \n      {pipeMap}")
-        # print(f"nAxialCells: \n      {nAxialCells}")
-        # print(f"coreHeight: \n      {coreHeight}")
+    # Tests components
+    for key, comp, baseComp in zip(components.keys(),
+                                    components.values(),
+                                    baseComponents):
+        # Ensures the components and base components are the same
+        # (Only true as none of the input components are serial-components)
+        assert comp.printSummary(verbose=False) == baseComp.printSummary(verbose=False)
+        assert isinstance(comp, CuboidWithChannel)
 
-        for key, comp in components.items():
-            print(f"KEY: {key}")
-            comp.printSummary()
+        # Ensures that components built around fluid components are of
+        #   correct dimensions
+        fluidComp         = fluidCore.components[key]
+        fluid_summary     = {"Flow Area": fluidComp.flowArea,
+                                "Wetted Perimeter": fluidComp.heatedPerimeter, # pctHeated = 1.0
+                                "Hydraulic Diameter": fluidComp.hydraulicDiameter,
+                                "Length": fluidComp.length,
+                                "Volume": fluidComp.volume}
+        component_summary = comp.printSummary(verbose=False)
 
-        # for comp in baseComponents:
-        #     comp.printSummary()
+        # Ensures proper solid geometry
+        x_pitch, y_pitch = fluidCore.xPitch, fluidCore.yPitch
+        assert component_summary["Solid"]["Geometry (L x W x H)"] == (x_pitch, y_pitch, fluid_summary["Length"])
+        assert component_summary["Solid"]["Material"] == "graphite"
 
-        return
-
-    _testUniformCore(component_name, solid_core)
+        # Ensures proper channel geometry
+        assert component_summary["Channel"]["Flow Area"] == fluid_summary["Flow Area"]
+        assert component_summary["Channel"]["Wetted Perimeter"] == fluid_summary["Wetted Perimeter"]
+        assert component_summary["Channel"]["Hydraulic Diameter"] == fluid_summary["Hydraulic Diameter"]
+        assert component_summary["Channel"]["Volume"] == fluid_summary["Volume"]
 
     return
 
@@ -413,9 +420,9 @@ def test_SolidCore():
 
     # Test Solid Core Components
     _test_solidCoreComponent("uniform_core"                   , uniform_core)
-    # _test_solidCoreComponent("nonuniform_basic_core"          , nonuniform_basic_core)
-    # _test_solidCoreComponent("nonuniform_some_channeled_core" , nonuniform_some_channeled_core)
-    # _test_solidCoreComponent("nonuniform_no_channeled_core"   , nonuniform_no_channeled_core)
+    _test_solidCoreComponent("nonuniform_basic_core"          , nonuniform_basic_core)
+    _test_solidCoreComponent("nonuniform_some_channeled_core" , nonuniform_some_channeled_core)
+    _test_solidCoreComponent("nonuniform_no_channeled_core"   , nonuniform_no_channeled_core)
 
     return
 
