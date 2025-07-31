@@ -3,7 +3,6 @@ from numpy import pi, isclose
 from flowforge.input.SolidComponents import (
     Cuboid,
     CuboidWithChannel,
-    HexagonalPrism,
     SolidEncasedPipe,
     SolidCore
 )
