@@ -1,20 +1,22 @@
-from typing import List, Dict, Tuple, Generator, Optional, Literal, TypeAlias
+from typing import List, Dict, Tuple, Generator, Optional
 import abc
-import numpy as np
 import inspect
 
-from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
+# from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 
 from flowforge.input.Components import cross_section_classes, cross_section_param_lists
-from flowforge.input.Components import Core, CartCore
+from flowforge.input.Components import CartCore
 from flowforge.input.Components import Pipe
+
+# pragma pylint: disable=protected-access
 
 """
 The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 solid_component_list = {}
+
 
 class SolidComponent:
     """
@@ -23,6 +25,7 @@ class SolidComponent:
     Parameters
     ----------
     """
+
     def __init__(self) -> None:
         self.uc = None
 
@@ -68,7 +71,7 @@ class SolidComponent:
 
     @abc.abstractmethod
     def _summary(self):
-        return NotImplementedError
+        return {}
 
     @abc.abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -89,15 +92,11 @@ class SolidComponent:
     def _carveChannelIntoBlock(component, pipe):
         solid_to_channeled_solid = {Cuboid: CuboidWithChannel}
         # Extract input parameters from non-channeled object
-        comp_parameters  = inspect.signature(component.__class__.__init__).parameters
-        input_parameters = {name: getattr(component, name)
-                            for name in comp_parameters
-                            if name != 'self'}
+        comp_parameters = inspect.signature(component.__class__.__init__).parameters
+        input_parameters = {name: getattr(component, name) for name in comp_parameters if name != "self"}
         # Create new channeled objects
         channeled_component = solid_to_channeled_solid[type(component)](
-            **input_parameters,
-            pipe_flow_area=pipe.flowArea,
-            pipe_hydraulic_diameter=pipe.hydraulicDiameter
+            **input_parameters, pipe_flow_area=pipe.flowArea, pipe_hydraulic_diameter=pipe.hydraulicDiameter
         )
         return channeled_component
 
@@ -146,12 +145,13 @@ class SolidComponent:
     def printSummary(self, verbose=True):
         summary_dict = self._summary()
 
-        if verbose == False:
+        if verbose is False:
             return summary_dict
 
         print(f"Class: {summary_dict['BASE']['Class']}")
         for top_key, sub_dict in summary_dict.items():
-            if top_key == "BASE": continue
+            if top_key == "BASE":
+                continue
             print(f"  ({top_key})")
             for key, value in sub_dict.items():
                 print(f"    {key}: {value}")
@@ -159,19 +159,6 @@ class SolidComponent:
 
         return summary_dict
 
-
-class HexagonalPrism(SolidComponent):
-    """
-    A hexagonal prism solid component
-
-    Parameters
-    ----------
-    """
-    def __init__(self):
-        super().__init__()
-        raise NotImplementedError
-
-solid_component_list["hexagonal_prism"] = HexagonalPrism
 
 class Cuboid(SolidComponent):
     """
@@ -185,17 +172,12 @@ class Cuboid(SolidComponent):
     nCells        : number of cells in the cuboid
     solid_material : name of the type of solid used in the component
     """
-    def __init__(self,
-                 length         : float,
-                 width          : float,
-                 height         : float,
-                 nCells        : int = 1,
-                 solidMaterial : str = "graphite"
-                 ) -> None:
+
+    def __init__(self, length: float, width: float, height: float, nCells: int = 1, solidMaterial: str = "graphite") -> None:
         # Basic Parameters
-        self._length  = length
-        self._width   = width
-        self._height  = height
+        self._length = length
+        self._width = width
+        self._height = height
         self._n_cells = nCells
         self._solid_material = solidMaterial
         super().__init__()
@@ -232,7 +214,7 @@ class Cuboid(SolidComponent):
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._length *= uc.lengthConversion
-        self._width  *= uc.lengthConversion
+        self._width *= uc.lengthConversion
         self._height *= uc.lengthConversion
         self._volume *= uc.volumeConversion
 
@@ -241,19 +223,20 @@ class Cuboid(SolidComponent):
 
         summary_dict = {
             "BASE": {"Class": "Cuboid"},
-            "Solid":
-                {"Geometry (L x W x H)": (L, W, H),
-                 "Volume": L*W*H,
-                 "Material": self.solidMaterial,
-                 "N-Cells": self.nCells},
-            "General":
-                {"Total Volume": self.volume,
-                 "Height": H}
+            "Solid": {
+                "Geometry (L x W x H)": (L, W, H),
+                "Volume": L * W * H,
+                "Material": self.solidMaterial,
+                "N-Cells": self.nCells,
+            },
+            "General": {"Total Volume": self.volume, "Height": H},
         }
 
         return summary_dict
 
+
 solid_component_list["cuboid"] = Cuboid
+
 
 class CuboidWithChannel(Cuboid):
     """
@@ -281,30 +264,32 @@ class CuboidWithChannel(Cuboid):
         * W : Width of the rectangular pipe
         * H : Height of the rectangular pipe
     """
-    def __init__(self,
-                 length                  : float,
-                 width                   : float,
-                 height                  : float,
-                 nCells                  : int = 1,
-                 solid_material          : str = "graphite",
-                 pipe_cross_section_type : str = "circular",
-                 pipe_flow_area          : float = None,
-                 pipe_hydraulic_diameter : float = None,
-                 **kwargs
-                 ) -> None:
+
+    def __init__(
+        self,
+        length: float,
+        width: float,
+        height: float,
+        nCells: int = 1,
+        solid_material: str = "graphite",
+        pipe_cross_section_type: str = "circular",
+        pipe_flow_area: float = None,
+        pipe_hydraulic_diameter: float = None,
+        **kwargs,
+    ) -> None:
         super().__init__(length, width, height, nCells, solid_material)
         # Pipe cross-sectional data
         if (pipe_flow_area is None) and (pipe_hydraulic_diameter is None):
             self._cross_section = self._getChannelCrossSectionData(pipe_cross_section_type, **kwargs)
-            self._fluid_area         = self._cross_section.flow_area
-            self._wetted_perimeter   = self._cross_section.wetted_perimeter
+            self._fluid_area = self._cross_section.flow_area
+            self._wetted_perimeter = self._cross_section.wetted_perimeter
             self._hydraulic_diameter = self._cross_section.hydraulic_diameter
         else:
             assert (pipe_flow_area is not None) and (pipe_hydraulic_diameter is not None)
             self._cross_section = None
-            self._fluid_area         = pipe_flow_area
+            self._fluid_area = pipe_flow_area
             self._hydraulic_diameter = pipe_hydraulic_diameter
-            self._wetted_perimeter   = 4.0 * pipe_flow_area / pipe_hydraulic_diameter
+            self._wetted_perimeter = 4.0 * pipe_flow_area / pipe_hydraulic_diameter
         # Adjusts block volume due to a carving out of the pipe from the solid
         self.volume = self.volume - (self.fluidCrossSectionalArea * self.height)
 
@@ -362,13 +347,15 @@ class CuboidWithChannel(Cuboid):
             "Flow Area": self.fluidCrossSectionalArea,
             "Volume": self.fluidCrossSectionalArea * self.height,
             "Wetted Perimeter": self.wettedPerimeter,
-            "Hydraulic Diameter": self.hydraulicDiameter
+            "Hydraulic Diameter": self.hydraulicDiameter,
         }
         summary_dict["General"]["Total Volume"] = self.volume
 
         return summary_dict
 
+
 solid_component_list["cuboid_with_channel"] = CuboidWithChannel
+
 
 class SolidComponentCollection(SolidComponent):
     """
@@ -379,14 +366,13 @@ class SolidComponentCollection(SolidComponent):
     components : Dict[str, SolidComponent]
         Collection of already initialized components
     """
-    def __init__(self,
-                 components: Dict[str, SolidComponent]
-                 ) -> None:
+
+    def __init__(self, components: Dict[str, SolidComponent]) -> None:
         super().__init__()
         self._components = components
 
     @property
-    def components(self):
+    def components(self) -> Dict[str, SolidComponent]:
         return self._components
 
     @property
@@ -413,6 +399,10 @@ class SolidComponentCollection(SolidComponent):
         for component in self.components.values():
             component._convertUnits(uc)
 
+    def _summary(self):
+        raise NotImplementedError
+
+
 class SerialSolidComponents(SolidComponentCollection):
     """
     A collection of components which are formed in a serial manner, following the
@@ -422,11 +412,8 @@ class SerialSolidComponents(SolidComponentCollection):
     Parameters
     ----------
     """
-    def __init__(self,
-                 components: Dict[str, SolidComponent],
-                 order: List[str],
-                 **kwargs
-                 ) -> None:
+
+    def __init__(self, components: Dict[str, SolidComponent], order: List[str]) -> None:
         components = SolidComponent.factory(components)
         super().__init__(components)
         self._order = order
@@ -439,6 +426,10 @@ class SerialSolidComponents(SolidComponentCollection):
     def height(self) -> float:
         return sum(component.height for component in self.components.values())
 
+    def _summary(self):
+        raise NotImplementedError
+
+
 class SolidEncasedPipe(SerialSolidComponents):
     """
     A single pipe encased within a solid structure.
@@ -446,19 +437,18 @@ class SolidEncasedPipe(SerialSolidComponents):
     Parameters
     ----------
     """
-    def __init__(self,
-                 pipe : Pipe, # TODO: make this a Dict[str, Pipe] w/ an order
-                 components: Dict[str, SolidComponent],
-                 order: List[str],
-                 **kwargs
-                 ) -> None:
+
+    def __init__(
+        self,
+        pipe: Pipe,  # TODO: make this a Dict[str, Pipe] w/ an order
+        components: Dict[str, SolidComponent],
+        order: List[str],
+        **kwargs,
+    ) -> None:
         input_components = self._addChannelToSolidComponent(components, pipe)
         super().__init__(input_components, order, **kwargs)
 
-    def _addChannelToSolidComponent(self,
-                                    components: Dict[str, SolidComponent],
-                                    pipe: Pipe
-                                    ) -> Dict[str, SolidComponent]:
+    def _addChannelToSolidComponent(self, components: Dict[str, SolidComponent], pipe: Pipe) -> Dict[str, SolidComponent]:
         channeled_components = {}
         channeled_solid_types = [CuboidWithChannel]
         for name, comp in components.items():
@@ -468,6 +458,10 @@ class SolidEncasedPipe(SerialSolidComponents):
                 channeled_components[name] = self._carveChannelIntoBlock(comp, pipe)
         return channeled_components
 
+    def _summary(self):
+        raise NotImplementedError
+
+
 class ParallelSolidComponents(SolidComponentCollection):
     """
     A collection of components formed in parallel, with components being added
@@ -476,10 +470,12 @@ class ParallelSolidComponents(SolidComponentCollection):
     Parameters
     ----------
     """
-    def __init__(self,
-                 components: Dict[str, SolidComponent],
-                 component_map: List[List[str]],
-                 ) -> None:
+
+    def __init__(
+        self,
+        components: Dict[str, SolidComponent],
+        component_map: List[List[str]],
+    ) -> None:
         components = SolidComponent.factory(components)
         super().__init__(components)
         self._component_map = component_map
@@ -487,6 +483,10 @@ class ParallelSolidComponents(SolidComponentCollection):
     @property
     def componentMap(self):
         return self._component_map
+
+    def _summary(self):
+        raise NotImplementedError
+
 
 class SolidCore(ParallelSolidComponents):
     """
@@ -512,19 +512,21 @@ class SolidCore(ParallelSolidComponents):
                     each offset set in the CuboidWithChannel object should be again adjusted by this global
                     offset.
     """
-    def __init__(self,
-                 # Input Fluid Component
-                 fluid_core           : CartCore,
-                 # Optional Solid Specifications
-                 solid_components     : Optional[Dict[str, SolidComponent]] = None,
-                 solid_component_map  : Optional[List[List[str]]]           = None,
-                 fluid_pipe_map       : Optional[List[List[str]]]           = None,
-                 solid_material       : Optional[str]                       = None,
-                 core_height          : Optional[float]                     = None,
-                 solid_component_type : Optional[str]                       = "cuboid",
-                 n_axial_cells        : Optional[int]                       = None,
-                 global_offset        : Optional[Tuple[int, int, int]]      = (0,0,0)
-                 ) -> None:
+
+    def __init__(
+        self,
+        # Input Fluid Component
+        fluid_core: CartCore,
+        # Optional Solid Specifications
+        solid_components: Optional[Dict[str, SolidComponent]] = None,
+        solid_component_map: Optional[List[List[str]]] = None,
+        fluid_pipe_map: Optional[List[List[str]]] = None,
+        solid_material: Optional[str] = None,
+        core_height: Optional[float] = None,
+        solid_component_type: Optional[str] = "cuboid",
+        n_axial_cells: Optional[int] = None,
+        global_offset: Optional[Tuple[int, int, int]] = (0, 0, 0),
+    ) -> None:
         # User input fluid core
         self._fluid_core = fluid_core
 
@@ -536,19 +538,17 @@ class SolidCore(ParallelSolidComponents):
 
         # Solid-Fluid core offset
         self._global_offset = global_offset
-        if global_offset != (0,0,0):
+        if global_offset != (0, 0, 0):
             # TODO: implement offset functionality
             raise Exception("Need to implement fluid/solid core offset functionality")
 
         # Validating the solid and fluid maps
-        self._fluid_pipe_map, self._solid_component_map = self._formatSolidAndFluidMaps(
-            fluid_pipe_map, solid_component_map)
+        self._fluid_pipe_map, self._solid_component_map = self._formatSolidAndFluidMaps(fluid_pipe_map, solid_component_map)
 
         # Reformating the solid component list and map
         solid_components = self._checkAndReformatSolidComponents(
-            self._solid_component_map,
-            self._fluid_pipe_map,
-            solid_components)
+            self._solid_component_map, self._fluid_pipe_map, solid_components
+        )
 
         self._solid_components = solid_components
 
@@ -575,48 +575,14 @@ class SolidCore(ParallelSolidComponents):
         return self._n_axial_cells
 
     @property
-    def offsets(self):
-        return self._offset
+    def globalOffset(self):
+        return self._global_offset
 
     @property
     def fluidPipeMap(self):
         return self._fluid_pipe_map
 
-    # def _getSolidAndFluidMaps(self,
-    #                           fluid_map : Optional[List[List[str]]] = None,
-    #                           solid_map : Optional[List[List[str]]] = None):
-    #     fluid_core_map = self.fluidCore.channelMap
-    #     # If neither a fluid or solid map are input, derive a solid map from the fluid-core map
-    #     if (fluid_map is None) and (solid_map is None):
-    #         solid_map = [["_" for _ in range(len(f))] for f in fluid_core_map]
-    #         return fluid_core_map, solid_map
-
-    #     # If there is no input fluid map, ensure that the original input map is sufficient
-    #     if (fluid_map is None) and (solid_map is not None):
-    #         assert len(fluid_core_map) == len(solid_map)
-    #         assert all(len(f) == len(s) for f, s in zip(fluid_core_map, solid_map))
-    #         return fluid_core_map, solid_map
-
-    #     # If there is no input solid map, create it based off fluid_map
-    #     if (fluid_map is not None) and (solid_map is None):
-    #         solid_map = [["_" for _ in range(len(f))] for f in fluid_map]
-
-    #     # Ensure that user-input maps for the fluid and solid components are the same size
-    #     assert len(fluid_map) == len(solid_map)
-    #     assert all(len(f) == len(s) for f, s in zip(fluid_map, solid_map))
-
-    #     # Check if the input map is the same as the one defined by the FluidCore
-    #     if fluid_core_map == fluid_map:
-    #         return fluid_map, solid_map
-
-    #     # TODO: Allow for the user to have the input map NOT match the one from FluidCore.
-    #     #       `-> This will allow for more complex solid-mesh geometries and more refined
-    #     #           meshing
-    #     raise NotImplementedError
-
-    def _formatSolidAndFluidMaps(self,
-                                 fluidMap : Optional[List[List[str]]] = None,
-                                 solidMap : Optional[List[List[str]]] = None):
+    def _formatSolidAndFluidMaps(self, fluidMap: Optional[List[List[str]]] = None, solidMap: Optional[List[List[str]]] = None):
         """
         Given a fluid and solid map, this function checks for potential input
             scenarios and formats the maps based on these cases:
@@ -652,12 +618,12 @@ class SolidCore(ParallelSolidComponents):
         # Loads in the map from the fluidCore component
         fluidCoreMap = self.fluidCore.channelMap
         # Checks to see if the two fluid maps are the same shape or not
-        if (fluidMap is not None):
+        if fluidMap is not None:
             fluidMapsAreTheSameShape = all(
-                len(fluidMap) == len(fluidCoreMap),
-                all(len(f1) == len(f2) for f1, f2 in zip(fluidMap, fluidCoreMap))
+                len(fluidMap) == len(fluidCoreMap), all(len(f1) == len(f2) for f1, f2 in zip(fluidMap, fluidCoreMap))
             )
-        else: fluidMapsAreTheSameShape = False
+        else:
+            fluidMapsAreTheSameShape = False
         # If they are the same shape, the should be the same
         if fluidMapsAreTheSameShape:
             assert fluidMap == fluidCoreMap
@@ -670,7 +636,7 @@ class SolidCore(ParallelSolidComponents):
             return fluidCoreMap, solidMap
 
         ## Case 2
-        elif (solidMap is not None) and (fluidMap is None):
+        if (solidMap is not None) and (fluidMap is None):
             # Check consistent sizes
             assert len(fluidCoreMap) == len(solidMap)
             assert all(len(f) == len(s) for f, s in zip(fluidCoreMap, solidMap))
@@ -678,26 +644,23 @@ class SolidCore(ParallelSolidComponents):
             return fluidCoreMap, solidMap
 
         ## Case 3
-        elif (solidMap is None) and (fluidMap is not None):
+        if (solidMap is None) and (fluidMap is not None):
             # Case 3A
             if fluidMapsAreTheSameShape:
                 solidMap = [["_" for _ in range(len(f))] for f in fluidMap]
                 return fluidMap, solidMap
             # Case 3B
-            else:
-                raise NotImplementedError
+            raise NotImplementedError
 
         ## Case 4
-        else: # (solidMap is not None) and (fluidMap is not None)
-            # Case 4A
-            if fluidMapsAreTheSameShape:
-                assert len(fluidCoreMap) == len(solidMap)
-                assert all(len(f) == len(s) for f, s in zip(fluidCoreMap, solidMap))
-                return fluidMap, solidMap
-            # Case 4B
-            else:
-                raise NotImplementedError
-
+        # (solidMap is not None) and (fluidMap is not None)
+        # Case 4A
+        if fluidMapsAreTheSameShape:
+            assert len(fluidCoreMap) == len(solidMap)
+            assert all(len(f) == len(s) for f, s in zip(fluidCoreMap, solidMap))
+            return fluidMap, solidMap
+        # Case 4B
+        raise NotImplementedError
 
     def _checkAndReformatSolidComponents(self, solidMap, fluidMap, componentList):
         """
@@ -731,44 +694,28 @@ class SolidCore(ParallelSolidComponents):
 
         return componentList
 
-
-
-    # def _reformatSolidMap(self, solid_map, component_list):
-    #     if component_list is None:
-    #         uniform_component_list = self._makeUniformSolidComponentList()
-    #         return self.fluidCore.componentMap, uniform_component_list
-
-    #     print("solid_map: ", solid_map)
-    #     print("component_list: ", component_list)
-    #     for row in solid_map:
-    #         for comp in row:
-    #             if comp not in component_list:
-    #                 component_list[comp] = self._makeUniformComponent()
-
-    #     return solid_map, component_list
-
     def _makeUniformComponent(self):
         """
         Creates a single component, build using the foundational geometric inputs
         and basic input material
         """
-        x_pitch   = self.fluidCore.xPitch
-        y_pitch   = self.fluidCore.yPitch
-        height    = self.coreHeight
-        material  = self.coreSolidMaterial
+        x_pitch = self.fluidCore.xPitch
+        y_pitch = self.fluidCore.yPitch
+        height = self.coreHeight
+        material = self.coreSolidMaterial
         comp_type = self.solidComponentType
-        n_cells   = self.nAxialCells
+        n_cells = self.nAxialCells
 
-        assert x_pitch   is not None, "Must input an x_pitch for a uniform core"
-        assert y_pitch   is not None, "Must input a y_pitch for a uniform core"
-        assert height    is not None, "Must input a height for a uniform core"
-        assert material  is not None, "Must input a solid material for a uniform core"
+        assert x_pitch is not None, "Must input an x_pitch for a uniform core"
+        assert y_pitch is not None, "Must input a y_pitch for a uniform core"
+        assert height is not None, "Must input a height for a uniform core"
+        assert material is not None, "Must input a solid material for a uniform core"
         assert comp_type is not None, "Must input a component-type for a uniform core"
-        assert n_cells   is not None, "Must input a number of axial cells for a uniform core"
+        assert n_cells is not None, "Must input a number of axial cells for a uniform core"
 
         component = solid_component_list[comp_type](
-            length=x_pitch, width=y_pitch, height=height,
-            nCells=n_cells, solidMaterial=material)
+            length=x_pitch, width=y_pitch, height=height, nCells=n_cells, solidMaterial=material
+        )
 
         return component
 
@@ -801,10 +748,5 @@ class SolidCore(ParallelSolidComponents):
 
         return solid_component_list
 
-    # def _carveProperChannels(self, solid_map, fluid_map, solid_components):
-    #     for s_row, f_row in zip(solid_map, fluid_map):
-    #         for s_comp, f_comp in zip(s_row, f_row):
-
-
-    def _checkValidInputs(self, **inputs):
-        return
+    def _summary(self):
+        raise NotImplementedError

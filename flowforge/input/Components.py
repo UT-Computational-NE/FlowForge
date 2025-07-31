@@ -1885,18 +1885,15 @@ class CartCore(Core):
         non_channels: Optional[List[str]] = None,
         y_pitch: Optional[float] = None,
         map_alignment: Optional[Alignment] = "center",
-
         # Solid Mesh Specifications
         solid: Optional[str] = None,
         solid_component_type: Optional[str] = None,
-
         # Solid Physics
         solid_bc_type: Optional[str] = "Adiabatic",
         solid_bc_temperature: Optional[float] = None,
         solid_power_density: Optional[str] = None,
         solid_outer_heat_flux: Optional[Dict[str, str]] = None,
         solid_plenum_interactions: Optional[str] = "True",
-
         **kwargs,
     ) -> None:
 
@@ -1929,8 +1926,9 @@ class CartCore(Core):
         self._solid_outer_heat_flux = solid_outer_heat_flux
         self._solid_plenum_interactions = solid_plenum_interactions
 
-        self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = \
+        self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = (
             self._getSoldBoundariesAndControllers()
+        )
 
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
@@ -2082,51 +2080,62 @@ class CartCore(Core):
         assert self._solid_bc_type is not None, "Error: Must input a boundary type for the outer core {Adiabatic, Dirichlet}"
         if self._solid_bc_type.casefold() == ("Adiabatic").casefold():
             for surface in ["North", "South", "East", "West"]:
-                bcs[surface+"_bc"] = {"boundary_type": "AdiabaticBC",
-                                      "surface": surface,
-                                      "variable": "temperature",
-                                      "value": 0.0}
-            if self._solid_plenum_interactions  != "True":
-                bcs["Top_bc"] = {"boundary_type": "AdiabaticBC",
-                                 "surface": "Top",
-                                 "variable": "temperature",
-                                 "value": 0.0}
-                bcs["Bottom_bc"] = {"boundary_type": "AdiabaticBC",
-                                    "surface": "Bottom",
-                                    "variable": "temperature",
-                                    "value": 0.0}
+                bcs[surface + "_bc"] = {
+                    "boundary_type": "AdiabaticBC",
+                    "surface": surface,
+                    "variable": "temperature",
+                    "value": 0.0,
+                }
+            if self._solid_plenum_interactions != "True":
+                bcs["Top_bc"] = {"boundary_type": "AdiabaticBC", "surface": "Top", "variable": "temperature", "value": 0.0}
+                bcs["Bottom_bc"] = {
+                    "boundary_type": "AdiabaticBC",
+                    "surface": "Bottom",
+                    "variable": "temperature",
+                    "value": 0.0,
+                }
         elif self._solid_bc_type.casefold() == ("Dirichlet").casefold():
             assert self._solid_bc_temperature is not None, "Must input an outer temperature for a Dirichlet boundary"
             for surface in ["North", "South", "East", "West"]:
-                bcs[surface+"_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                      "surface": surface,
-                                      "variable": "temperature",
-                                      "value": self._solid_bc_temperature}
+                bcs[surface + "_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": surface,
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
             if self._solid_plenum_interactions != "True":
-                bcs["Top_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                 "surface": "Top",
-                                 "variable": "temperature",
-                                 "value": self._solid_bc_temperature}
-                bcs["Bottom_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                    "surface": "Bottom",
-                                    "variable": "temperature",
-                                    "value": self._solid_bc_temperature}
+                bcs["Top_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": "Top",
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
+                bcs["Bottom_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": "Bottom",
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
 
         # Body Forces
         if self._solid_power_density is not None:
-            bfs["power"] = {"function_type": "InternalHeatGenerationBF",
-                            "variable": "temperature",
-                            "value": str(self._solid_power_density)}
+            bfs["power"] = {
+                "function_type": "InternalHeatGenerationBF",
+                "variable": "temperature",
+                "value": str(self._solid_power_density),
+            }
 
         # Wall Functions
         def _getWFs(input_wfs):
             assert isinstance(input_wfs, dict), "Must input the wall functions as a dict-type."
             wfs = {}
             for surface, value in wfs.items():
-                wfs[surface+"_wf"] = {"function_type": "HeatFluxWallFunction",
-                                      "variable": "temperature",
-                                      "surface": surface,
-                                      "value": str(value)}
+                wfs[surface + "_wf"] = {
+                    "function_type": "HeatFluxWallFunction",
+                    "variable": "temperature",
+                    "surface": surface,
+                    "value": str(value),
+                }
             return wfs
 
         if self._solid_outer_heat_flux is not None:
