@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple, Generator, Optional
 import abc
-import inspect
 import copy
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
@@ -8,7 +7,6 @@ from flowforge.input.UnitConverter import UnitConverter
 
 from flowforge.input.Components import cross_section_classes, cross_section_param_lists, CrossSection
 from flowforge.input.Components import Pipe, CartCore, SerialComponents
-from flowforge.input.Components import Pipe
 
 # pragma pylint: disable=protected-access
 
@@ -178,6 +176,7 @@ class SolidComponent:
 
         return summary_dict
 
+
 class Cuboid(SolidComponent):
     """
     A cuboid solid component
@@ -238,7 +237,7 @@ class Cuboid(SolidComponent):
         Boolean denoting whether or not the component has a built-in channel
     """
 
-    class Channel():
+    class Channel:
         """
         Channel object.
 
@@ -272,20 +271,23 @@ class Cuboid(SolidComponent):
         hydraulicDiameter : float
             Dh (hydraulic diameter) of the channel
         """
-        def __init__(self,
-                     height               : float,
-                     cross_section_type   : str = None,
-                     fluid_component      : Pipe = None,
-                     cross_section_object : CrossSection = None,
-                     **kwargs):
+
+        def __init__(
+            self,
+            height: float,
+            cross_section_type: str = None,
+            fluid_component: Pipe = None,
+            cross_section_object: CrossSection = None,
+            **kwargs,
+        ):
 
             self._height = height
 
             assert (cross_section_type is not None) or (fluid_component is not None) or (cross_section_object is not None)
-            if (cross_section_type is not None):
+            if cross_section_type is not None:
                 assert (fluid_component is None) and (cross_section_object is None), "Can only handle one input type"
                 self._cross_section = self._getChannelCrossSectionData(cross_section_type, **kwargs)
-            elif (cross_section_object is not None):
+            elif cross_section_object is not None:
                 assert (fluid_component is None) and (cross_section_type is None), "Can only handle one input type"
                 self._cross_section = cross_section_object
             else:
@@ -362,29 +364,19 @@ class Cuboid(SolidComponent):
             self._wetted_perimeter *= uc.lengthConversion
             self._hydraulic_diameter *= uc.lengthConversion
 
-
-    def __init__(self,
-                 length,
-                 width,
-                 height,
-                 n_cells,
-                 solid_material = "graphite",
-                 pipe_cross_section_type = None,
-                 **kwargs):
+    def __init__(self, length, width, height, n_cells, solid_material="graphite", pipe_cross_section_type=None, **kwargs):
         super().__init__()
 
         self._length = length
-        self._width  = width
+        self._width = width
         self._height = height
         self._volume = length * width * height
         self._n_cells = n_cells
         self._solid_material = solid_material
 
         # If input, creates a channel within the pipe
-        if (pipe_cross_section_type is not None):
-            self._channel = self.Channel(height=self.height,
-                                         cross_section_type=pipe_cross_section_type,
-                                         **kwargs)
+        if pipe_cross_section_type is not None:
+            self._channel = self.Channel(height=self.height, cross_section_type=pipe_cross_section_type, **kwargs)
             self.volume -= self.channel.volume
             self._has_channel = True
         else:
@@ -396,11 +388,9 @@ class Cuboid(SolidComponent):
         if self.hasChannel:
             self._checkChannelValidity()
 
-    def addChannel(self,
-                   pipe_cross_section_type : str = None,
-                   cross_section           : CrossSection = None,
-                   fluid_component         : Pipe = None,
-                   **kwargs) -> None:
+    def addChannel(
+        self, pipe_cross_section_type: str = None, cross_section: CrossSection = None, fluid_component: Pipe = None, **kwargs
+    ) -> None:
         """
         Adds a channel to the cuboid object, using 1 of 3 input types:
             1) Type of cross section and appropriate keyword arguments
@@ -418,17 +408,18 @@ class Cuboid(SolidComponent):
         fluid_component : Pipe
             Pipe object that the channel can base itself off of
         """
-        assert self.channel == None, "Cannot add a channel if one already exists"
+        assert self.channel is None, "Cannot add a channel if one already exists"
 
         # Check that only *one* type of channel input is set
-        assert (pipe_cross_section_type is not None) or (cross_section is not
-                None) or (fluid_component is not None), "Need at least one input type"
+        assert (
+            (pipe_cross_section_type is not None) or (cross_section is not None) or (fluid_component is not None)
+        ), "Need at least one input type"
 
         err = "Can only handle (1) channel input type"
-        if (pipe_cross_section_type is not None):
+        if pipe_cross_section_type is not None:
             assert (fluid_component is None) and (cross_section is None), err
             self.channel = self._addChannelViaCrossSectionTypes(pipe_cross_section_type, **kwargs)
-        elif (cross_section is not None):
+        elif cross_section is not None:
             assert (pipe_cross_section_type is None) and (fluid_component is None), err
             self.channel = self._addChannelViaCrossSectionObject(cross_section)
         else:
@@ -454,9 +445,7 @@ class Cuboid(SolidComponent):
         channel : Channel
             channel object
         """
-        channel = self.Channel(height=self.height,
-                               cross_section_type=pipe_cross_section_type,
-                               **kwargs)
+        channel = self.Channel(height=self.height, cross_section_type=pipe_cross_section_type, **kwargs)
         return channel
 
     def _addChannelViaCrossSectionObject(self, cross_section):
@@ -473,8 +462,7 @@ class Cuboid(SolidComponent):
         channel : Channel
             channel object
         """
-        channel = self.Channel(height=self.height,
-                               cross_section_object=cross_section)
+        channel = self.Channel(height=self.height, cross_section_object=cross_section)
         return channel
 
     def _addChannelViaFluidComponent(self, fluid_component):
@@ -492,8 +480,7 @@ class Cuboid(SolidComponent):
             channel object
         """
         assert isinstance(fluid_component, Pipe), "For now, only 'Pipe' types are accepted"
-        channel = self.Channel(height=self.height,
-                               fluid_component=fluid_component)
+        channel = self.Channel(height=self.height, fluid_component=fluid_component)
         return channel
 
     @property
@@ -551,7 +538,7 @@ class Cuboid(SolidComponent):
         """
         Checks that the dimensions of the channel are valid
         """
-        assert self.hasChannel == True
+        assert self.hasChannel is True
         assert self.channel is not None
         # Check positive, non-zero dimensions
         assert self.channel.fluidCrossSectionalArea > 0.0
@@ -561,7 +548,6 @@ class Cuboid(SolidComponent):
         # Assert that the flow area is less than the area of the cuboid
         assert self.channel.fluidCrossSectionalArea < (self.length * self.width)
         assert self.channel.volume < (self.length * self.width * self.height)
-
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -574,7 +560,7 @@ class Cuboid(SolidComponent):
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
         self._length *= uc.lengthConversion
-        self._width  *= uc.lengthConversion
+        self._width *= uc.lengthConversion
         self._height *= uc.lengthConversion
         self._volume *= uc.volumeConversion
         if self.hasChannel:
@@ -597,7 +583,8 @@ class Cuboid(SolidComponent):
                 "Geometry (L x W x H)": (L, W, H),
                 "Volume": L * W * H,
                 "Material": self.solidMaterial,
-                "N-Cells": self.nCells}
+                "N-Cells": self.nCells,
+            },
         }
 
         if self.hasChannel:
@@ -608,12 +595,13 @@ class Cuboid(SolidComponent):
                 "Hydraulic Diameter": self.channel.hydraulicDiameter,
             }
 
-        summary_dict["General"] = {"Total Volume": self.volume, "Height": H,
-                                   "HasChannel": self.hasChannel}
+        summary_dict["General"] = {"Total Volume": self.volume, "Height": H, "HasChannel": self.hasChannel}
 
         return summary_dict
 
+
 solid_component_list["cuboid"] = Cuboid
+
 
 class SolidComponentCollection(SolidComponent):
     """
@@ -712,7 +700,7 @@ class SerialSolidComponents(SolidComponentCollection):
         channel object built into the component
     """
 
-    class Channel():
+    class Channel:
         """
         Channel object
 
@@ -732,16 +720,15 @@ class SerialSolidComponents(SolidComponentCollection):
         pipe : Union[Pipe, SerialComponents]
             the input pipe
         """
-        def __init__(self,
-                     pipe: Pipe = None,
-                     serial_pipe: SerialComponents = None):
+
+        def __init__(self, pipe: Pipe = None, serial_pipe: SerialComponents = None):
             assert (pipe is None) or (serial_pipe is None), "Must pick one input. cannot define both."
             if pipe is not None:
                 self._pipe = pipe
                 self._pipe_information = self._extractSinglePipeInformation(pipe)
             else:
                 self._pipe = serial_pipe
-                self._pipe_information = self._extractSerialPipeInformation(serial_pipe)
+                self._pipe_information = {}  # self._extractSerialPipeInformation(serial_pipe)
 
         @property
         def pipeInformation(self) -> Dict:
@@ -773,11 +760,11 @@ class SerialSolidComponents(SolidComponentCollection):
                     "crossSection": pipe.crossSection,
                     "height": pipe.length,
                     "flowArea": pipe.flowArea,
-                    "hydraulicDiameter": pipe.hydraulicDiameter
+                    "hydraulicDiameter": pipe.hydraulicDiameter,
                 }
             return pipe_information
 
-        def _extractSerialPipeInformation(self, serial_pipe: SerialComponents):
+        def _extractSerialPipeInformation(self, serial_pipe: SerialComponents):  # pylint:disable=unused-argument
             """
             Extracts the information from a serial pipe input, which will have constant axial
             geometry
@@ -801,6 +788,8 @@ class SerialSolidComponents(SolidComponentCollection):
         super().__init__(components)
         self._order = order
         self._channel = None
+        self._pipe = None
+        self._pipe_information = None
 
     @property
     def componentOrder(self) -> List[str]:
@@ -829,7 +818,7 @@ class SerialSolidComponents(SolidComponentCollection):
         serial_pipe : SerialComponents
             serial-pipes used to create the channel
         """
-        assert self.channel == None, "Cannot add a channel if one already exists"
+        assert self.channel is None, "Cannot add a channel if one already exists"
         self.channel = self.Channel(pipe, serial_pipe)
         self._pipe = self.channel.pipe
         self._pipe_information = self.channel.pipeInformation
@@ -856,9 +845,8 @@ class SerialSolidComponents(SolidComponentCollection):
             comp = self.components[comp_name]
             n_cells = comp.nCells
             assert all(
-                self.channel.pipeInformation[cell_count][dim_type] ==
-                self.channel.pipeInformation[ci][dim_type] for ci in
-                range(cell_count, cell_count + n_cells)
+                self.channel.pipeInformation[cell_count][dim_type] == self.channel.pipeInformation[ci][dim_type]
+                for ci in range(cell_count, cell_count + n_cells)
                 for dim_type in ["height", "flowArea", "hydraulicDiameter"]
             ), "For now, all pipe dimensions in a single solid component must be the same"
             cross_section = self.channel.pipeInformation[cell_count]["crossSection"]
@@ -1036,10 +1024,9 @@ class SolidCore(ParallelSolidComponents):
     def fluidPipeMap(self):
         return self._fluid_pipe_map
 
-    def _formatSolidAndFluidMaps(self,
-                                 fluidMap: Optional[List[List[str]]] = None,
-                                 solidMap: Optional[List[List[str]]] = None
-                                 ) -> None:
+    def _formatSolidAndFluidMaps(
+        self, fluidMap: Optional[List[List[str]]] = None, solidMap: Optional[List[List[str]]] = None
+    ) -> None:
         """
         Given a fluid and solid map, this function checks for potential input
             scenarios and formats the maps based on these cases:
