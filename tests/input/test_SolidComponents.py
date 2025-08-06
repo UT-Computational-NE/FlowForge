@@ -176,7 +176,11 @@ def test_SolidEncasedPipe():
     channeled_cuboid = Cuboid(length, width, height, n_cells,
                               pipe_cross_section_type=CX_type, R=R)
 
-    # TODO: Finish this
+    # NOTE: I am not sure if this is really something we will want in the future. I have added it here as
+    #       a template, but when actually being used (maybe after the solid conduction and CHT is in C++),
+    #       I plan to revisit this for more complex functionality. For now, I will leave this note for
+    #       future reference, and the code in SolidComponents.py as a complex and mostly completed template.
+    #                                                                                       - Charlie
 
 def _createFluidCoreComponent(x_pitch, y_pitch):
     # ------- INPUTS ------- #
