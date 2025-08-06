@@ -418,7 +418,7 @@ class Cuboid(SolidComponent):
         fluid_component : Pipe
             Pipe object that the channel can base itself off of
         """
-        assert self._channel == None, "Cannot add a channel if one already exists"
+        assert self.channel == None, "Cannot add a channel if one already exists"
 
         # Check that only *one* type of channel input is set
         assert (pipe_cross_section_type is not None) or (cross_section is not
@@ -473,8 +473,9 @@ class Cuboid(SolidComponent):
         channel : Channel
             channel object
         """
-        self._channel = self.Channel(height=self.height,
-                                     cross_section_object=cross_section)
+        channel = self.Channel(height=self.height,
+                               cross_section_object=cross_section)
+        return channel
 
     def _addChannelViaFluidComponent(self, fluid_component):
         """
@@ -491,8 +492,9 @@ class Cuboid(SolidComponent):
             channel object
         """
         assert isinstance(fluid_component, Pipe), "For now, only 'Pipe' types are accepted"
-        self._channel = self.Channel(height=self.height,
-                                     fluid_component=fluid_component)
+        channel = self.Channel(height=self.height,
+                               fluid_component=fluid_component)
+        return channel
 
     @property
     def length(self):
