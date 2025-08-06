@@ -2,8 +2,7 @@ import numpy as np
 from numpy import pi, isclose
 from flowforge.input.SolidComponents import (
     Cuboid,
-    CuboidWithChannel,
-    SolidEncasedPipe,
+    SerialSolidComponents,
     SolidCore
 )
 from flowforge.input.Components import (
@@ -98,48 +97,48 @@ def test_CuboidWithChannel():
         return (length * width * height) - (fluid_area * height)
 
     # Create objects
-    circle = CuboidWithChannel(
+    circle = Cuboid(
         length, width, height, n_cells, pipe_cross_section_type="circular",
         **{"R": R})
-    stadium = CuboidWithChannel(
+    stadium = Cuboid(
         length, width, height, n_cells, pipe_cross_section_type="stadium",
         **{"R": R, "A": A})
-    square = CuboidWithChannel(
+    square = Cuboid(
         length, width, height, n_cells, pipe_cross_section_type="square",
         **{"W": W})
-    rectangle = CuboidWithChannel(
+    rectangle = Cuboid(
         length, width, height, n_cells, pipe_cross_section_type="rectangular",
         **{"W": W, "H": H})
 
     # Base units
     # -- Cuboid with Circular Pipe
-    assert circle.fluidCrossSectionalArea == pi * R * R
-    assert circle.wettedPerimeter == 2 * pi * R
-    assert circle.hydraulicDiameter == _computeDh(
-        circle.fluidCrossSectionalArea, circle.wettedPerimeter)
+    assert circle.channel.fluidCrossSectionalArea == pi * R * R
+    assert circle.channel.wettedPerimeter == 2 * pi * R
+    assert circle.channel.hydraulicDiameter == _computeDh(
+        circle.channel.fluidCrossSectionalArea, circle.channel.wettedPerimeter)
     assert circle.volume == _computeVolumeWithPipe(
-        length, width, height, circle.fluidCrossSectionalArea)
+        length, width, height, circle.channel.fluidCrossSectionalArea)
     # -- Cuboid with Stadium Pipe
-    assert stadium.fluidCrossSectionalArea == (pi * R * R) + (2 * R * A)
-    assert stadium.wettedPerimeter == 2 * pi * R + 2 * A
-    assert stadium.hydraulicDiameter == _computeDh(
-        stadium.fluidCrossSectionalArea, stadium.wettedPerimeter)
+    assert stadium.channel.fluidCrossSectionalArea == (pi * R * R) + (2 * R * A)
+    assert stadium.channel.wettedPerimeter == 2 * pi * R + 2 * A
+    assert stadium.channel.hydraulicDiameter == _computeDh(
+        stadium.channel.fluidCrossSectionalArea, stadium.channel.wettedPerimeter)
     assert stadium.volume == _computeVolumeWithPipe(
-        length, width, height, stadium.fluidCrossSectionalArea)
+        length, width, height, stadium.channel.fluidCrossSectionalArea)
     # -- Cuboid with Square Pipe
-    assert square.fluidCrossSectionalArea == W * W
-    assert square.wettedPerimeter == 4 * W
-    assert square.hydraulicDiameter == _computeDh(
-        square.fluidCrossSectionalArea, square.wettedPerimeter)
+    assert square.channel.fluidCrossSectionalArea == W * W
+    assert square.channel.wettedPerimeter == 4 * W
+    assert square.channel.hydraulicDiameter == _computeDh(
+        square.channel.fluidCrossSectionalArea, square.channel.wettedPerimeter)
     assert square.volume == _computeVolumeWithPipe(
-        length, width, height, square.fluidCrossSectionalArea)
+        length, width, height, square.channel.fluidCrossSectionalArea)
     # -- Cuboid with Rectangular Pipe
-    assert rectangle.fluidCrossSectionalArea == W * H
-    assert rectangle.wettedPerimeter == 2 * W + 2 * H
-    assert rectangle.hydraulicDiameter == _computeDh(
-        rectangle.fluidCrossSectionalArea, rectangle.wettedPerimeter)
+    assert rectangle.channel.fluidCrossSectionalArea == W * H
+    assert rectangle.channel.wettedPerimeter == 2 * W + 2 * H
+    assert rectangle.channel.hydraulicDiameter == _computeDh(
+        rectangle.channel.fluidCrossSectionalArea, rectangle.channel.wettedPerimeter)
     assert rectangle.volume == _computeVolumeWithPipe(
-        length, width, height, rectangle.fluidCrossSectionalArea)
+        length, width, height, rectangle.channel.fluidCrossSectionalArea)
 
     # Convert units (assumes cm and converts to m)
     circle._convertUnits(uc)
@@ -147,17 +146,17 @@ def test_CuboidWithChannel():
     square._convertUnits(uc)
     rectangle._convertUnits(uc)
     # -- Cuboid with Circular Pipe
-    assert isclose(circle.fluidCrossSectionalArea, (0.01**2) * pi * R * R)
-    assert isclose(circle.wettedPerimeter, 0.01 * 2 * pi * R)
+    assert isclose(circle.channel.fluidCrossSectionalArea, (0.01**2) * pi * R * R)
+    assert isclose(circle.channel.wettedPerimeter, 0.01 * 2 * pi * R)
     # -- Cuboid with Stadium Pipe
-    assert isclose(stadium.fluidCrossSectionalArea, (0.01**2) * ((pi * R * R) + (2 * R * A)))
-    assert isclose(stadium.wettedPerimeter, 0.01 * (2 * pi * R + 2 * A))
+    assert isclose(stadium.channel.fluidCrossSectionalArea, (0.01**2) * ((pi * R * R) + (2 * R * A)))
+    assert isclose(stadium.channel.wettedPerimeter, 0.01 * (2 * pi * R + 2 * A))
     # -- Cuboid with Square Pipe
-    assert isclose(square.fluidCrossSectionalArea, (0.01**2) * W * W)
-    assert isclose(square.wettedPerimeter, 0.01 * 4 * W)
+    assert isclose(square.channel.fluidCrossSectionalArea, (0.01**2) * W * W)
+    assert isclose(square.channel.wettedPerimeter, 0.01 * 4 * W)
     # -- Cuboid with Rectangular Pipe
-    assert isclose(rectangle.fluidCrossSectionalArea, (0.01**2) * W * H)
-    assert isclose(rectangle.wettedPerimeter, 0.01 * (2 * W + 2 * H))
+    assert isclose(rectangle.channel.fluidCrossSectionalArea, (0.01**2) * W * H)
+    assert isclose(rectangle.channel.wettedPerimeter, 0.01 * (2 * W + 2 * H))
 
 def test_SolidEncasedPipe():
     # Cuboid dimensions
@@ -174,24 +173,9 @@ def test_SolidEncasedPipe():
     # Base objects
     pipe             = Pipe(L=height, cross_section_name=CX_type, n=n_cells, R=R)
     cuboid           = Cuboid(length, width, height, n_cells)
-    channeled_cuboid = CuboidWithChannel(length, width, height, n_cells,
-                                         pipe_cross_section_type=CX_type, R=R)
+    channeled_cuboid = Cuboid(length, width, height, n_cells,
+                              pipe_cross_section_type=CX_type, R=R)
 
-    # Test objects
-    encasedPipe_noChannel   = SolidEncasedPipe(pipe=pipe, components={"1": cuboid}, order=["1"])
-    encasedPipe_withChannel = SolidEncasedPipe(pipe=pipe, components={"1": channeled_cuboid}, order=["1"])
-
-    assert all(isinstance(comp, CuboidWithChannel) for comp in encasedPipe_noChannel.baseComponents)
-    assert all(isinstance(comp, CuboidWithChannel) for comp in encasedPipe_withChannel.baseComponents)
-    assert all(c1.volume == c2.volume for c1, c2 in zip(encasedPipe_noChannel.baseComponents,
-                                                        encasedPipe_noChannel.baseComponents))
-
-    # Test SolidEncasedPipe with multiple input components, both with and without channels pre-built
-    multi_components = {}
-    order = []
-    encasedPipe_multiSegment = SolidEncasedPipe(pipe       = pipe,
-                                                components = multi_components,
-                                                order      = order)
     # TODO: Finish this
 
 def _createFluidCoreComponent(x_pitch, y_pitch):
@@ -293,32 +277,32 @@ def _createSolidCoreComponents(fluid_core):
 
         # SOLID COMPONENTS
         solid_components["all_channeled"] = {
-            "1": CuboidWithChannel(length=x_pitch, width=y_pitch,
-                                   height=L_p1, nCells=N_p1, R=R_p1,
-                                   pipe_cross_section_type=CX_p1),
-            "2": CuboidWithChannel(length=x_pitch, width=y_pitch,
-                                   height=L_p2, nCells=N_p2, R=R_p2,
-                                   pipe_cross_section_type=CX_p2),
-            "3": CuboidWithChannel(length=x_pitch, width=y_pitch,
-                                   height=L_p3, nCells=N_p3, R=R_p3, A=A_p3,
-                                   pipe_cross_section_type=CX_p3)}
+            "1": Cuboid(length=x_pitch, width=y_pitch,
+                        height=L_p1, n_cells=N_p1, R=R_p1,
+                        pipe_cross_section_type=CX_p1),
+            "2": Cuboid(length=x_pitch, width=y_pitch,
+                        height=L_p2, n_cells=N_p2, R=R_p2,
+                        pipe_cross_section_type=CX_p2),
+            "3": Cuboid(length=x_pitch, width=y_pitch,
+                        height=L_p3, n_cells=N_p3, R=R_p3, A=A_p3,
+                        pipe_cross_section_type=CX_p3)}
 
         solid_components["some_channeled"] = {
-            "1": CuboidWithChannel(length=x_pitch, width=y_pitch,
-                                   height=L_p1, nCells=N_p1, R=R_p1,
-                                   pipe_cross_section_type=CX_p1),
+            "1": Cuboid(length=x_pitch, width=y_pitch,
+                        height=L_p1, n_cells=N_p1, R=R_p1,
+                        pipe_cross_section_type=CX_p1),
             "2": Cuboid(length=x_pitch, width=y_pitch,
-                        height=L_p2, nCells=N_p2),
+                        height=L_p2, n_cells=N_p2),
             "3": Cuboid(length=x_pitch, width=y_pitch,
-                        height=L_p3, nCells=N_p3)}
+                        height=L_p3, n_cells=N_p3)}
 
         solid_components["no_channeled"] = {
             "1": Cuboid(length=x_pitch, width=y_pitch,
-                        height=L_p1, nCells=N_p1),
+                        height=L_p1, n_cells=N_p1),
             "2": Cuboid(length=x_pitch, width=y_pitch,
-                        height=L_p2, nCells=N_p2),
+                        height=L_p2, n_cells=N_p2),
             "3": Cuboid(length=x_pitch, width=y_pitch,
-                        height=L_p3, nCells=N_p3)}
+                        height=L_p3, n_cells=N_p3)}
 
         # COMPONENT MAPS
         basic_solid_map = [
@@ -378,7 +362,7 @@ def _test_solidCoreComponent(component_name, solid_core):
         # Ensures the components and base components are the same
         # (Only true as none of the input components are serial-components)
         assert comp.printSummary(verbose=False) == baseComp.printSummary(verbose=False)
-        assert isinstance(comp, CuboidWithChannel)
+        assert isinstance(comp, Cuboid)
 
         # Ensures that components built around fluid components are of
         #   correct dimensions
