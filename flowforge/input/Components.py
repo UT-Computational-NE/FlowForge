@@ -326,6 +326,21 @@ class CrossSection(abc.ABC):
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
+    def _convertUnits(self, uc: UnitConverter) -> None: # pylint:disable=unused-argument
+        """
+        Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        raise NotImplementedError
+
 
 class CircularCrossSection(CrossSection):
     """Circular cross-sectional area
@@ -343,6 +358,10 @@ class CircularCrossSection(CrossSection):
     def R(self) -> float:
         return self._R
 
+    @R.setter
+    def R(self, R) -> None:
+        self._R = R
+
     @property
     def flow_area(self) -> float:
         return np.pi * self._R**2
@@ -350,6 +369,21 @@ class CircularCrossSection(CrossSection):
     @property
     def wetted_perimeter(self) -> float:
         return 2 * np.pi * self._R
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        self.R *= uc.lengthConversion
 
 
 class RectangularCrossSection(CrossSection):
@@ -371,9 +405,17 @@ class RectangularCrossSection(CrossSection):
     def W(self) -> float:
         return self._W
 
+    @W.setter
+    def W(self, W) -> None:
+        self._W = W
+
     @property
     def H(self) -> float:
         return self._H
+
+    @H.setter
+    def H(self, H) -> None:
+        self._H = H
 
     @property
     def flow_area(self) -> float:
@@ -382,6 +424,22 @@ class RectangularCrossSection(CrossSection):
     @property
     def wetted_perimeter(self) -> float:
         return 2 * (self._W + self._H)
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        self.H *= uc.lengthConversion
+        self.W *= uc.lengthConversion
 
 
 class SquareCrossSection(RectangularCrossSection):
@@ -416,9 +474,17 @@ class StadiumCrossSection(CrossSection):
     def A(self) -> float:
         return self._A
 
+    @A.setter
+    def A(self, A) -> None:
+        self._A = A
+
     @property
     def R(self) -> float:
         return self._R
+
+    @R.setter
+    def R(self, R) -> None:
+        self._R = R
 
     @property
     def flow_area(self) -> float:
@@ -428,6 +494,21 @@ class StadiumCrossSection(CrossSection):
     def wetted_perimeter(self) -> float:
         return 2 * (np.pi * self._R + self._A)
 
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        self.R *= uc.lengthConversion
+        self.A *= uc.lengthConversion
 
 cross_section_classes = {
     "circular": CircularCrossSection,
