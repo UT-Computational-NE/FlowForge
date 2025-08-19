@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple
 import copy
 import numpy as np
+from copy import deepcopy
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
@@ -54,7 +55,7 @@ class Component:
     def __init__(self,
                  height: float,
                  n_cells: int,
-                 material: str,
+                 material: str = "graphite",
                  azimuthal_angle: float = 0.0,
                  zenith_angle: float = 0.0,
                  cross_section: str = None,
@@ -65,7 +66,7 @@ class Component:
         self._material = material
 
         if cross_section is not None:
-            self._cross_section = self._buildCrossSection(cross_section, kwargs)
+            self._cross_section = self._buildCrossSection(cross_section, **kwargs)
         else:
             self._cross_section = None
 
@@ -127,10 +128,11 @@ class Component:
 
     @crossSection.setter
     def crossSection(self, cross_section: CrossSection):
+        assert self._cross_section is None, "Can only add a cross-section object, not alter one."
         self._cross_section = cross_section
 
 
-    def _buildCrossSection(cross_section_type: str, **kwargs) -> CrossSection:
+    def _buildCrossSection(self, cross_section_type: str, **kwargs) -> CrossSection:
         """
         Given a cross section type and the correct corresponding inputs (via
         kwargs), this method builds the cross section object used to compute
@@ -176,49 +178,6 @@ class Component:
         """
         return [self]
 
-    @staticmethod
-    def factory(input_dict: Dict):
-        """
-        Factory for building a collection of components
-
-        Parameters
-        ----------
-        indict : Dict
-            The input dictionary specifying the components to be instantiated.  This dictionary can be comprised
-            of two forms of inputs:
-
-            1.) A Name-Component pair
-                (Dict[str, Component])
-            2.) A dictionary of component types, each type holding a dictionary of name-parameter_set pairs, with the
-                name being the unique component's name, and the parameter_set another dictionary with key's corresponding
-                to the __init__ signature of the associated component type
-                (Dict[str, Dict[str, Dict[str, float]]])
-
-        Returns
-        -------
-        components : Dict[str, Component]
-            The collection of components built
-            (key: Component name, value: Component object)
-        """
-        components = {}
-        for key, value in input_dict.items():
-            if isinstance(value, dict):
-                comp_type = key
-                comps = value
-                if comp_type in solid_component_list:
-                    for name, parameters in comps.items():
-                        components[name] = solid_component_list[comp_type](**parameters)
-                else:
-                    raise TypeError("Unknown component type: " + comp_type)
-            elif isinstance(value, Component):
-                name = key
-                comp = value
-                components[name] = comp
-            else:
-                raise TypeError(f"Unknown input dictionary: {key:s} type: {str(type(value)):s}")
-
-        return components
-
 solid_component_list["component"] = Component
 
 class SerialComponent:
@@ -245,12 +204,8 @@ class SerialComponent:
     """
 
     def __init__(self, components: Dict[str, Component], order: List[str]) -> None:
-        components = Component.factory(components)
-        self._components = components
+        self._components = deepcopy(components)
         self._order = order
-        self._channel = None
-        self._pipe = None
-        self._pipe_information = None
 
     @property
     def components(self) -> Dict[str, Component]:
@@ -266,15 +221,15 @@ class SerialComponent:
 
     @property
     def volume(self) -> float:
-        return sum(component.volume for component in self.baseComponents)
+        return sum(component.volume for component in self.orderedComponents)
 
     @property
     def height(self) -> float:
-        return sum(component.height for component in self.components.values())
+        return sum(component.height for component in self.orderedComponents)
 
     @property
     def nCells(self) -> int:
-        return sum(component.nCells for component in self.baseComponents)
+        return sum(component.nCells for component in self.orderedComponents)
 
     def baseComponents(self) -> List[Component]:
         """
@@ -283,7 +238,7 @@ class SerialComponent:
         """
         base_components = []
         for component in self.components.values():
-            base_components.extend(component.baseComponents)
+            base_components.extend(component.baseComponents())
         return base_components
 
     def getComponentInletAndOutlets(self) -> List[Tuple[float, float]]:
@@ -347,8 +302,7 @@ class ParallelComponent:
         component_map: List[List[str]],
         ) -> None:
 
-        components = Component.factory(components)
-        self._components = components
+        self._components = deepcopy(components)
         self._component_map = component_map
 
     @property
@@ -361,11 +315,11 @@ class ParallelComponent:
 
     @property
     def volume(self) -> float:
-        return sum(component.volume for component in self.baseComponents)
+        return sum(sum(self.components[name].volume for name in row) for row in self.componentMap)
 
     @property
     def nCells(self) -> int:
-        return sum(component.nCells for component in self.baseComponents)
+        return sum(sum(self.components[name].nCells for name in row) for row in self.componentMap)
 
     def baseComponents(self) -> List[Component]:
         """
@@ -374,7 +328,7 @@ class ParallelComponent:
         """
         base_components = []
         for component in self.components.values():
-            base_components.extend(component.baseComponents)
+            base_components.extend(component.baseComponents())
         return base_components
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -438,7 +392,7 @@ class Core(ParallelComponent):
 
         # Checks
         self._componentTypeCheck(components)
-        self.__geometryCheck(components, component_map)
+        self._geometryCheck(components, component_map)
 
         super().__init__(components, component_map)
 
@@ -493,15 +447,28 @@ class Core(ParallelComponent):
 
         # Reference values
         first_comp_name = component_map[0][0]
-        reference_height = copy.deepcopy(components[first_comp_name].height)
-        reference_axial_cells = copy.deepcopy(components[first_comp_name].nCells)
+        reference_height = deepcopy(components[first_comp_name].height)
+        reference_axial_cells = deepcopy(components[first_comp_name].nCells)
 
         # Make checks
-        for comp_name, comp in component_map.items():
+        for comp_name, comp in components.items():
             assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
             assert comp.nCells == reference_axial_cells, "Incorrect component cell number (" + comp_name + ", " + str(comp.nCells) + ")"
 
         self.coreHeight = reference_height # Set core height to this reference height
         self.nAxialCells = reference_axial_cells # Set the number of axial cells to this reference value
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        super()._convertUnits(uc)
+        self.coreHeight *= uc.lengthConversion
 
 solid_component_list["core"] = Core
