@@ -412,32 +412,32 @@ class CoupledComponentInterface:
         return fluid_comp, coupled_solid_comp
 
 
-class ParallelCoupledComponents:
+class CoupledCoreComponentInterface:
     """
-    Interface to handle the mapping between fluid- and solid-parallel components
+    Interface to handle the mapping between fluid- and solid-core components
 
     Parameters
     ----------
-    fluid_parallel_component : FluidComponents.ParallelComponent
-        Parallel fluid component object
-    solid_parallel_component : SolidComponents.ParallelComponent
-        Parallel solid component object
+    fluid_core_component : FluidComponents.Core
+        Core fluid component object
+    solid_core_component : SolidComponents.Core
+        Core solid component object
 
     Attributes
     ----------
-    parallelFluidComponent : FluidComponents.ParallelComponent
-        Parallel fluid component object
+    coreFluidComponent : FluidComponents.Core
+        Core fluid component object
     fluidComponents : Dict[str, FluidComponents.Component]
-        Dict of all parallel components in 'parallelFluidComponent' (not including
+        Dict of all parallel components in 'coreFluidComponent' (not including
         non-parallel components, such as plenums or annulus)
     fluidComponentMap : List[List[str]]
         Spatial map of where these fluid components are placed, relative to one
         another
 
-    parallelSolidComponent : SolidComponents.ParallelComponent
-        Parallel solid component object
+    coreSolidComponent : SolidComponents.Core
+        core solid component object
     solidComponents : Dict[str, SolidComponents.Component]
-         Dict of all parallel components in 'solidComponents'
+         Dict of all parallel components in 'coreSolidComponent'
     solidComponentMap : List[List[str]]
         Spatial map of where these solid components are placed, relative to one
         another
@@ -449,17 +449,17 @@ class ParallelCoupledComponents:
     """
 
     def __init__(self,
-                 fluid_parallel_component: FluidComps.ParallelComponents,
-                 solid_parallel_component: SolidComps.ParallelComponent):
+                 fluid_core_component: FluidComps.Core,
+                 solid_core_component: SolidComps.Core):
         # Fluid
-        self._fluid_parallel_component = fluid_parallel_component
-        self._fluid_components = fluid_parallel_component.myParallelComponents
-        self._fluid_component_map = fluid_parallel_component.componentMap
+        self._fluid_core_component = fluid_core_component
+        self._fluid_components = fluid_core_component.myParallelComponents
+        self._fluid_component_map = fluid_core_component.componentMap
 
         # Solid
-        self._solid_parallel_component = solid_parallel_component
-        self._solid_components = solid_parallel_component.components
-        self._solid_component_map = solid_parallel_component.componentMap
+        self._solid_core_component = solid_core_component
+        self._solid_components = solid_core_component.components
+        self._solid_component_map = solid_core_component.componentMap
 
         # Mapping between component maps
         self._mapping = self._buildMapping(self.fluidComponentMap,
@@ -467,8 +467,8 @@ class ParallelCoupledComponents:
 
 
     @property
-    def parallelFluidComponent(self):
-        return self._fluid_parallel_component
+    def coreFluidComponent(self):
+        return self._fluid_core_component
 
     @property
     def fluidComponents(self):
@@ -479,8 +479,8 @@ class ParallelCoupledComponents:
         return self._fluid_component_map
 
     @property
-    def parallelSolidComponent(self):
-        return self._solid_parallel_component
+    def coreSolidComponent(self):
+        return self._solid_core_component
 
     @property
     def solidComponents(self):
@@ -525,7 +525,7 @@ class ParallelCoupledComponents:
 
     def buildCoupledComponents(self):
         """
-        Using the mapping between the solid and fluid parallel components, this method
+        Using the mapping between the solid and fluid core components, this method
         couples each pair of component types, outputting a coupled version of the input.
 
         The key for the solid and fluid coupled components is in the form "i_j", where
