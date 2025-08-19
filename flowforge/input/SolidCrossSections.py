@@ -58,7 +58,7 @@ class CrossSection:
         assert channel.flow_area < self.baseArea
         self._channel = channel
 
-    def _convertUnits(self, uc: UnitConverter) -> None: # pylint:disable=unused-argument
+    def _convertUnits(self, uc: UnitConverter) -> None:
         """
         Private method for converting units of the component's internal attribute
 
@@ -71,7 +71,8 @@ class CrossSection:
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
-        raise NotImplementedError
+        if self.channel is not None:
+            self.channel._convertUnits(uc)
 
 class Rectangle(CrossSection):
     """
@@ -142,6 +143,7 @@ class Rectangle(CrossSection):
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
+        super()._convertUnits(uc)
         self.length *= uc.lengthConversion
         self.width *= uc.lengthConversion
 
@@ -168,7 +170,7 @@ class Square(Rectangle):
     """
 
     # Class inputs
-    inputs = ("length")
+    inputs = tuple(["length"])
 
     def __init__(self,
                  length: float) -> None:
@@ -198,7 +200,7 @@ class Hexagon(CrossSection):
     """
 
     # Class inputs
-    inputs = ("length")
+    inputs = tuple(["length"])
 
     def __init__(self,
                  length: float) -> None:
@@ -209,6 +211,10 @@ class Hexagon(CrossSection):
     @property
     def length(self) -> float:
         return self._length
+
+    @length.setter
+    def length(self, length):
+        self._length = length
 
     @property
     def baseArea(self) -> float:
@@ -227,6 +233,7 @@ class Hexagon(CrossSection):
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
+        super()._convertUnits(uc)
         self.length *= uc.lengthConversion
 
 
