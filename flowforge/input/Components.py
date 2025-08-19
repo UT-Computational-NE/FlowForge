@@ -1970,6 +1970,7 @@ class CartCore(Core):
         non_channels: Optional[List[str]] = None,
         y_pitch: Optional[float] = None,
         map_alignment: Optional[Alignment] = "center",
+        fill_map: bool = False,
         # Solid Mesh Specifications
         solid: Optional[str] = None,
         solid_component_type: Optional[str] = None,
@@ -1989,7 +1990,10 @@ class CartCore(Core):
         if non_channels is None:
             non_channels = ["0"]
         assert len(channel_map) > 0, f"map: {channel_map} must not be empty"
-        filled_map = self._fill_map(channel_map, non_channels, map_alignment)
+        if fill_map:
+            filled_map = self._fill_map(channel_map, non_channels, map_alignment)
+        else:
+            filled_map = channel_map
         num_rows = len(filled_map)
         num_cols = len(filled_map[0])
         self._center_column = (num_cols - 1) / 2
