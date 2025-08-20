@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 from copy import deepcopy
 import numpy as np
 
@@ -494,7 +494,8 @@ class CoupledCoreComponentInterface:
     def mapping(self):
         return self._mapping
 
-    def _buildMapping(self, fluid_map, solid_map):
+    @staticmethod
+    def _buildMapping(fluid_map, solid_map):
         """
         Builds a map of connections between the solid and fluid component maps
 
@@ -511,11 +512,14 @@ class CoupledCoreComponentInterface:
             mapping between the solid_map and fluid_map, where each element is a
             tuple of (solid component, fluid component)
         """
-        assert len(solid_map) == len(fluid_map), "Maps are not of the same size"
-        assert all(len(s_i) == len(f_i) for s_i, f_i in zip(solid_map, fluid_map)), "Maps are not of the same size"
+        real_fluid_map = [[elem for elem in row if elem is not None] for row in fluid_map]
+
+        assert len(solid_map) == len(real_fluid_map), "Maps are not of the same size"
+        assert all(len(s_i) == len(f_i) for s_i, f_i in zip(solid_map, real_fluid_map)), "Maps are not of the same size"
+
 
         mapping = []
-        for fluid_row, solid_row in zip(fluid_map, solid_map):
+        for fluid_row, solid_row in zip(real_fluid_map, solid_map):
             row_mapping = []
             for fluid_element, solid_element in zip(fluid_row, solid_row):
                 row_mapping.append(tuple([fluid_element, solid_element]))
@@ -539,20 +543,23 @@ class CoupledCoreComponentInterface:
         Returns
         -------
         coupled_fluid_components : Dict[str, fluidComponent]
+            Set of coupled fluid components
         coupled_solid_components : Dict[str, SolidComponent]
+            Set of coupled solid components
         """
 
-        coupled_components = []
+        coupled_components_keys = []
         coupled_fluid_components = {}
         coupled_solid_components = {}
-        for row in self.mapping:
-            for element in row:
+        for i, row in enumerate(self.mapping):
+            for j, element in enumerate(row):
                 fluid_key = element[0]
+                full_fluid_key = f"{fluid_key}-{i+1}-{j+1}"
                 solid_key = element[1]
                 coupled_key =  fluid_key + "_" + solid_key
-                if coupled_key not in coupled_components:
+                if coupled_key not in coupled_components_keys:
                     # Copy components
-                    fluid_comp = deepcopy(self.fluidComponents[fluid_key])
+                    fluid_comp = deepcopy(self.fluidComponents[full_fluid_key])
                     solid_comp = deepcopy(self.solidComponents[solid_key])
 
                     CCI = CoupledComponentInterface(fluid_comp, solid_comp)
@@ -560,8 +567,38 @@ class CoupledCoreComponentInterface:
                     coupled_components = CCI.buildCoupledComponents()
 
                     # Add components to dict
-                    coupled_components.append(coupled_key)
-                    coupled_fluid_components[coupled_key] = coupled_components[0]
+                    coupled_components_keys.append(coupled_key)
+                    coupled_fluid_components[fluid_key] = coupled_components[0]
                     coupled_solid_components[coupled_key] = coupled_components[1]
 
         return coupled_fluid_components, coupled_solid_components
+
+    def buildCoupledCores(self):
+        """
+        Builds the coupled cores, and returns the new core objects as well as the coupled mapping
+        between them.
+
+        This method utilizes the 'buildCoupledComponents' to derive the set of coupled components,
+        and then creates a new solid core using these coupled solid components.
+
+        For the fluid core, since it remains unchanged due to the coupling, the original core object
+        is copied and returned.
+
+        Returns
+        -------
+        coupled_fluid_core : FluidComponents.Core
+            Coupled version of the fluid core
+        coupled_solid_core : SolidComponents.Core
+            Coupled version of the solid core
+        coupled_map : List[List[Tuple[str, str]]]
+            Mapping between fluid and solid (parallel) components in space
+
+        """
+        _, coupled_solid_components = self.buildCoupledComponents()
+
+        coupled_map = deepcopy(self.mapping)
+        coupled_fluid_core = deepcopy(self.coreFluidComponent)
+        coupled_solid_core = SolidComps.Core(components=coupled_solid_components,
+                                             component_map=self.solidComponentMap)
+
+        return coupled_fluid_core, coupled_solid_core, coupled_map

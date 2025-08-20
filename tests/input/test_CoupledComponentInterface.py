@@ -193,11 +193,99 @@ def test_CoupledComponentInterface():
             desired_area = (inputs["solid"]["2"][solid_name]["l"] * inputs["solid"]["2"][solid_name]["w"]) - pipe_area
         assert solid_comp.crossSection.area == desired_area
 
+def _buildCoreComponents(inputs, fluid_components: dict, solid_components: dict):
 
-def test_ParallelCoupledComponents():
-    return
+    # Fluid Core
+    fluid_map = [
+             ["1", "2"],
+        ["1", "2", "1", "2"]
+    ]
+    x_pitch = inputs["solid"]["1"]["l"]
+    y_pitch = inputs["solid"]["1"]["w"]
+    plenum_radius = 2.5 * max(x_pitch, y_pitch)
+    lower_plenum = {"nozzle": {"L": 1.0, "R_inlet": 0.1*plenum_radius, "R_outlet": plenum_radius}}
+    upper_plenum = {"pipe": {"L": 1.0, "cross_section_name": "circular", "R": plenum_radius}}
+
+    fluid_core = FluidComps.CartCore(x_pitch=x_pitch, y_pitch=y_pitch,
+                                     components=fluid_components, channel_map=fluid_map,
+                                     lower_plenum=lower_plenum, upper_plenum=upper_plenum)
+
+    # Solid Core
+    solid_map = [
+             ["1", "1"],
+        ["2", "2", "2", "2"]
+    ]
+
+    solid_core = SolidComps.Core(components=solid_components, component_map=solid_map)
+
+    return fluid_core, solid_core
+
+def test_CoupledCoreComponentInterface():
+    inputs, fluid_1, fluid_2, solid_1, solid_2 = _buildBasicComponents()
+    fluid_components = {"1": fluid_1, "2": fluid_2}
+    solid_components = {"1": solid_1, "2": solid_2}
+
+    fluid_core, solid_core = _buildCoreComponents(inputs, fluid_components, solid_components)
+    coreCCI = CoupledCoreComponentInterface(fluid_core_component=fluid_core, solid_core_component=solid_core)
+
+    # Test '_buildMapping'
+    mapping = coreCCI._buildMapping(fluid_map=fluid_core.componentMap, solid_map=solid_core.componentMap)
+    for f_map, s_map, c_map in zip(fluid_core.componentMap, solid_core.componentMap, mapping):
+        for f_i, s_i, c_i in zip(f_map, s_map, c_map):
+            assert c_i == (f_i, s_i)
+
+    # Test 'buildCoupledComponents'
+    coupled_fluid_components, coupled_solid_components = coreCCI.buildCoupledComponents()
+
+    for row in mapping:
+        for element in row:
+            fluid_key = element[0]
+            solid_key = element[1]
+            coupled_key =  fluid_key + "_" + solid_key
+
+            fluid_comp = coupled_fluid_components[fluid_key]
+            solid_comp = coupled_solid_components[coupled_key]
+
+            if (fluid_key == "1") and (solid_key == "1"):
+                assert type(fluid_comp) == FluidComps.Pipe
+                assert type(solid_comp) == SolidComps.Component
+                assert fluid_comp.length == solid_comp.height
+                assert fluid_comp.nCell == solid_comp.nCells
+                assert solid_comp.crossSection.area == solid_comp.crossSection.baseArea - fluid_comp.flowArea
+            if (fluid_key == "1") and (solid_key == "2"):
+                assert type(fluid_comp) == FluidComps.Pipe
+                assert type(solid_comp) == SolidComps.SerialComponent
+                assert all(comp.crossSection.area == comp.crossSection.baseArea - fluid_comp.flowArea
+                           for comp in solid_comp.orderedComponents)
+            if (fluid_key == "2") and (solid_key == "1"):
+                assert type(fluid_comp) == FluidComps.SerialComponents
+                assert type(solid_comp) == SolidComps.SerialComponent
+                for i, (fluid_name, solid_name) in enumerate(zip(fluid_comp.order, solid_comp.order)):
+                    fluid_comp_i = fluid_comp.myComponents[fluid_name]
+                    solid_comp_i = solid_comp .components[solid_name]
+                    assert fluid_comp_i.length == solid_comp_i.height
+                    assert fluid_comp_i.nCell == solid_comp_i.nCells
+                    if type(fluid_comp_i) == FluidComps.Nozzle:
+                        desired_area = solid_comp_i.crossSection.baseArea - fluid_comp.myComponents[fluid_comp.order[i-1]].flowArea
+                    else:
+                        desired_area = solid_comp_i.crossSection.baseArea - fluid_comp_i.flowArea
+                    assert solid_comp_i.crossSection.area == desired_area
+            if (fluid_key == "2") and (solid_key == "2"):
+                assert type(fluid_comp) == FluidComps.SerialComponents
+                assert type(solid_comp) == SolidComps.SerialComponent
+                for i, (fluid_name, solid_name) in enumerate(zip(fluid_comp.order, solid_comp.order)):
+                    fluid_comp_i = fluid_comp.myComponents[fluid_name]
+                    solid_comp_i = solid_comp .components[solid_name]
+                    assert fluid_comp_i.length == solid_comp_i.height
+                    assert fluid_comp_i.nCell == solid_comp_i.nCells
+                    if type(fluid_comp_i) == FluidComps.Nozzle:
+                        desired_area = solid_comp_i.crossSection.baseArea - fluid_comp.myComponents[fluid_comp.order[i-1]].flowArea
+                    else:
+                        desired_area = solid_comp_i.crossSection.baseArea - fluid_comp_i.flowArea
+                    assert solid_comp_i.crossSection.area == desired_area
+
 
 if __name__ == "__main__":
     test_CoupledComponentInterfaceMethods()
     test_CoupledComponentInterface()
-    # test_ParallelCoupledComponents()
+    test_CoupledCoreComponentInterface()
