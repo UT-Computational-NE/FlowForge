@@ -326,7 +326,7 @@ class CrossSection(abc.ABC):
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
-    def _convertUnits(self, uc: UnitConverter) -> None: # pylint:disable=unused-argument
+    def _convertUnits(self, uc: UnitConverter) -> None:  # pylint:disable=unused-argument
         """
         Private method for converting units of the component's internal attribute
 
@@ -509,6 +509,7 @@ class StadiumCrossSection(CrossSection):
         """
         self.R *= uc.lengthConversion
         self.A *= uc.lengthConversion
+
 
 cross_section_classes = {
     "circular": CircularCrossSection,

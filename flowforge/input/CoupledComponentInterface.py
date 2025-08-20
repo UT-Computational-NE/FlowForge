@@ -1,9 +1,10 @@
-from typing import List, Literal
+from typing import List
 from copy import deepcopy
 import numpy as np
 
 import flowforge.input.Components as FluidComps
 import flowforge.input.SolidComponents as SolidComps
+
 
 class CoupledComponentInterface:
     """
@@ -38,9 +39,7 @@ class CoupledComponentInterface:
         coupled components
     """
 
-    def __init__(self,
-                 fluid_component,
-                 solid_component):
+    def __init__(self, fluid_component, solid_component):
 
         self._fluid_component = fluid_component
         self._solid_component = solid_component
@@ -50,7 +49,7 @@ class CoupledComponentInterface:
 
         # perform checks
         self._checkComponentTypes(self.fluidComponent, self.solidComponent)
-        if all(type(comp) is not FluidComps.Nozzle for comp in fluid_component.baseComponents):
+        if all(not isinstance(comp, FluidComps.Nozzle) for comp in fluid_component.baseComponents):
             self._checkNumberOfCells(self.fluidComponent.nCell, self.solidComponent.nCells)
         self._checkComponentHeight(self.fluidComponent.length, self.solidComponent.height)
 
@@ -90,7 +89,9 @@ class CoupledComponentInterface:
         solidIsSerial = isinstance(solid_comp, SolidComps.SerialComponent)
         solidIsParallel = isinstance(solid_comp, SolidComps.ParallelComponent)
 
-        assert (not fluidIsParallel) and (not solidIsParallel), "Cannot create a coupling interface between parallel components using CCI"
+        assert (not fluidIsParallel) and (
+            not solidIsParallel
+        ), "Cannot create a coupling interface between parallel components using CCI"
 
         # Set fluid component type
         if fluidIsSerial:
@@ -103,7 +104,6 @@ class CoupledComponentInterface:
             self._component_types["solid"] = "serial"
         else:
             self._component_types["solid"] = "component"
-
 
     def _checkNumberOfCells(self, n_fluid_cells, n_solid_cells):
         """
@@ -124,8 +124,7 @@ class CoupledComponentInterface:
         self._height = fluid_height
 
     @staticmethod
-    def _coupleSingularComponents(fluid_component: FluidComps.Component,
-                                  solid_component: SolidComps.Component):
+    def _coupleSingularComponents(fluid_component: FluidComps.Component, solid_component: SolidComps.Component):
         """
         Given two singular (non-serial) components, this method couples them together.
 
@@ -144,9 +143,15 @@ class CoupledComponentInterface:
             Coupled solid component
         """
         # All components passed to this function should be singular (non-serial)
-        assert not isinstance(fluid_component, FluidComps.SerialComponents), "Components passed to this function should always be singular-components"
-        assert not isinstance(solid_component, SolidComps.SerialComponent), "Components passed to this function should always be singular-components"
-        assert isinstance(fluid_component, FluidComps.Pipe), "Currently only 'Pipe'-type fluid object are supported for fluid-solid coupling"
+        assert not isinstance(
+            fluid_component, FluidComps.SerialComponents
+        ), "Components passed to this function should always be singular-components"
+        assert not isinstance(
+            solid_component, SolidComps.SerialComponent
+        ), "Components passed to this function should always be singular-components"
+        assert isinstance(
+            fluid_component, FluidComps.Pipe
+        ), "Currently only 'Pipe'-type fluid object are supported for fluid-solid coupling"
 
         # Copt components
         coupled_solid_component = deepcopy(solid_component)
@@ -158,8 +163,7 @@ class CoupledComponentInterface:
         return coupled_solid_component
 
     @staticmethod
-    def _breakUpSingularSolidComponent(fluid_comp: FluidComps.SerialComponents,
-                                       solid_comp: SolidComps.Component):
+    def _breakUpSingularSolidComponent(fluid_comp: FluidComps.SerialComponents, solid_comp: SolidComps.Component):
         """
         If the solid component is a singular component (non-serial), and the fluid component is a serial component,
         this method breaks the singular solid component into 'n'-serial component, where 'n' is the number of serial
@@ -193,9 +197,8 @@ class CoupledComponentInterface:
             f_nCells = f_comp.nCell
 
             # Build component based on input component data
-            coupled_solid_name = "c"+str(f_i+1)
-            coupled_solid_comp = SolidComps.Component(
-                height=f_height, n_cells=f_nCells, material=solid_comp.material)
+            coupled_solid_name = "c" + str(f_i + 1)
+            coupled_solid_comp = SolidComps.Component(height=f_height, n_cells=f_nCells, material=solid_comp.material)
             coupled_solid_comp.crossSection = solid_comp.crossSection
 
             solid_order.append(coupled_solid_name)
@@ -206,10 +209,9 @@ class CoupledComponentInterface:
 
         return coupled_solid_component
 
-
-    def _coupleSerialComponents(self,
-                                fluid_component : FluidComps.SerialComponents,
-                                solid_component : SolidComps.SerialComponent):
+    def _coupleSerialComponents(
+        self, fluid_component: FluidComps.SerialComponents, solid_component: SolidComps.SerialComponent
+    ):
         """
         If both the fluid and solid are serial components, this method maps and couples each solid
         component to its respective fluid component.
@@ -255,8 +257,9 @@ class CoupledComponentInterface:
                 f_inlet += f_comp.length
             return fluid_serial_heights
 
-        def addInfinitesimalSolidComponents(fluid_component : FluidComps.SerialComponents,
-                                            solid_component : SolidComps.SerialComponent):
+        def addInfinitesimalSolidComponents(
+            fluid_component: FluidComps.SerialComponents, solid_component: SolidComps.SerialComponent
+        ):
             """
             When building serial fluid components, if the pipe experiences a change in flow area, an infinitesimal
             nozzle component is added for continuity. This method (1) locates those added fluid components and (2) if
@@ -285,7 +288,7 @@ class CoupledComponentInterface:
             for comp_name in fluid_component.order:
                 if common_name not in comp_name:
                     updated_solid_order.append(solid_component.order[j])
-                    j+=1
+                    j += 1
                     continue
                 updated_solid_order.append(base_solid_name + "__" + solid_component.order[j])
 
@@ -300,7 +303,9 @@ class CoupledComponentInterface:
                 new_component.nCells = 1
                 updated_solid_components[comp_name] = new_component
 
-            updated_solid_component = SolidComps.SerialComponent(components=updated_solid_components, order=updated_solid_order)
+            updated_solid_component = SolidComps.SerialComponent(
+                components=updated_solid_components, order=updated_solid_order
+            )
 
             return updated_solid_component
 
@@ -330,10 +335,10 @@ class CoupledComponentInterface:
 
             """
 
-            assert type(ordered_fluid_components[component_number]) == FluidComps.Nozzle
+            assert isinstance(ordered_fluid_components[component_number], FluidComps.Nozzle)
             assert np.isclose(ordered_fluid_components[component_number].length, 0.0)
 
-            previous_fluid_component = ordered_fluid_components[component_number-1]
+            previous_fluid_component = ordered_fluid_components[component_number - 1]
             fluid_channel_cross_section = previous_fluid_component.crossSection
 
             coupled_solid_component = deepcopy(solid_component)
@@ -353,26 +358,28 @@ class CoupledComponentInterface:
 
         # Ensures that the fluid & solid domains are the same for each sub-component
         for i, (fluid_domain, solid_domain) in enumerate(zip(fluid_serial_heights, solid_serial_heights)):
-            assert np.isclose(min(fluid_domain), min(solid_domain)), f"min fluid: {min(fluid_domain)} | min solid: {min(solid_domain)}"
-            assert np.isclose(max(fluid_domain), max(solid_domain)), f"max fluid: {max(fluid_domain)} | max solid: {max(solid_domain)}"
+            assert np.isclose(
+                min(fluid_domain), min(solid_domain)
+            ), f"min fluid: {min(fluid_domain)} | min solid: {min(solid_domain)}"
+            assert np.isclose(
+                max(fluid_domain), max(solid_domain)
+            ), f"max fluid: {max(fluid_domain)} | max solid: {max(solid_domain)}"
 
         # Couples each sub-component
         coupled_solid_components = {}
         for i, (fluid_comp, solid_comp) in enumerate(zip(ordered_fluid_comps, ordered_solid_comps)):
             coupled_comp_name = solid_component.order[i]
-            if type(fluid_comp) is not FluidComps.Pipe:
+            if isinstance(fluid_comp, FluidComps.Pipe):
                 coupled_solid_components[coupled_comp_name] = coupleInfinitesimalSolidComponent(
                     i, ordered_fluid_comps, solid_comp
                 )
                 continue
-            coupled_solid_components[coupled_comp_name] = self._coupleSingularComponents(
-                fluid_comp, solid_comp
-            )
+            coupled_solid_components[coupled_comp_name] = self._coupleSingularComponents(fluid_comp, solid_comp)
 
         # Creates the final, coupled serial component
         coupled_serial_solid_component = SolidComps.SerialComponent(
-                components=coupled_solid_components, order=solid_component.order
-            )
+            components=coupled_solid_components, order=solid_component.order
+        )
         return coupled_serial_solid_component
 
     def buildCoupledComponents(self):
@@ -394,7 +401,7 @@ class CoupledComponentInterface:
         if all(self.componentTypes[i] == "component" for i in ["solid", "fluid"]):
             coupled_solid_comp = self._coupleSingularComponents(fluid_comp, solid_comp)
 
-        if self.componentTypes["solid"] == "serial" and self.componentTypes["fluid"] == "component":
+        elif self.componentTypes["solid"] == "serial" and self.componentTypes["fluid"] == "component":
             solid_order = solid_comp.order
             ordered_solid_comps = solid_comp.orderedComponents
             coupled_solid_comps = {}
@@ -402,12 +409,17 @@ class CoupledComponentInterface:
                 coupled_solid_comps[name] = self._coupleSingularComponents(fluid_comp, comp)
             coupled_solid_comp = SolidComps.SerialComponent(coupled_solid_comps, solid_order)
 
-        if self.componentTypes["solid"] == "component" and self.componentTypes["fluid"] == "serial":
+        elif self.componentTypes["solid"] == "component" and self.componentTypes["fluid"] == "serial":
             broken_solid_comp = self._breakUpSingularSolidComponent(fluid_comp, solid_comp)
             coupled_solid_comp = self._coupleSerialComponents(fluid_comp, broken_solid_comp)
 
-        if all(self.componentTypes[i] == "serial" for i in ["solid", "fluid"]):
+        elif all(self.componentTypes[i] == "serial" for i in ["solid", "fluid"]):
             coupled_solid_comp = self._coupleSerialComponents(fluid_comp, solid_comp)
+
+        else:
+            solid_type = self.componentTypes["solid"]
+            fluid_type = self.componentTypes["fluid"]
+            raise Exception(f"Error: Solid of type {solid_type} and Fluid of type {fluid_type}")
 
         return fluid_comp, coupled_solid_comp
 
@@ -448,9 +460,7 @@ class CoupledCoreComponentInterface:
         the second being the solid-component key
     """
 
-    def __init__(self,
-                 fluid_core_component: FluidComps.Core,
-                 solid_core_component: SolidComps.Core):
+    def __init__(self, fluid_core_component: FluidComps.Core, solid_core_component: SolidComps.Core):
         # Fluid
         self._fluid_core_component = fluid_core_component
         self._fluid_components = fluid_core_component.myParallelComponents
@@ -462,9 +472,7 @@ class CoupledCoreComponentInterface:
         self._solid_component_map = solid_core_component.componentMap
 
         # Mapping between component maps
-        self._mapping = self._buildMapping(self.fluidComponentMap,
-                                           self.solidComponentMap)
-
+        self._mapping = self._buildMapping(self.fluidComponentMap, self.solidComponentMap)
 
     @property
     def coreFluidComponent(self):
@@ -517,7 +525,6 @@ class CoupledCoreComponentInterface:
         assert len(solid_map) == len(real_fluid_map), "Maps are not of the same size"
         assert all(len(s_i) == len(f_i) for s_i, f_i in zip(solid_map, real_fluid_map)), "Maps are not of the same size"
 
-
         mapping = []
         for fluid_row, solid_row in zip(real_fluid_map, solid_map):
             row_mapping = []
@@ -556,7 +563,7 @@ class CoupledCoreComponentInterface:
                 fluid_key = element[0]
                 full_fluid_key = f"{fluid_key}-{i+1}-{j+1}"
                 solid_key = element[1]
-                coupled_key =  fluid_key + "_" + solid_key
+                coupled_key = fluid_key + "_" + solid_key
                 if coupled_key not in coupled_components_keys:
                     # Copy components
                     fluid_comp = deepcopy(self.fluidComponents[full_fluid_key])
@@ -598,7 +605,6 @@ class CoupledCoreComponentInterface:
 
         coupled_map = deepcopy(self.mapping)
         coupled_fluid_core = deepcopy(self.coreFluidComponent)
-        coupled_solid_core = SolidComps.Core(components=coupled_solid_components,
-                                             component_map=self.solidComponentMap)
+        coupled_solid_core = SolidComps.Core(components=coupled_solid_components, component_map=self.solidComponentMap)
 
         return coupled_fluid_core, coupled_solid_core, coupled_map

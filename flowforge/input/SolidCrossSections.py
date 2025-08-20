@@ -12,6 +12,7 @@ The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 
+
 class CrossSection:
     """
     Abstract base class for solid cross sections
@@ -74,6 +75,7 @@ class CrossSection:
         if self.channel is not None:
             self.channel._convertUnits(uc)
 
+
 class Rectangle(CrossSection):
     """
     Rectangular cross section
@@ -103,9 +105,7 @@ class Rectangle(CrossSection):
     # Class inputs
     inputs = ("length", "width")
 
-    def __init__(self,
-                 length: float,
-                 width: float) -> None:
+    def __init__(self, length: float, width: float) -> None:
         super().__init__()
         self._length = length
         self._width = width
@@ -147,6 +147,7 @@ class Rectangle(CrossSection):
         self.length *= uc.lengthConversion
         self.width *= uc.lengthConversion
 
+
 class Square(Rectangle):
     """
     Square cross section
@@ -172,8 +173,7 @@ class Square(Rectangle):
     # Class inputs
     inputs = tuple(["length"])
 
-    def __init__(self,
-                 length: float) -> None:
+    def __init__(self, length: float) -> None:
         super().__init__(length, length)
 
 
@@ -202,8 +202,7 @@ class Hexagon(CrossSection):
     # Class inputs
     inputs = tuple(["length"])
 
-    def __init__(self,
-                 length: float) -> None:
+    def __init__(self, length: float) -> None:
         super().__init__()
         self._BASE_AREA_COEFF = 3.0 * np.sqrt(3.0) / 2.0
         self._length = length
@@ -237,8 +236,4 @@ class Hexagon(CrossSection):
         self.length *= uc.lengthConversion
 
 
-cross_section_types = {
-    "rectangle" : Rectangle,
-    "square": Square,
-    "hexagon" : Hexagon
-}
+cross_section_types = {"rectangle": Rectangle, "square": Square, "hexagon": Hexagon}

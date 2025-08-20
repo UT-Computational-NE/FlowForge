@@ -1,6 +1,4 @@
 from typing import List, Dict, Tuple
-import copy
-import numpy as np
 from copy import deepcopy
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
@@ -14,6 +12,7 @@ The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 solid_component_list = {}
+
 
 class Component:
     """
@@ -52,15 +51,16 @@ class Component:
         Cross section used for the component
     """
 
-    def __init__(self,
-                 height: float,
-                 n_cells: int,
-                 material: str = "graphite",
-                 azimuthal_angle: float = 0.0,
-                 zenith_angle: float = 0.0,
-                 cross_section: str = None,
-                 **kwargs
-                 ) -> None:
+    def __init__(
+        self,
+        height: float,
+        n_cells: int,
+        material: str = "graphite",
+        azimuthal_angle: float = 0.0,
+        zenith_angle: float = 0.0,
+        cross_section: str = None,
+        **kwargs,
+    ) -> None:
         self._height = height
         self._n_cells = n_cells
         self._material = material
@@ -131,7 +131,6 @@ class Component:
         assert self._cross_section is None, "Can only add a cross-section object, not alter one."
         self._cross_section = cross_section
 
-
     def _buildCrossSection(self, cross_section_type: str, **kwargs) -> CrossSection:
         """
         Given a cross section type and the correct corresponding inputs (via
@@ -149,10 +148,8 @@ class Component:
             Cross section built using the inputs from kwargs
         """
         cross_section_obj = cross_section_types[cross_section_type]
-        assert all(inp in kwargs.keys() for inp in cross_section_obj.inputs)
-        cross_section = cross_section_obj(
-            **{k: v for k, v in kwargs.items() if k in cross_section_obj.inputs}
-        )
+        assert all(inp in kwargs for inp in cross_section_obj.inputs)
+        cross_section = cross_section_obj(**{k: v for k, v in kwargs.items() if k in cross_section_obj.inputs})
         return cross_section
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -178,7 +175,9 @@ class Component:
         """
         return [self]
 
+
 solid_component_list["component"] = Component
+
 
 class SerialComponent:
     """
@@ -270,7 +269,9 @@ class SerialComponent:
         for component in self.components.values():
             component._convertUnits(uc)
 
+
 solid_component_list["serial_component"] = SerialComponent
+
 
 class ParallelComponent:
     """
@@ -300,7 +301,7 @@ class ParallelComponent:
         self,
         components: Dict[str, Component],
         component_map: List[List[str]],
-        ) -> None:
+    ) -> None:
 
         self._components = deepcopy(components)
         self._component_map = component_map
@@ -344,7 +345,9 @@ class ParallelComponent:
         for component in self.components.values():
             component._convertUnits(uc)
 
+
 solid_component_list["parallel_component"] = ParallelComponent
+
 
 class Core(ParallelComponent):
     """
@@ -381,10 +384,12 @@ class Core(ParallelComponent):
     nAxialCells : int
         number of axial cells in the core
     """
-    def __init__(self,
-                 components: Dict[str, Component],
-                 component_map: List[List[str]],
-                 ) -> None:
+
+    def __init__(
+        self,
+        components: Dict[str, Component],
+        component_map: List[List[str]],
+    ) -> None:
 
         # Parameters
         self._core_height = 0.0
@@ -425,8 +430,10 @@ class Core(ParallelComponent):
             dict containing the solid component
         """
         for comp_name, comp in components.items():
-            assert isinstance(comp, Component) or isinstance(comp, SerialComponent), "Incorrect component type (" + comp_name + ")"
-            assert all(isinstance(comp_i, Component) for comp_i in comp.baseComponents()), "Incorrect base component type (" + comp_name + ")"
+            assert isinstance(comp, (Component, SerialComponent)), "Incorrect component type (" + comp_name + ")"
+            assert all(isinstance(comp_i, Component) for comp_i in comp.baseComponents()), (
+                "Incorrect base component type (" + comp_name + ")"
+            )
 
     def _geometryCheck(self, components, component_map) -> None:
         """
@@ -453,10 +460,12 @@ class Core(ParallelComponent):
         # Make checks
         for comp_name, comp in components.items():
             assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
-            assert comp.nCells == reference_axial_cells, "Incorrect component cell number (" + comp_name + ", " + str(comp.nCells) + ")"
+            assert comp.nCells == reference_axial_cells, (
+                "Incorrect component cell number (" + comp_name + ", " + str(comp.nCells) + ")"
+            )
 
-        self.coreHeight = reference_height # Set core height to this reference height
-        self.nAxialCells = reference_axial_cells # Set the number of axial cells to this reference value
+        self.coreHeight = reference_height  # Set core height to this reference height
+        self.nAxialCells = reference_axial_cells  # Set the number of axial cells to this reference value
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -470,5 +479,6 @@ class Core(ParallelComponent):
         """
         super()._convertUnits(uc)
         self.coreHeight *= uc.lengthConversion
+
 
 solid_component_list["core"] = Core
