@@ -242,6 +242,7 @@ def test_cartcore_invalid_alignment():
             orificing=orificing,
             non_channels=["0"],
             map_alignment="invalid_alignment",
+            fill_map=True
         )
 
 

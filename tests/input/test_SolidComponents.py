@@ -98,8 +98,8 @@ def test_serialComponent():
     assert comp.order == order
     assert all(comp1.volume == comp2.volume for comp1, comp2 in zip(comp.orderedComponents, ordered_components))
     assert all(comp1.nCells == comp2.nCells for comp1, comp2 in zip(comp.orderedComponents, ordered_components))
-    assert comp.height == total_height
-    assert comp.volume == total_height * cx_length * cx_width
+    assert np.isclose(comp.height, total_height)
+    assert np.isclose(comp.volume, total_height * cx_length * cx_width)
     assert comp.nCells == total_cells
 
     inlets_and_outlets = []
