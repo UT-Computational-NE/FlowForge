@@ -29,7 +29,7 @@ def test_Rectangle():
 
 
 def test_Square():
-    assert Square.inputs == ("length")
+    assert Square.inputs == tuple(["length"])
 
     length = 1.124 # m
     square = Square(length = length)
@@ -47,7 +47,7 @@ def test_Square():
 
 
 def test_Hexagon():
-    assert Hexagon.inputs == ("length")
+    assert Hexagon.inputs == tuple(["length"])
 
     length = 1.124 # m
     BASE_AREA_COEFF = 3.0 * np.sqrt(3.0) / 2.0

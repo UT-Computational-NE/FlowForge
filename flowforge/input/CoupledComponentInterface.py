@@ -369,7 +369,7 @@ class CoupledComponentInterface:
         coupled_solid_components = {}
         for i, (fluid_comp, solid_comp) in enumerate(zip(ordered_fluid_comps, ordered_solid_comps)):
             coupled_comp_name = solid_component.order[i]
-            if isinstance(fluid_comp, FluidComps.Pipe):
+            if isinstance(fluid_comp, FluidComps.Nozzle):
                 coupled_solid_components[coupled_comp_name] = coupleInfinitesimalSolidComponent(
                     i, ordered_fluid_comps, solid_comp
                 )

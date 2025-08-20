@@ -193,6 +193,7 @@ def test_CoupledComponentInterface():
             desired_area = (inputs["solid"]["2"][solid_name]["l"] * inputs["solid"]["2"][solid_name]["w"]) - pipe_area
         assert solid_comp.crossSection.area == desired_area
 
+
 def _buildCoreComponents(inputs, fluid_components: dict, solid_components: dict):
 
     # Fluid Core
