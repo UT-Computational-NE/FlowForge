@@ -407,7 +407,7 @@ class Core(ParallelComponent):
 
     @coreHeight.setter
     def coreHeight(self, height):
-        self._core_height = height
+        self._coreHeight = height
 
     @property
     def nAxialCells(self) -> int:
