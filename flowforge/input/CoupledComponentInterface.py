@@ -114,7 +114,7 @@ class CoupledComponentInterface:
         certainly not have the same number of cells.
         """
         assert n_fluid_cells == n_solid_cells, "Coupled components must have the same number of axial cells"
-        self._n_axial_cells = n_fluid_cells
+        self._n_cells = n_fluid_cells
 
     def _checkComponentHeight(self, fluid_height, solid_height):
         """

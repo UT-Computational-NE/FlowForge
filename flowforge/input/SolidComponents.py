@@ -62,15 +62,14 @@ class Component:
         **kwargs,
     ) -> None:
         self._height = height
-        self._n_cells = n_cells
+        self._nCells = n_cells
         self._material = material
 
         if cross_section is not None:
-            self._cross_section = self._buildCrossSection(cross_section, **kwargs)
+            self._crossSection = self._buildCrossSection(cross_section, **kwargs)
         else:
-            self._cross_section = None
+            self._crossSection = None
 
-        # TODO: add azimuthal and zenith angle functionality
         assert azimuthal_angle == 0.0, "Cannot currently handle non-zero azimuthal angles"
         assert zenith_angle == 0.0, "Cannot currently handle non-zero zenith angles"
         self._azimuthal_angle = azimuthal_angle
@@ -90,11 +89,11 @@ class Component:
 
     @property
     def nCells(self) -> int:
-        return self._n_cells
+        return self._nCells
 
     @nCells.setter
     def nCells(self, n_cells: int):
-        self._n_cells = n_cells
+        self._nCells = n_cells
 
     @property
     def material(self) -> str:
@@ -106,30 +105,30 @@ class Component:
 
     @property
     def azimuthalAngle(self) -> float:
-        assert self.azimuthalAngle == 0.0, "Cannot currently handle non-zero azimuthal angles"
         return self._azimuthal_angle
 
     @azimuthalAngle.setter
     def azimuthalAngle(self, azimuthal_angle: float):
+        assert azimuthal_angle == 0.0, "Cannot currently handle non-zero azimuthal angles"
         self._azimuthal_angle = azimuthal_angle
 
     @property
     def zenithAngle(self) -> float:
-        assert self.zenithAngle == 0.0, "Cannot currently handle non-zero zenith angles"
         return self._zenith_angle
 
     @zenithAngle.setter
     def zenithAngle(self, zenith_angle: float):
+        assert zenith_angle == 0.0, "Cannot currently handle non-zero zenith angles"
         self._zenith_angle = zenith_angle
 
     @property
     def crossSection(self) -> CrossSection:
-        return self._cross_section
+        return self._crossSection
 
     @crossSection.setter
     def crossSection(self, cross_section: CrossSection):
-        assert self._cross_section is None, "Can only add a cross-section object, not alter one."
-        self._cross_section = cross_section
+        assert self._crossSection is None, "Can only add a cross-section object, not alter one."
+        self._crossSection = cross_section
 
     def _buildCrossSection(self, cross_section_type: str, **kwargs) -> CrossSection:
         """
@@ -166,7 +165,8 @@ class Component:
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
         self.height *= uc.lengthConversion
-        self.crossSection._convertUnits(uc)
+        if self.crossSection is not None:
+            self.crossSection._convertUnits(uc)
 
     def baseComponents(self):
         """
@@ -304,7 +304,7 @@ class ParallelComponent:
     ) -> None:
 
         self._components = deepcopy(components)
-        self._component_map = component_map
+        self._componentMap = component_map
 
     @property
     def components(self) -> Dict[str, Component]:
@@ -312,7 +312,7 @@ class ParallelComponent:
 
     @property
     def componentMap(self) -> List[List[str]]:
-        return self._component_map
+        return self._componentMap
 
     @property
     def volume(self) -> float:
@@ -392,8 +392,8 @@ class Core(ParallelComponent):
     ) -> None:
 
         # Parameters
-        self._core_height = 0.0
-        self._n_axial_cells = 0
+        self._coreHeight = 0.0
+        self._nAxialCells = 0
 
         # Checks
         self._componentTypeCheck(components)
@@ -403,7 +403,7 @@ class Core(ParallelComponent):
 
     @property
     def coreHeight(self) -> float:
-        return self._core_height
+        return self._coreHeight
 
     @coreHeight.setter
     def coreHeight(self, height):
@@ -411,11 +411,11 @@ class Core(ParallelComponent):
 
     @property
     def nAxialCells(self) -> int:
-        return self._n_axial_cells
+        return self._nAxialCells
 
     @nAxialCells.setter
     def nAxialCells(self, n_axial_cells):
-        self._n_axial_cells = n_axial_cells
+        self._nAxialCells = n_axial_cells
 
     def _componentTypeCheck(self, components) -> None:
         """
