@@ -175,6 +175,16 @@ class Component:
         """
         return [self]
 
+    @classmethod
+    def build(cls, inputs: Dict):
+        return cls(**inputs)
+
+    @staticmethod
+    def factory(input_dict: Dict):
+        components = {}
+
+
+        return components
 
 solid_component_list["component"] = Component
 
