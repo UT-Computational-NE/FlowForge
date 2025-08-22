@@ -128,7 +128,7 @@ class Component:
     @crossSection.setter
     def crossSection(self, cross_section: CrossSection):
         assert self._crossSection is None, "Can only add a cross-section object, not alter one."
-        self._crossSection = cross_section
+        self._crossSection = deepcopy(cross_section)
 
     def _buildCrossSection(self, cross_section_type: str, **kwargs) -> CrossSection:
         """
