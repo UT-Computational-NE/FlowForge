@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple
 from copy import deepcopy
 import numpy as np
 
