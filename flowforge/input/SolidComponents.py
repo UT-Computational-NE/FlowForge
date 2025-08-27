@@ -1,5 +1,6 @@
 from typing import List, Dict, Tuple
 from copy import deepcopy
+from functools import partial
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
@@ -181,12 +182,22 @@ class Component:
 
     @staticmethod
     def factory(input_dict: Dict):
-        components = {}
 
+        assert type(input_dict) == dict, f"Unknown input type: {type(input_dict)}"
+
+        components = {}
+        for comp_type, comp_inputs in input_dict.items():
+            assert comp_type in solid_component_list, f"Error: unknown component type {comp_type}"
+            for unique_name, parameters in comp_inputs.items():
+                components[unique_name] = solid_component_list[comp_type].build(parameters)
 
         return components
 
 solid_component_list["component"] = Component
+solid_component_list["rectangle"] = partial(Component, cross_section="rectangle")
+solid_component_list["square"] = partial(Component, cross_section="square")
+solid_component_list["hexagon"] = partial(Component, cross_section="hexagon")
+
 
 
 class SerialComponent:
