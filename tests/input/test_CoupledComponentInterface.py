@@ -1,6 +1,6 @@
 import numpy as np
 
-from flowforge.input.CoupledComponentInterface import *
+from flowforge.input.ComponentCoupler import *
 import flowforge.input.Components as FluidComps
 import flowforge.input.SolidComponents as SolidComps
 
