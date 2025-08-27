@@ -2017,7 +2017,7 @@ class CartCore(Core):
         self._solid_plenum_interactions = solid_plenum_interactions
 
         self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = (
-            self._getSoildBoundariesAndControllers()
+            self._getSolidBoundariesAndControllers()
         )
 
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
@@ -2163,7 +2163,7 @@ class CartCore(Core):
         y_centroid = -(row - self._center_row) * self._y_pitch
         return x_centroid, y_centroid
 
-    def _getSoildBoundariesAndControllers(self):
+    def _getSolidBoundariesAndControllers(self):
         bcs, bfs, wfs = {}, {}, {}
 
         # Boundary Conditions

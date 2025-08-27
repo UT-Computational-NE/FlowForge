@@ -60,8 +60,7 @@ class ComponentCoupler:
         coupled_solid_component = deepcopy(solid_component)
 
         # Update the solid cross-section object
-        fluid_channel_cross_section = fluid_component.crossSection
-        coupled_solid_component.crossSection.channel = fluid_channel_cross_section
+        coupled_solid_component.crossSection.channel = fluid_component.crossSection
 
         return coupled_fluid_component, coupled_solid_component
 

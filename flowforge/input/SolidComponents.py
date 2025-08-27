@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from copy import deepcopy
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
@@ -30,7 +30,7 @@ class Component:
         Orientation angle of the component in the azimuthal direction
     zenith_angle : float
         Orientation angle of the component in the zenith (polar) direction
-    cross_section : str
+    cross_section : str, optional
         Type of cross-section used for the component
 
     Attributes
@@ -58,7 +58,7 @@ class Component:
         material: str = "graphite",
         azimuthal_angle: float = 0.0,
         zenith_angle: float = 0.0,
-        cross_section: str = None,
+        cross_section: Optional[str] = None,
         **kwargs,
     ) -> None:
         self._height = height
@@ -169,10 +169,6 @@ class Component:
             self.crossSection._convertUnits(uc)
 
     def baseComponents(self):
-        """
-        Method for retrieving the base components of a component.
-        For components that are not collections, this will be itself
-        """
         return [self]
 
 
