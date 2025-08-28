@@ -14,9 +14,9 @@ class Shape(ABC):
     perimeter : float
         Perimeter of the given shape
     """
-    def __init__(self, area: float, perimeter: float) -> None:
-        self._area = area
-        self._perimeter = perimeter
+
+    _area : float
+    _perimeter : float
 
     @property
     def area(self) -> float:
@@ -67,9 +67,8 @@ class Circle(Shape):
 
     def __init__(self, R: float) -> None:
         self._radius = R
-        area = np.pi * R * R
-        perimeter = 2.0 * np.pi * R
-        super().__init__(area, perimeter)
+        self._area = np.pi * R * R
+        self._perimeter = 2.0 * np.pi * R
 
     @property
     def radius(self) -> float:
@@ -126,9 +125,8 @@ class Stadium(Shape):
     def __init__(self, A: float, R: float) -> None:
         self._length = A
         self._radius = R
-        area = (np.pi * R ** 2.0) + (2.0 * R * A)
-        perimeter = 2.0 * (np.pi * R + A)
-        super().__init__(area, perimeter)
+        self._area = (np.pi * R ** 2.0) + (2.0 * R * A)
+        self._perimeter = 2.0 * (np.pi * R + A)
 
     @property
     def length(self) -> float:
@@ -194,9 +192,8 @@ class Rectangle(Shape):
     def __init__(self, H: float, W: float) -> None:
         self._height = H
         self._width = W
-        area = H * W
-        perimeter = 2.0 * (H + W)
-        super().__init__(area, perimeter)
+        self._area = H * W
+        self._perimeter = 2.0 * (H + W)
 
     @property
     def height(self) -> float:
@@ -288,9 +285,8 @@ class Hexagon(Shape):
     def __init__(self, L) -> None:
         self._length = L
         self._BASE_AREA_COEFF = 3.0 * np.sqrt(3.0) / 2.0
-        area = self._BASE_AREA_COEFF * L * L
-        perimeter = 6.0 * L
-        super().__init__(area, perimeter)
+        self._area = self._BASE_AREA_COEFF * L * L
+        self._perimeter = 6.0 * L
 
     @property
     def length(self) -> float:
