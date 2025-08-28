@@ -1,9 +1,9 @@
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 
 from flowforge.input.UnitConverter import UnitConverter
 
-class Shape:
+class Shape(ABC):
     """
     Abstract base class for defining shapes
 
@@ -14,20 +14,19 @@ class Shape:
     perimeter : float
         Perimeter of the given shape
     """
-    def __init__(self):
-        pass
+    def __init__(self, area: float, perimeter: float) -> None:
+        self._area = area
+        self._perimeter = perimeter
 
     @property
-    @abc.abstractmethod
-    def area(self):
-        raise NotImplementedError
+    def area(self) -> float:
+        return self._area
 
     @property
-    @abc.abstractmethod
-    def perimeter(self):
-        raise NotImplementedError
+    def perimeter(self) -> float:
+        return self._perimeter
 
-    @abc.abstractmethod
+    @abstractmethod
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
         Private method for converting units of the component's internal attribute
@@ -66,25 +65,21 @@ class Circle(Shape):
     # Class inputs
     inputs = tuple(["R"])
 
-    def __init__(self, R):
-        super().__init__()
+    def __init__(self, R: float) -> None:
         self._radius = R
+        area = np.pi * R * R
+        perimeter = 2.0 * np.pi * R
+        super().__init__(area, perimeter)
 
     @property
-    def radius(self):
+    def radius(self) -> float:
         return self._radius
 
     @radius.setter
-    def radius(self, radius):
+    def radius(self, radius) -> None:
         self._radius = radius
-
-    @property
-    def area(self):
-        return np.pi * self.radius * self.radius
-
-    @property
-    def perimeter(self):
-        return 2.0 * np.pi * self.radius
+        self._area = np.pi * radius * radius
+        self._perimeter = 2.0 * np.pi * radius
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -128,34 +123,30 @@ class Stadium(Shape):
     # Class inputs
     inputs = tuple(["A", "R"])
 
-    def __init__(self, A, R):
-        super().__init__()
+    def __init__(self, A: float, R: float) -> None:
         self._length = A
         self._radius = R
+        area = (np.pi * R ** 2.0) + (2.0 * R * A)
+        perimeter = 2.0 * (np.pi * R + A)
+        super().__init__(area, perimeter)
 
     @property
-    def length(self):
+    def length(self) -> float:
         return self._length
 
     @length.setter
-    def length(self, length):
+    def length(self, length) -> None:
         self._length = length
+        self._area = (np.pi * self.radius ** 2.0) + (2.0 * self.radius * length)
+        self._perimeter = 2.0 * (np.pi * self.radius + length)
 
     @property
-    def radius(self):
+    def radius(self) -> float:
         return self.radius
 
     @radius.setter
-    def radius(self, radius):
+    def radius(self, radius) -> None:
         self._radius = radius
-
-    @property
-    def area(self):
-        return (np.pi * self.radius ** 2.0) + (2.0 * self.radius * self.length)
-
-    @property
-    def perimeter(self):
-        raise 2.0 * (np.pi * self.radius + self.length)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -200,34 +191,32 @@ class Rectangle(Shape):
     # Class inputs
     inputs = tuple(["H", "W"])
 
-    def __init__(self, H, W):
-        super().__init__()
+    def __init__(self, H: float, W: float) -> None:
         self._height = H
         self._width = W
+        area = H * W
+        perimeter = 2.0 * (H + W)
+        super().__init__(area, perimeter)
 
     @property
-    def height(self):
+    def height(self) -> float:
         return self._height
 
     @height.setter
-    def height(self, height):
+    def height(self, height) -> None:
         self._height = height
+        self._area = height * self.width
+        self._perimeter = 2.0 * (height * self.width)
 
     @property
-    def width(self):
+    def width(self) -> float:
         return self._width
 
     @width.setter
-    def width(self, width):
+    def width(self, width) -> None:
         self._width = width
-
-    @property
-    def area(self):
-        return self.length * self.width
-
-    @property
-    def perimeter(self):
-        return 2.0 * (self.length + self.width)
+        self._area = self.height * width
+        self._perimeter = 2.0 * (self.height * width)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -268,7 +257,7 @@ class Square(Rectangle):
     # Class inputs
     inputs = tuple(["W"])
 
-    def __init__(self, width):
+    def __init__(self, width) -> None:
         super().__init__(width, width)
 
 
@@ -296,26 +285,22 @@ class Hexagon(Shape):
     # Class inputs
     inputs = tuple(["L"])
 
-    def __init__(self, L):
-        super().__init__()
+    def __init__(self, L) -> None:
         self._length = L
         self._BASE_AREA_COEFF = 3.0 * np.sqrt(3.0) / 2.0
+        area = self._BASE_AREA_COEFF * L * L
+        perimeter = 6.0 * L
+        super().__init__(area, perimeter)
 
     @property
-    def length(self):
+    def length(self) -> float:
         return self._length
 
     @length.setter
-    def length(self, length):
+    def length(self, length) -> None:
         self._length = length
-
-    @property
-    def area(self):
-        return self._BASE_AREA_COEFF * self.length * self.length
-
-    @property
-    def perimeter(self):
-        return 6.0 * self._length
+        self._area = self._BASE_AREA_COEFF * length * length
+        self._perimeter = 6.0 * length
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
