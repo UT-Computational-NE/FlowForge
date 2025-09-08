@@ -39,10 +39,13 @@ class ComponentCoupler:
     Coupler class used to create a coupled version of a 'fluid pipe component' and a 'solid
     serial component'
     """
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def couple(self, fluid_component, solid_component):
+    def couple(self,
+               fluid_component: FluidComponents.Pipe,
+               solid_component: SolidComponents.Component
+               ) -> Tuple[FluidComponents.Pipe, SolidComponents.Component]:
         """
         Couple method to create a coupling between a fluid pipe component and solid component
 
@@ -73,7 +76,10 @@ class UniformlyEncasedSerialPipeCoupler:
     def __init__(self):
         pass
 
-    def couple(self, fluid_component: FluidComponents.SerialComponents, solid_component: SolidComponents.Component):
+    def couple(self,
+               fluid_component: FluidComponents.SerialComponents,
+               solid_component: SolidComponents.Component
+               ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a serial fluid component and solid component
 
@@ -114,7 +120,7 @@ class UniformlyEncasedSerialPipeCoupler:
             else:
                 raise Exception(f"Do not have the functionality to couple {type(fluid_comp)} and {type(coupled_solid_comp)}")
 
-            coupled_solid_component.crossSection.channel = fluid_channel_cross_section
+            coupled_solid_comp.crossSection.channel = fluid_channel_cross_section
             solid_order.append(coupled_solid_name)
             coupled_solid_components[coupled_solid_name] = coupled_solid_comp
 
@@ -133,7 +139,10 @@ class NonUniformlyEncasedPipe:
     def __init__(self):
         pass
 
-    def couple(self, fluid_component, solid_component):
+    def couple(self,
+               fluid_component: FluidComponents.Pipe,
+               solid_component: SolidComponents.SerialComponent
+               ) -> Tuple[FluidComponents.Pipe, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a fluid pipe component and serial solid component
 
@@ -247,7 +256,7 @@ class NonUniformlyEncasedSerialPipe:
 
         return updated_solid_component
 
-    def _coupleInfinitesimalSolidComponent(component_number, ordered_fluid_components, solid_component):
+    def _coupleInfinitesimalSolidComponent(self, component_number, ordered_fluid_components, solid_component):
         """
         For these infinitesimal components made for fluid-component continuity, this method couples them to
         their corresponding infinitesimal solid components. To do so, since the nozzle has a non-uniform cross
@@ -284,7 +293,10 @@ class NonUniformlyEncasedSerialPipe:
 
         return coupled_solid_component
 
-    def couple(self, fluid_component, solid_component):
+    def couple(self,
+               fluid_component: FluidComponents.SerialComponents,
+               solid_component: SolidComponents.SerialComponent
+               ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a serial fluid component and serial solid component
 
@@ -337,3 +349,11 @@ class NonUniformlyEncasedSerialPipe:
         )
 
         return coupled_fluid_component, coupled_serial_solid_component
+
+@register_coupler(Tuple[FluidComponents.CartCore, SolidComponents.Core])
+class CartesianCore:
+    def __init__(self):
+        pass
+
+    def couple(self, fluid_core, solid_core):
+        return

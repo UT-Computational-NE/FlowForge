@@ -48,7 +48,7 @@ class SolidCrossSection(CrossSection):
 
     @property
     def baseArea(self) -> float:
-        self.shape.area
+        return self.shape.area
 
     @property
     def channel(self) -> FluidCrossSection:

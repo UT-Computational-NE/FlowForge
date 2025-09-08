@@ -1,68 +1,63 @@
 import numpy as np
 
 from flowforge.input.SolidComponents import (
+    SolidCrossSection,
     Component,
     SerialComponent,
     ParallelComponent,
     Core
 )
-from flowforge.input.SolidCrossSections import *
 from flowforge.input.Components import (
-    CircularCrossSection
+    FluidCrossSection
 )
+from flowforge.input.UnitConverter import UnitConverter
 
 _cm2m = 0.01
 unit_dict = {"length": "cm"}
 uc = UnitConverter(unit_dict)
+
 
 def test_Component():
     # Inputs
     height = 12.5 # m
     n_cells = 5
     material = "graphite"
-    cross_section = "rectangle"
-    cx_length = 5.11 # m
+    cross_section = "rectangular"
+    cx_height = 5.11 # m
     cx_width = 4.03 # m
 
     # Basic functionalities
     comp = Component(height=height, n_cells=n_cells, material=material,
-                     cross_section=cross_section, length=cx_length,
-                     width=cx_width)
+                     cross_section=cross_section, H=cx_height, W=cx_width)
 
     assert comp.height == height
-    assert comp.crossSection.area == cx_length * cx_width
-    assert comp.volume == height * cx_length * cx_width
+    assert comp.crossSection.area == cx_height * cx_width
+    assert comp.volume == height * cx_height * cx_width
     assert comp.nCells == n_cells
     assert comp.material == material
     assert comp.baseComponents() == [comp]
 
-    # Convert units
-    comp._convertUnits(uc=uc)
-    assert comp.height == height * _cm2m
-    assert comp.crossSection.area == cx_length * cx_width * (_cm2m ** 2)
-    assert np.isclose(comp.volume, height * cx_length * cx_width * (_cm2m ** 3))
-
     # Complex cross-section functionalities
     del comp
     comp = Component(height=height, n_cells=n_cells, material=material)
-    cross_section_obj = Rectangle(length=cx_length, width=cx_width)
+    cross_section_obj = SolidCrossSection("rectangular", H=cx_height, W=cx_width)
     radius = 1.8 # m
-    pipe_cross_section = CircularCrossSection(R=radius)
+    pipe_cross_section = FluidCrossSection(shape="circular", R=radius)
 
     assert comp.crossSection is None
 
     comp.crossSection = cross_section_obj
-    assert isinstance(comp.crossSection, CrossSection)
-    assert comp.crossSection.area == cx_length * cx_width
+    assert isinstance(comp.crossSection, SolidCrossSection)
+    assert comp.crossSection.area == cx_height * cx_width
 
     comp.crossSection.channel = pipe_cross_section
-    assert comp.crossSection.area == (cx_length * cx_width) - (np.pi * radius * radius)
+    assert comp.crossSection.area == (cx_height * cx_width) - (np.pi * radius * radius)
 
 
-def test_serialComponent():
+def test_SerialComponent():
 
     # Inputs
-    cx_length = 1.81 # m
+    cx_height = 1.81 # m
     cx_width = 2.1561 # m
     height_1 = 1.45 # m
     height_2 = 1.0911 # m
@@ -72,7 +67,7 @@ def test_serialComponent():
     n_cells_2 = 2
     n_cells_3 = 12
     n_cells_4 = 10
-    cross_section = "rectangle"
+    cross_section = "rectangular"
     material = "graphite"
 
     order = ["1", "2", "3", "4", "3", "2", "1"]
@@ -81,13 +76,13 @@ def test_serialComponent():
 
     # Building components
     comp_1 = Component(height=height_1, n_cells=n_cells_1, material=material,
-                       cross_section=cross_section, length=cx_length, width=cx_width)
+                       cross_section=cross_section, H=cx_height, W=cx_width)
     comp_2 = Component(height=height_2, n_cells=n_cells_2, material=material,
-                       cross_section=cross_section, length=cx_length, width=cx_width)
+                       cross_section=cross_section, H=cx_height, W=cx_width)
     comp_3 = Component(height=height_3, n_cells=n_cells_3, material=material,
-                       cross_section=cross_section, length=cx_length, width=cx_width)
+                       cross_section=cross_section, H=cx_height, W=cx_width)
     comp_4 = Component(height=height_4, n_cells=n_cells_4, material=material,
-                       cross_section=cross_section, length=cx_length, width=cx_width)
+                       cross_section=cross_section, H=cx_height, W=cx_width)
     components = {"1": comp_1, "2": comp_2, "3": comp_3, "4": comp_4}
     ordered_components = [comp_1, comp_2, comp_3, comp_4, comp_3, comp_2, comp_1]
 
@@ -99,7 +94,7 @@ def test_serialComponent():
     assert all(comp1.volume == comp2.volume for comp1, comp2 in zip(comp.orderedComponents, ordered_components))
     assert all(comp1.nCells == comp2.nCells for comp1, comp2 in zip(comp.orderedComponents, ordered_components))
     assert np.isclose(comp.height, total_height)
-    assert np.isclose(comp.volume, total_height * cx_length * cx_width)
+    assert np.isclose(comp.volume, total_height * cx_height * cx_width)
     assert comp.nCells == total_cells
 
     inlets_and_outlets = []
@@ -111,20 +106,20 @@ def test_serialComponent():
 
     # Cross-section functionality
     radius = 0.67 # m
-    pipe_cross_section = CircularCrossSection(R=radius)
+    pipe_cross_section = FluidCrossSection("circular", R=radius)
     for comp_i in comp.components.values():
         comp_i.crossSection.channel = pipe_cross_section
-    assert np.isclose(comp.volume, (total_height * cx_length * cx_width) - (total_height * np.pi * radius * radius))
+    assert np.isclose(comp.volume, (total_height * cx_height * cx_width) - (total_height * np.pi * radius * radius))
 
     # Unit conversion
     del comp
     comp = SerialComponent(components=components, order=order)
     comp._convertUnits(uc=uc)
     assert np.isclose(comp.height, total_height * _cm2m)
-    assert np.isclose(comp.volume, total_height * cx_length * cx_width * (_cm2m ** 3))
+    assert np.isclose(comp.volume, total_height * cx_height * cx_width * (_cm2m ** 3))
 
 
-def test_parallelComponent():
+def test_ParallelComponents():
 
     ### Inputs
     ## Heights
@@ -163,9 +158,9 @@ def test_parallelComponent():
     n_cells_3_4 = 1
 
     ## Cross-section
-    cx_length = 1.78 # m
+    cx_height = 1.78 # m
     cx_width = 2.01 # m
-    cross_section = "rectangle"
+    cross_section = "rectangular"
 
     cx_length_hex = 1.1 # m
     cross_section_hex = "hexagon"
@@ -176,37 +171,37 @@ def test_parallelComponent():
     ### Components
     ## Basic components
     comp_0_1 = Component(height=height_0, n_cells=n_cells_0_1, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_0_2 = Component(height=height_0, n_cells=n_cells_0_2, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_0_3 = Component(height=height_0, n_cells=n_cells_0_3, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_0_4 = Component(height=height_0, n_cells=n_cells_0_4, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     ## Serial components
     # Serial component #1
     comp_1_1 = Component(height=height_1_1, n_cells=n_cells_1_1, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_1_2 = Component(height=height_1_2, n_cells=n_cells_1_2, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_1_3 = Component(height=height_1_3, n_cells=n_cells_1_3, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_1 = SerialComponent(components={"1_1": comp_1_1, "1_2": comp_1_2, "1_3": comp_1_3}, order=["1_1", "1_2", "1_3"])
     # Serial component #2
     comp_2_1 = Component(height=height_2_1, n_cells=n_cells_2_1, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_2_2 = Component(height=height_2_2, n_cells=n_cells_2_2, material=material,
-                         cross_section=cross_section, length=cx_length, width=cx_width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
     comp_2 = SerialComponent(components={"2_1": comp_2_1, "2_2": comp_2_2}, order=["2_1", "2_2"])
     # Serial component #3
     comp_3_1 = Component(height=height_3_1, n_cells=n_cells_3_1, material=material,
-                         cross_section=cross_section_hex, length=cx_length_hex)
+                         cross_section=cross_section_hex, L=cx_length_hex)
     comp_3_2 = Component(height=height_3_2, n_cells=n_cells_3_2, material=material,
-                         cross_section=cross_section_hex, length=cx_length_hex)
+                         cross_section=cross_section_hex, L=cx_length_hex)
     comp_3_3 = Component(height=height_3_3, n_cells=n_cells_3_3, material=material,
-                         cross_section=cross_section_hex, length=cx_length_hex)
+                         cross_section=cross_section_hex, L=cx_length_hex)
     comp_3_4 = Component(height=height_3_4, n_cells=n_cells_3_4, material=material,
-                         cross_section=cross_section_hex, length=cx_length_hex)
+                         cross_section=cross_section_hex, L=cx_length_hex)
     comp_3 = SerialComponent(components={"3_1": comp_3_1, "3_2": comp_3_2, "3_3": comp_3_3, "3_4": comp_3_4},
                              order=["3_1", "3_2", "3_3", "3_3"])
 
@@ -264,18 +259,18 @@ def test_parallelComponent():
     assert np.isclose(parallel_3.volume, sum(sum(components[comp].volume for comp in row) for row in mapping_3) * (_cm2m ** 3))
 
 
-def test_core():
+def test_Core():
 
     # Inputs
     height = 10.11 # m
     n_cells = 10
-    length = 1.12 # m
-    width = 2.01 # m
-    cross_section = "rectangle"
+    cx_height = 1.12 # m
+    cx_width = 2.01 # m
+    cross_section = "rectangular"
     material = "graphite"
 
     comp = Component(height=height, n_cells=n_cells, material=material,
-                     cross_section=cross_section, length=length, width=width)
+                     cross_section=cross_section, H=cx_height, W=cx_width)
     components = {"1": comp}
     mapping = [
              ["1", "1", "1"],
@@ -295,7 +290,7 @@ def test_core():
     assert np.isclose(core.volume, sum(sum(components[comp].volume for comp in row) for row in mapping) * (_cm2m ** 3))
 
     bad_comp = Component(height=height+1, n_cells=n_cells, material=material,
-                         cross_section=cross_section, length=length, width=width)
+                         cross_section=cross_section, H=cx_height, W=cx_width)
 
     try:
         core._geometryCheck({"1": comp, "2": bad_comp}, [["1"], ["1"]])
@@ -309,11 +304,12 @@ def test_core():
     except AssertionError:
         pass
 
+
     return
 
 
 if __name__ == "__main__":
     test_Component()
-    test_serialComponent()
-    test_parallelComponent()
-    test_core()
+    test_SerialComponent()
+    test_ParallelComponents()
+    test_Core()

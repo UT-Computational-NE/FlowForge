@@ -140,11 +140,13 @@ class Stadium(Shape):
 
     @property
     def radius(self) -> float:
-        return self.radius
+        return self._radius
 
     @radius.setter
     def radius(self, radius) -> None:
         self._radius = radius
+        self._area = (np.pi * radius ** 2.0) + (2.0 * radius * self.length)
+        self._perimeter = 2.0 * (np.pi * self.radius + self.length)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -213,7 +215,7 @@ class Rectangle(Shape):
     def width(self, width) -> None:
         self._width = width
         self._area = self.height * width
-        self._perimeter = 2.0 * (self.height * width)
+        self._perimeter = 2.0 * (self.height + width)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -254,8 +256,8 @@ class Square(Rectangle):
     # Class inputs
     inputs = tuple(["W"])
 
-    def __init__(self, width) -> None:
-        super().__init__(width, width)
+    def __init__(self, W) -> None:
+        super().__init__(W, W)
 
 
 class Hexagon(Shape):
@@ -338,13 +340,13 @@ class CrossSection:
         Shape type desired for the cross section
     """
     def __init__(self, shape, **kwargs):
-        shape = self._buildShape(shape, **kwargs)
+        self._shape = self._buildShape(shape, **kwargs)
 
     @property
     def shape(self) -> Shape:
         return self._shape
 
-    def _buildShape(shape_name, **kwargs):
+    def _buildShape(self, shape_name, **kwargs):
         """
         Using the input shape and kwargs, this method checks that all the necessary inputs for the
         given shape are in kwargs, and then builds the shape using them
