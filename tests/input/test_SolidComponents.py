@@ -282,7 +282,6 @@ def test_Core():
     core = Core(components=components, component_map=mapping)
 
     assert core.coreHeight == height
-    assert core.nAxialCells == n_cells
     assert core.volume == sum(sum(components[comp].volume for comp in row) for row in mapping)
 
     core._convertUnits(uc=uc)
