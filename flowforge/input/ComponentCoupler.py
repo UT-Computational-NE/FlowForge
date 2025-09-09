@@ -3,15 +3,18 @@ from copy import deepcopy
 import numpy as np
 
 import flowforge.input.Components as FluidComponents
-import flowforge.input.SolidComponents as SolidComponents
+from flowforge.input import SolidComponents
 
 _coupling_registry = {}
+
 
 def register_coupler(component_cls):
     def decorator(coupler_cls):
         _coupling_registry[component_cls] = coupler_cls
         return coupler_cls
+
     return decorator
+
 
 def couple(fluid_component, solid_component):
     """
@@ -29,9 +32,10 @@ def couple(fluid_component, solid_component):
     """
     fluid_cls = type(fluid_component)
     solid_cls = type(solid_component)
-    coupling_cls = _coupling_registry.get(tuple([fluid_cls, solid_cls]))
+    coupling_cls = _coupling_registry.get(Tuple[fluid_cls, solid_cls])
 
     return coupling_cls().couple(fluid_component, solid_component)
+
 
 @register_coupler(Tuple[FluidComponents.Pipe, SolidComponents.Component])
 class ComponentCoupler:
@@ -39,13 +43,13 @@ class ComponentCoupler:
     Coupler class used to create a coupled version of a 'fluid pipe component' and a 'solid
     serial component'
     """
+
     def __init__(self) -> None:
         pass
 
-    def couple(self,
-               fluid_component: FluidComponents.Pipe,
-               solid_component: SolidComponents.Component
-               ) -> Tuple[FluidComponents.Pipe, SolidComponents.Component]:
+    def couple(
+        self, fluid_component: FluidComponents.Pipe, solid_component: SolidComponents.Component
+    ) -> Tuple[FluidComponents.Pipe, SolidComponents.Component]:
         """
         Couple method to create a coupling between a fluid pipe component and solid component
 
@@ -67,19 +71,20 @@ class ComponentCoupler:
 
         return coupled_fluid_component, coupled_solid_component
 
+
 @register_coupler(Tuple[FluidComponents.SerialComponents, SolidComponents.Component])
 class UniformlyEncasedSerialPipeCoupler:
     """
     Coupler class used to create a coupled version of a 'serial fluid component' and a 'solid
     component'
     """
+
     def __init__(self):
         pass
 
-    def couple(self,
-               fluid_component: FluidComponents.SerialComponents,
-               solid_component: SolidComponents.Component
-               ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
+    def couple(
+        self, fluid_component: FluidComponents.SerialComponents, solid_component: SolidComponents.Component
+    ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a serial fluid component and solid component
 
@@ -109,12 +114,14 @@ class UniformlyEncasedSerialPipeCoupler:
 
             # Couple component based on input component data
             coupled_solid_name = "c" + str(fluid_i + 1)
-            coupled_solid_comp = SolidComponents.Component(height=fluid_height, n_cells=fluid_nCells, material=solid_component.material)
+            coupled_solid_comp = SolidComponents.Component(
+                height=fluid_height, n_cells=fluid_nCells, material=solid_component.material
+            )
             coupled_solid_comp.crossSection = solid_component.crossSection
 
-            if type(fluid_comp) == FluidComponents.Pipe:
+            if isinstance(fluid_comp, FluidComponents.Pipe):
                 fluid_channel_cross_section = fluid_comp.crossSection
-            elif type(fluid_comp) == FluidComponents.Nozzle:
+            elif isinstance(fluid_comp, FluidComponents.Nozzle):
                 previous_fluid_comp = ordered_fluid_comps[fluid_i - 1]
                 fluid_channel_cross_section = previous_fluid_comp.crossSection
             else:
@@ -136,13 +143,13 @@ class NonUniformlyEncasedPipe:
     Coupler class used to create a coupled version of a 'fluid pipe component' and a 'solid
     serial component'
     """
+
     def __init__(self):
         pass
 
-    def couple(self,
-               fluid_component: FluidComponents.Pipe,
-               solid_component: SolidComponents.SerialComponent
-               ) -> Tuple[FluidComponents.Pipe, SolidComponents.SerialComponent]:
+    def couple(
+        self, fluid_component: FluidComponents.Pipe, solid_component: SolidComponents.SerialComponent
+    ) -> Tuple[FluidComponents.Pipe, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a fluid pipe component and serial solid component
 
@@ -178,6 +185,7 @@ class NonUniformlyEncasedSerialPipe:
     Coupler class used to create a coupled version of a 'serial fluid component' and a 'solid
     serial component'
     """
+
     def __init__(self):
         pass
 
@@ -293,10 +301,9 @@ class NonUniformlyEncasedSerialPipe:
 
         return coupled_solid_component
 
-    def couple(self,
-               fluid_component: FluidComponents.SerialComponents,
-               solid_component: SolidComponents.SerialComponent
-               ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
+    def couple(
+        self, fluid_component: FluidComponents.SerialComponents, solid_component: SolidComponents.SerialComponent
+    ) -> Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent]:
         """
         Couple method to create a coupling between a serial fluid component and serial solid component
 
@@ -350,10 +357,60 @@ class NonUniformlyEncasedSerialPipe:
 
         return coupled_fluid_component, coupled_serial_solid_component
 
+
 @register_coupler(Tuple[FluidComponents.CartCore, SolidComponents.Core])
 class CartesianCore:
+    """
+    Coupler class used to create a coupled version of a 'fluid CartCore' and a 'solid Core'
+    """
+
     def __init__(self):
         pass
 
-    def couple(self, fluid_core, solid_core):
-        return
+    def couple(
+        self, fluid_core: FluidComponents.CartCore, solid_core: SolidComponents.Core
+    ) -> Tuple[FluidComponents.CartCore, SolidComponents.Core]:
+        """
+        Couple method to create a coupling between a fluid CartCore and solid Core
+
+        Parameters
+        ----------
+        fluid_core : FluidComponents.CartCore
+        solid_core : SolidComponents.Core
+
+        Returns
+        -------
+        coupled_fluid_core : FluidComponents.CartCore
+        coupled_solid_core : SolidComponents.Core
+        """
+
+        fluid_map = fluid_core.componentMap
+        solid_map = solid_core.componentMap
+
+        assert len(fluid_map) == len(solid_map)
+        assert all(len(fluid_row) == len(solid_row) for fluid_row, solid_row in zip(fluid_map, solid_map))
+
+        # Extract the unique pairs of coupled components, as well as the full coupled mapping of said components
+        coupled_component_mapping = {}
+        coupled_map = []
+        for fluid_row, solid_row in zip(fluid_map, solid_map):
+            coupled_row = []
+            for fluid_elem, solid_elem in zip(fluid_row, solid_row):
+                coupled_row.append(f"c_f{fluid_elem}_s{solid_elem}")
+                coupled_component_mapping[(fluid_elem, solid_elem)] = f"c_f{fluid_elem}_s{solid_elem}"
+            coupled_map.append(coupled_row)
+
+        # For each unique pair of components, couple them and add them to a coupled component list
+        # (Note that the fluid core is kept unchanged)
+        coupled_solid_components = {}
+        for (fluid_elem, solid_elem), coupled_elem in coupled_component_mapping.items():
+            fluid_comp = fluid_core.components[fluid_elem]
+            solid_comp = solid_core.components[solid_elem]
+            _, coupled_solid_comp = couple(fluid_comp, solid_comp)
+            coupled_solid_components[coupled_elem] = coupled_solid_comp
+
+        # Create the coupled cores
+        coupled_fluid_core = deepcopy(fluid_core)
+        coupled_solid_core = SolidComponents.Core(components=coupled_solid_components, component_map=coupled_map)
+
+        return coupled_fluid_core, coupled_solid_core

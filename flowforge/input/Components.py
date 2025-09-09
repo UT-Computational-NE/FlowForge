@@ -331,8 +331,6 @@ class FluidCrossSection(CrossSection):
     hydraulic_diameter : float
         Hydraulic diameter of the fluid component
     """
-    def __init__(self, shape, **kwargs):
-        super().__init__(shape, **kwargs)
 
     @property
     def flow_area(self):

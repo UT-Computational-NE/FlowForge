@@ -43,6 +43,13 @@ def _buildBasicComponents():
     fluid_2 = FluidComps.SerialComponents(components={"1": fluid_2_1, "2": fluid_2_2, "3": fluid_2_3},
                                           order=["1", "2", "3"])
 
+    # Core
+    x_pitch = width
+    y_pitch = width
+    plenum_radius = 2.5 * max(x_pitch, y_pitch)
+    lower_plenum = {"nozzle": {"L": 1.0, "R_inlet": 0.1*plenum_radius, "R_outlet": plenum_radius}}
+    upper_plenum = {"pipe": {"L": 1.0, "cross_section_name": "circular", "R": plenum_radius}}
+
     inputs = {
         "solid" : {
             "1" : {"h": height, "n": n_cells, "l": width, "w": width},
@@ -60,6 +67,12 @@ def _buildBasicComponents():
                 "3": {"h": h_2_3, "n": n_2_3, "r": r_2_3},
             }
         },
+        "fluid_core" : {
+            "x_pitch": x_pitch,
+            "y_pitch": y_pitch,
+            "lower_plenum": lower_plenum,
+            "upper_plenum": upper_plenum
+        }
     }
 
     return inputs, fluid_1, fluid_2, solid_1, solid_2
@@ -137,8 +150,48 @@ def test_NonUniformlyEncasedSerialPipe():
         assert np.isclose(solid_comp.crossSection.area, theoretical_area)
 
 
+def test_CartesianCore():
+
+    inputs, fluid_1, fluid_2, solid_1, solid_2 = _buildBasicComponents()
+
+    fluid_components = {"1": fluid_1, "2": fluid_2}
+    solid_components = {"1": solid_1, "2": solid_2}
+
+    fluid_map = [["1", "2"], ["2", "1"]]
+    solid_map = [["1", "1"], ["2", "2"]]
+
+    x_pitch = inputs["fluid_core"]["x_pitch"]
+    y_pitch = inputs["fluid_core"]["y_pitch"]
+    lower_plenum = inputs["fluid_core"]["lower_plenum"]
+    upper_plenum = inputs["fluid_core"]["upper_plenum"]
+
+    fluid_core = FluidComps.CartCore(x_pitch=x_pitch, y_pitch=y_pitch, components=fluid_components,
+                                     channel_map=fluid_map,
+                                     lower_plenum=lower_plenum, upper_plenum=upper_plenum)
+    solid_core = SolidComps.Core(components=solid_components, component_map=solid_map)
+
+    _, coupled_solid_core = CartesianCore().couple(fluid_core, solid_core)
+
+    for fluid_row, solid_row in zip(fluid_map, solid_map):
+        for fluid_elem, solid_elem in zip(fluid_row, solid_row):
+            coupled_elem = f"c_f{fluid_elem}_s{solid_elem}"
+            fluid_comp = fluid_components[fluid_elem]
+            solid_comp = solid_components[solid_elem]
+            _, coupled_solid_comp_ref = couple(fluid_comp, solid_comp)
+            coupled_solid_comp = coupled_solid_core.components[coupled_elem]
+
+            if isinstance(coupled_solid_comp_ref, SolidComps.SerialComponent):
+                assert all(
+                    comp.crossSection.area == comp_ref.crossSection.area for comp, comp_ref in
+                    zip(coupled_solid_comp.orderedComponents, coupled_solid_comp_ref.orderedComponents)
+                )
+            else:
+                assert coupled_solid_comp.crossSection.area == coupled_solid_comp_ref.crossSection.area
+
+
 if __name__ == "__main__":
     test_ComponentCoupler()
     test_UniformlyEncasedSerialPipeCoupler()
     test_NonUniformlyEncasedPipe()
     test_NonUniformlyEncasedSerialPipe()
+    test_CartesianCore()

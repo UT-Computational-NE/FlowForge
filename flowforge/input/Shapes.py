@@ -3,6 +3,7 @@ import numpy as np
 
 from flowforge.input.UnitConverter import UnitConverter
 
+
 class Shape(ABC):
     """
     Abstract base class for defining shapes
@@ -15,8 +16,8 @@ class Shape(ABC):
         Perimeter of the given shape
     """
 
-    _area : float
-    _perimeter : float
+    _area: float
+    _perimeter: float
 
     @property
     def area(self) -> float:
@@ -125,7 +126,7 @@ class Stadium(Shape):
     def __init__(self, A: float, R: float) -> None:
         self._length = A
         self._radius = R
-        self._area = (np.pi * R ** 2.0) + (2.0 * R * A)
+        self._area = (np.pi * R**2.0) + (2.0 * R * A)
         self._perimeter = 2.0 * (np.pi * R + A)
 
     @property
@@ -135,7 +136,7 @@ class Stadium(Shape):
     @length.setter
     def length(self, length) -> None:
         self._length = length
-        self._area = (np.pi * self.radius ** 2.0) + (2.0 * self.radius * length)
+        self._area = (np.pi * self.radius**2.0) + (2.0 * self.radius * length)
         self._perimeter = 2.0 * (np.pi * self.radius + length)
 
     @property
@@ -145,7 +146,7 @@ class Stadium(Shape):
     @radius.setter
     def radius(self, radius) -> None:
         self._radius = radius
-        self._area = (np.pi * radius ** 2.0) + (2.0 * radius * self.length)
+        self._area = (np.pi * radius**2.0) + (2.0 * radius * self.length)
         self._perimeter = 2.0 * (np.pi * self.radius + self.length)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
@@ -315,15 +316,11 @@ class Hexagon(Shape):
         """
         self.length *= uc.lengthConversion
 
-shape_types = {
-    "circular": Circle,
-    "square": Square,
-    "rectangular": Rectangle,
-    "stadium": Stadium,
-    "hexagon": Hexagon
-}
+
+shape_types = {"circular": Circle, "square": Square, "rectangular": Rectangle, "stadium": Stadium, "hexagon": Hexagon}
 
 shape_inputs = {shape_key: shape_obj.inputs for shape_key, shape_obj in shape_types.items()}
+
 
 class CrossSection:
     """
@@ -339,6 +336,7 @@ class CrossSection:
     shape : Shape
         Shape type desired for the cross section
     """
+
     def __init__(self, shape, **kwargs):
         self._shape = self._buildShape(shape, **kwargs)
 

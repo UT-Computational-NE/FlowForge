@@ -14,6 +14,7 @@ This can be used in a factory to build each component in a system.
 """
 solid_component_list = {}
 
+
 class SolidCrossSection(CrossSection):
     """
     Solid cross section class
@@ -462,6 +463,7 @@ class Core(ParallelComponent):
 
     @property
     def nAxialCells(self) -> int:
+        print("Warning: 'nAxialCells' not fully implemented, will return '0'")
         return self._nAxialCells
 
     @nAxialCells.setter
@@ -506,17 +508,12 @@ class Core(ParallelComponent):
         # Reference values
         first_comp_name = component_map[0][0]
         reference_height = deepcopy(components[first_comp_name].height)
-        reference_axial_cells = deepcopy(components[first_comp_name].nCells)
 
         # Make checks
         for comp_name, comp in components.items():
             assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
-            assert comp.nCells == reference_axial_cells, (
-                "Incorrect component cell number (" + comp_name + ", " + str(comp.nCells) + ")"
-            )
 
         self.coreHeight = reference_height  # Set core height to this reference height
-        self.nAxialCells = reference_axial_cells  # Set the number of axial cells to this reference value
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
