@@ -38,7 +38,7 @@ def couple(fluid_component, solid_component):
 
 
 @register_coupler(Tuple[FluidComponents.Pipe, SolidComponents.Component])
-class ComponentCoupler:
+class SingularFluid_SingularSolid:
     """
     Coupler class used to create a coupled version of a 'fluid pipe component' and a 'solid
     serial component'
@@ -73,7 +73,7 @@ class ComponentCoupler:
 
 
 @register_coupler(Tuple[FluidComponents.SerialComponents, SolidComponents.Component])
-class UniformlyEncasedSerialPipeCoupler:
+class SerialFluid_SingularSolid:
     """
     Coupler class used to create a coupled version of a 'serial fluid component' and a 'solid
     component'
@@ -138,7 +138,7 @@ class UniformlyEncasedSerialPipeCoupler:
 
 
 @register_coupler(Tuple[FluidComponents.Pipe, SolidComponents.SerialComponent])
-class NonUniformlyEncasedPipe:
+class SingularFluid_SerialSolid:
     """
     Coupler class used to create a coupled version of a 'fluid pipe component' and a 'solid
     serial component'
@@ -180,7 +180,7 @@ class NonUniformlyEncasedPipe:
 
 
 @register_coupler(Tuple[FluidComponents.SerialComponents, SolidComponents.SerialComponent])
-class NonUniformlyEncasedSerialPipe:
+class SerialFluid_SerialSolid:
     """
     Coupler class used to create a coupled version of a 'serial fluid component' and a 'solid
     serial component'

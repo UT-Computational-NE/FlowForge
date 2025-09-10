@@ -2,10 +2,10 @@ import numpy as np
 
 from flowforge.input.ComponentCoupler import (
     couple,
-    ComponentCoupler,
-    UniformlyEncasedSerialPipeCoupler,
-    NonUniformlyEncasedPipe,
-    NonUniformlyEncasedSerialPipe,
+    SingularFluid_SingularSolid,
+    SerialFluid_SingularSolid,
+    SingularFluid_SerialSolid,
+    SerialFluid_SerialSolid,
     CartesianCore
 )
 import flowforge.input.Components as FluidComps
@@ -78,10 +78,10 @@ def _buildBasicComponents():
     return inputs, fluid_1, fluid_2, solid_1, solid_2
 
 
-def test_ComponentCoupler():
+def test_SingularFluid_SingularSolid():
 
     inputs, fluid, _, solid, _ = _buildBasicComponents()
-    coupled_fluid, coupled_solid = ComponentCoupler().couple(fluid, solid)
+    coupled_fluid, coupled_solid = SingularFluid_SingularSolid().couple(fluid, solid)
 
     assert isinstance(coupled_fluid, FluidComps.Pipe)
     assert isinstance(coupled_solid, SolidComps.Component)
@@ -93,10 +93,10 @@ def test_ComponentCoupler():
     assert coupled_solid.crossSection.area == theoretical_area
 
 
-def test_UniformlyEncasedSerialPipeCoupler():
+def test_SerialFluid_SingularSolid():
 
     inputs, _, fluid, solid, _ = _buildBasicComponents()
-    coupled_fluid, coupled_solid = UniformlyEncasedSerialPipeCoupler().couple(fluid, solid)
+    coupled_fluid, coupled_solid = SerialFluid_SingularSolid().couple(fluid, solid)
 
     assert isinstance(coupled_fluid, FluidComps.SerialComponents)
     assert isinstance(coupled_solid, SolidComps.SerialComponent)
@@ -113,10 +113,10 @@ def test_UniformlyEncasedSerialPipeCoupler():
         assert np.isclose(solid_comp.crossSection.area, theoretical_area)
 
 
-def test_NonUniformlyEncasedPipe():
+def test_SingularFluid_SerialSolid():
 
     inputs, fluid, _, _, solid = _buildBasicComponents()
-    coupled_fluid, coupled_solid = NonUniformlyEncasedPipe().couple(fluid, solid)
+    coupled_fluid, coupled_solid = SingularFluid_SerialSolid().couple(fluid, solid)
 
     assert isinstance(coupled_fluid, FluidComps.Pipe)
     assert isinstance(coupled_solid, SolidComps.SerialComponent)
@@ -129,10 +129,10 @@ def test_NonUniformlyEncasedPipe():
         assert np.isclose(solid_comp.crossSection.area, theoretical_area)
 
 
-def test_NonUniformlyEncasedSerialPipe():
+def test_SerialFluid_SerialSolid():
 
     inputs, _, fluid, _, solid = _buildBasicComponents()
-    coupled_fluid, coupled_solid = NonUniformlyEncasedSerialPipe().couple(fluid, solid)
+    coupled_fluid, coupled_solid = SerialFluid_SerialSolid().couple(fluid, solid)
 
     assert isinstance(coupled_fluid, FluidComps.SerialComponents)
     assert isinstance(coupled_solid, SolidComps.SerialComponent)
@@ -190,8 +190,8 @@ def test_CartesianCore():
 
 
 if __name__ == "__main__":
-    test_ComponentCoupler()
-    test_UniformlyEncasedSerialPipeCoupler()
-    test_NonUniformlyEncasedPipe()
-    test_NonUniformlyEncasedSerialPipe()
+    test_SingularFluid_SingularSolid()
+    test_SerialFluid_SingularSolid()
+    test_SingularFluid_SerialSolid()
+    test_SerialFluid_SerialSolid()
     test_CartesianCore()
