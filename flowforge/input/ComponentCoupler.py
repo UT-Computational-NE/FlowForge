@@ -348,7 +348,7 @@ class SerialFluid_SerialSolid:
                     i, ordered_fluid_comps, solid_comp
                 )
             else:
-                _, coupled_solid_components[coupled_comp_name] = ComponentCoupler().couple(fluid_comp, solid_comp)
+                _, coupled_solid_components[coupled_comp_name] = SingularFluid_SingularSolid().couple(fluid_comp, solid_comp)
 
         # Creates the final, coupled serial component
         coupled_serial_solid_component = SolidComponents.SerialComponent(
