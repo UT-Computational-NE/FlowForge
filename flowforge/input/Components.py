@@ -6,6 +6,7 @@ from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.input.Shapes import CrossSection
 
 _CYL_RESOLUTION = 50
 
@@ -309,133 +310,54 @@ class Component:
         return components
 
 
-class CrossSection(abc.ABC):
-    """Abstract base class for cross-sectional areas"""
+class FluidCrossSection(CrossSection):
+    """
+    Fluid cross section class
+
+    Builds a cross section for fluid components based off an input shape, computing geometric
+    quantities needed for the fluid solve
+
+    Parameters
+    ----------
+    shape : Shape
+        Shape type desired for the cross section
+
+    Attributes
+    ----------
+    flow_area : float
+        Flow area for the fluid component
+    wetted_perimeter : float
+        Perimeter of the fluid component
+    hydraulic_diameter : float
+        Hydraulic diameter of the fluid component
+    """
 
     @property
-    @abc.abstractmethod
-    def flow_area(self) -> float:
-        pass
+    def flow_area(self):
+        return self.shape.area
 
     @property
-    @abc.abstractmethod
-    def wetted_perimeter(self) -> float:
-        pass
+    def wetted_perimeter(self):
+        return self.shape.perimeter
 
     @property
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
 
-class CircularCrossSection(CrossSection):
-    """Circular cross-sectional area
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
 
-    Parameters
-    ---------
-    R: float
-        Radius of the circular pipe
-    """
-
-    def __init__(self, R: float):
-        self._R = R
-
-    @property
-    def R(self) -> float:
-        return self._R
-
-    @property
-    def flow_area(self) -> float:
-        return np.pi * self._R**2
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * np.pi * self._R
-
-
-class RectangularCrossSection(CrossSection):
-    """Rectangular cross-sectional area
-
-    Parameters
-    ----------
-    W: float
-        Width of the rectangular pipe
-    H: float
-        Height of the rectangular pipe
-    """
-
-    def __init__(self, W: float, H: float):
-        self._W = W
-        self._H = H
-
-    @property
-    def W(self) -> float:
-        return self._W
-
-    @property
-    def H(self) -> float:
-        return self._H
-
-    @property
-    def flow_area(self) -> float:
-        return self._W * self._H
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * (self._W + self._H)
-
-
-class SquareCrossSection(RectangularCrossSection):
-    """Square cross-sectional area
-
-    Parameters
-    ----------
-    W : float
-        Width of the square pipe (i.e. flat-to-flat)
-    """
-
-    def __init__(self, W: float):
-        super().__init__(W, W)
-
-
-class StadiumCrossSection(CrossSection):
-    """Stadium cross sectional area
-
-    Parameters
-    ----------
-    A : float
-        Length of the rectangular portion of the stadium channel
-    R : float
-        Radius of the semi cirulcar portion of the stadium channel
-    """
-
-    def __init__(self, A: float, R: float):
-        self._A = A
-        self._R = R
-
-    @property
-    def A(self) -> float:
-        return self._A
-
-    @property
-    def R(self) -> float:
-        return self._R
-
-    @property
-    def flow_area(self) -> float:
-        return np.pi * (self._R) ** 2 + 2 * self._R * self._A
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * (np.pi * self._R + self._A)
-
-
-cross_section_classes = {
-    "circular": CircularCrossSection,
-    "square": SquareCrossSection,
-    "rectangular": RectangularCrossSection,
-    "stadium": StadiumCrossSection,
-}
-cross_section_param_lists = {"circular": ["R"], "square": ["W"], "rectangular": ["H", "W"], "stadium": ["A", "R"]}
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        self.shape._convertUnits(uc)
 
 
 class Pipe(Component):
@@ -496,9 +418,7 @@ class Pipe(Component):
         self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
-        self._cross_section = cross_section_classes[cross_section_name](
-            **{k: v for k, v in kwargs.items() if k in cross_section_param_lists[cross_section_name]}
-        )
+        self._cross_section = FluidCrossSection(shape=cross_section_name, **kwargs)
         self._Ac = self._cross_section.flow_area
         self._Pw = self._cross_section.wetted_perimeter
         self._Dh = self._cross_section.hydraulic_diameter
@@ -528,6 +448,10 @@ class Pipe(Component):
     @property
     def nCell(self) -> int:
         return self._n
+
+    @property
+    def crossSection(self) -> CrossSection:
+        return self._cross_section
 
     def getMomentumSource(self) -> float:
         raise NotImplementedError
@@ -1544,6 +1468,10 @@ class Core(abc.ABC, ParallelComponents):
     def components(self) -> Dict[str, Component]:
         return self._components
 
+    @property
+    def componentMap(self):
+        return self._map
+
     def _calculate_centroids(self) -> Dict[str, List[float]]:
         """Calculate the centroid coordinates for each component in the core map.
 
@@ -1881,18 +1809,16 @@ class CartCore(Core):
         non_channels: Optional[List[str]] = None,
         y_pitch: Optional[float] = None,
         map_alignment: Optional[Alignment] = "center",
-
+        fill_map: bool = False,
         # Solid Mesh Specifications
         solid: Optional[str] = None,
         solid_component_type: Optional[str] = None,
-
         # Solid Physics
         solid_bc_type: Optional[str] = "Adiabatic",
         solid_bc_temperature: Optional[float] = None,
         solid_power_density: Optional[str] = None,
         solid_outer_heat_flux: Optional[Dict[str, str]] = None,
         solid_plenum_interactions: Optional[str] = "True",
-
         **kwargs,
     ) -> None:
 
@@ -1903,7 +1829,10 @@ class CartCore(Core):
         if non_channels is None:
             non_channels = ["0"]
         assert len(channel_map) > 0, f"map: {channel_map} must not be empty"
-        filled_map = self._fill_map(channel_map, non_channels, map_alignment)
+        if fill_map:
+            filled_map = self._fill_map(channel_map, non_channels, map_alignment)
+        else:
+            filled_map = channel_map
         num_rows = len(filled_map)
         num_cols = len(filled_map[0])
         self._center_column = (num_cols - 1) / 2
@@ -1925,8 +1854,9 @@ class CartCore(Core):
         self._solid_outer_heat_flux = solid_outer_heat_flux
         self._solid_plenum_interactions = solid_plenum_interactions
 
-        self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = \
-            self._getSoldBoundariesAndControllers()
+        self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = (
+            self._getSolidBoundariesAndControllers()
+        )
 
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
 
@@ -2071,58 +2001,69 @@ class CartCore(Core):
         y_centroid = -(row - self._center_row) * self._y_pitch
         return x_centroid, y_centroid
 
-    def _getSoldBoundariesAndControllers(self):
+    def _getSolidBoundariesAndControllers(self):
         bcs, bfs, wfs = {}, {}, {}
 
         # Boundary Conditions
         assert self._solid_bc_type is not None, "Error: Must input a boundary type for the outer core {Adiabatic, Dirichlet}"
         if self._solid_bc_type.casefold() == ("Adiabatic").casefold():
             for surface in ["North", "South", "East", "West"]:
-                bcs[surface+"_bc"] = {"boundary_type": "AdiabaticBC",
-                                      "surface": surface,
-                                      "variable": "temperature",
-                                      "value": 0.0}
-            if self._solid_plenum_interactions  != "True":
-                bcs["Top_bc"] = {"boundary_type": "AdiabaticBC",
-                                 "surface": "Top",
-                                 "variable": "temperature",
-                                 "value": 0.0}
-                bcs["Bottom_bc"] = {"boundary_type": "AdiabaticBC",
-                                    "surface": "Bottom",
-                                    "variable": "temperature",
-                                    "value": 0.0}
+                bcs[surface + "_bc"] = {
+                    "boundary_type": "AdiabaticBC",
+                    "surface": surface,
+                    "variable": "temperature",
+                    "value": 0.0,
+                }
+            if self._solid_plenum_interactions != "True":
+                bcs["Top_bc"] = {"boundary_type": "AdiabaticBC", "surface": "Top", "variable": "temperature", "value": 0.0}
+                bcs["Bottom_bc"] = {
+                    "boundary_type": "AdiabaticBC",
+                    "surface": "Bottom",
+                    "variable": "temperature",
+                    "value": 0.0,
+                }
         elif self._solid_bc_type.casefold() == ("Dirichlet").casefold():
             assert self._solid_bc_temperature is not None, "Must input an outer temperature for a Dirichlet boundary"
             for surface in ["North", "South", "East", "West"]:
-                bcs[surface+"_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                      "surface": surface,
-                                      "variable": "temperature",
-                                      "value": self._solid_bc_temperature}
+                bcs[surface + "_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": surface,
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
             if self._solid_plenum_interactions != "True":
-                bcs["Top_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                 "surface": "Top",
-                                 "variable": "temperature",
-                                 "value": self._solid_bc_temperature}
-                bcs["Bottom_bc"] = {"boundary_type": "FixedSurfaceBC",
-                                    "surface": "Bottom",
-                                    "variable": "temperature",
-                                    "value": self._solid_bc_temperature}
+                bcs["Top_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": "Top",
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
+                bcs["Bottom_bc"] = {
+                    "boundary_type": "FixedSurfaceBC",
+                    "surface": "Bottom",
+                    "variable": "temperature",
+                    "value": self._solid_bc_temperature,
+                }
 
         # Body Forces
         if self._solid_power_density is not None:
-            bfs["power"] = {"function_type": "InternalHeatGenerationBF",
-                            "variable": "temperature",
-                            "value": str(self._solid_power_density)}
+            bfs["power"] = {
+                "function_type": "InternalHeatGenerationBF",
+                "variable": "temperature",
+                "value": str(self._solid_power_density),
+            }
 
         # Wall Functions
         def _getWFs(input_wfs):
             assert isinstance(input_wfs, dict), "Must input the wall functions as a dict-type."
             wfs = {}
             for surface, value in wfs.items():
-                wfs[surface+"_wf"] = {"function_type": "HeatFluxWallFunction",
-                                      "variable": "temperature",
-                                      "surface": surface,
-                                      "value": str(value)}
+                wfs[surface + "_wf"] = {
+                    "function_type": "HeatFluxWallFunction",
+                    "variable": "temperature",
+                    "surface": surface,
+                    "value": str(value),
+                }
             return wfs
 
         if self._solid_outer_heat_flux is not None:
