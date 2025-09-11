@@ -1,10 +1,11 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from copy import deepcopy
 from functools import partial
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.SolidCrossSections import CrossSection, cross_section_types
+from flowforge.input.Components import FluidCrossSection
+from flowforge.input.Shapes import CrossSection
 
 # pragma pylint: disable=protected-access
 
@@ -13,6 +14,82 @@ The components dictionary provides a key, value pair of each type of component.
 This can be used in a factory to build each component in a system.
 """
 solid_component_list = {}
+
+
+class SolidCrossSection(CrossSection):
+    """
+    Solid cross section class
+
+    Builds a cross section for solid components based off an input shape, computing geometric
+    quantities needed for the solid solve
+
+    Parameters
+    ----------
+    shape : Shape
+        Shape type desired for the cross section
+
+    Attributes
+    ----------
+    area : float
+        Area of the solid component, defined as the base area minus the channel area
+    baseArea : float
+        Area of the shape input for this component
+    channel : FluidCrossSection
+        cross-section of the sub-channel running through this cross-section
+    """
+
+    def __init__(self, shape, **kwargs):
+        super().__init__(shape, **kwargs)
+        self._channel = None
+
+    @property
+    def area(self) -> float:
+        if self.channel is None:
+            return self.baseArea
+        return self.baseArea - self.channel.flow_area
+
+    @property
+    def baseArea(self) -> float:
+        return self.shape.area
+
+    @property
+    def channel(self) -> FluidCrossSection:
+        return self._channel
+
+    @channel.setter
+    def channel(self, channel: FluidCrossSection):
+        assert self.channel is None, "Should use 'changeChannel' method instead'"
+        assert channel.flow_area < self.baseArea
+        self._channel = channel
+
+    def changeChannel(self, channel: FluidCrossSection) -> None:
+        """
+        Method used to explicitly change the channel running through the cross-section
+
+        Parameters
+        ----------
+        channel : FluidCrossSection
+            New channel running through the cross-section
+        """
+        assert channel.flow_area < self.baseArea
+        self._channel = channel
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Private method for converting units of the component's internal attribute
+
+        This method is especially useful for converting components to the expected units
+        of the application in which they will be used.
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            A unit converter which holds the 'from' units and 'to' units for the conversion
+            and will ultimately provide the appropriate multipliers for unit conversion.
+        """
+        self.shape._convertUnits(uc)
+        if self.channel is not None:
+            self.channel._convertUnits(uc)
 
 
 class Component:
@@ -31,7 +108,7 @@ class Component:
         Orientation angle of the component in the azimuthal direction
     zenith_angle : float
         Orientation angle of the component in the zenith (polar) direction
-    cross_section : str
+    cross_section : str, optional
         Type of cross-section used for the component
 
     Attributes
@@ -59,7 +136,7 @@ class Component:
         material: str = "graphite",
         azimuthal_angle: float = 0.0,
         zenith_angle: float = 0.0,
-        cross_section: str = None,
+        cross_section: Optional[str] = None,
         **kwargs,
     ) -> None:
         self._height = height
@@ -67,7 +144,7 @@ class Component:
         self._material = material
 
         if cross_section is not None:
-            self._crossSection = self._buildCrossSection(cross_section, **kwargs)
+            self._crossSection = SolidCrossSection(shape=cross_section, **kwargs)
         else:
             self._crossSection = None
 
@@ -127,30 +204,9 @@ class Component:
         return self._crossSection
 
     @crossSection.setter
-    def crossSection(self, cross_section: CrossSection):
+    def crossSection(self, cross_section: SolidCrossSection):
         assert self._crossSection is None, "Can only add a cross-section object, not alter one."
         self._crossSection = deepcopy(cross_section)
-
-    def _buildCrossSection(self, cross_section_type: str, **kwargs) -> CrossSection:
-        """
-        Given a cross section type and the correct corresponding inputs (via
-        kwargs), this method builds the cross section object used to compute
-        the cross sectional area, as well as the volume
-
-        Parameters
-        ----------
-        cross_section_type : str
-            name of the desired cross section
-
-        Returns
-        -------
-        cross_section : SolidCrossSections.CrossSection
-            Cross section built using the inputs from kwargs
-        """
-        cross_section_obj = cross_section_types[cross_section_type]
-        assert all(inp in kwargs for inp in cross_section_obj.inputs)
-        cross_section = cross_section_obj(**{k: v for k, v in kwargs.items() if k in cross_section_obj.inputs})
-        return cross_section
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -170,10 +226,6 @@ class Component:
             self.crossSection._convertUnits(uc)
 
     def baseComponents(self):
-        """
-        Method for retrieving the base components of a component.
-        For components that are not collections, this will be itself
-        """
         return [self]
 
     @classmethod
@@ -432,6 +484,7 @@ class Core(ParallelComponent):
 
     @property
     def nAxialCells(self) -> int:
+        print("Warning: 'nAxialCells' not fully implemented, will return '0'")
         return self._nAxialCells
 
     @nAxialCells.setter
@@ -476,17 +529,12 @@ class Core(ParallelComponent):
         # Reference values
         first_comp_name = component_map[0][0]
         reference_height = deepcopy(components[first_comp_name].height)
-        reference_axial_cells = deepcopy(components[first_comp_name].nCells)
 
         # Make checks
         for comp_name, comp in components.items():
             assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
-            assert comp.nCells == reference_axial_cells, (
-                "Incorrect component cell number (" + comp_name + ", " + str(comp.nCells) + ")"
-            )
 
         self.coreHeight = reference_height  # Set core height to this reference height
-        self.nAxialCells = reference_axial_cells  # Set the number of axial cells to this reference value
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """

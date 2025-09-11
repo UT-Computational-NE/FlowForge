@@ -6,6 +6,7 @@ from six import add_metaclass
 import numpy as np
 from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.input.Shapes import CrossSection
 
 _CYL_RESOLUTION = 50
 
@@ -309,67 +310,40 @@ class Component:
         return components
 
 
-class CrossSection(abc.ABC):
-    """Abstract base class for cross-sectional areas"""
+class FluidCrossSection(CrossSection):
+    """
+    Fluid cross section class
+
+    Builds a cross section for fluid components based off an input shape, computing geometric
+    quantities needed for the fluid solve
+
+    Parameters
+    ----------
+    shape : Shape
+        Shape type desired for the cross section
+
+    Attributes
+    ----------
+    flow_area : float
+        Flow area for the fluid component
+    wetted_perimeter : float
+        Perimeter of the fluid component
+    hydraulic_diameter : float
+        Hydraulic diameter of the fluid component
+    """
 
     @property
-    @abc.abstractmethod
-    def flow_area(self) -> float:
-        pass
+    def flow_area(self):
+        return self.shape.area
 
     @property
-    @abc.abstractmethod
-    def wetted_perimeter(self) -> float:
-        pass
+    def wetted_perimeter(self):
+        return self.shape.perimeter
 
     @property
     def hydraulic_diameter(self) -> float:
         return 4 * self.flow_area / self.wetted_perimeter
 
-    def _convertUnits(self, uc: UnitConverter) -> None:  # pylint:disable=unused-argument
-        """
-        Private method for converting units of the component's internal attribute
-
-        This method is especially useful for converting components to the expected units
-        of the application in which they will be used.
-
-        Parameters
-        ----------
-        uc : UnitConverter
-            A unit converter which holds the 'from' units and 'to' units for the conversion
-            and will ultimately provide the appropriate multipliers for unit conversion.
-        """
-        raise NotImplementedError
-
-
-class CircularCrossSection(CrossSection):
-    """Circular cross-sectional area
-
-    Parameters
-    ---------
-    R: float
-        Radius of the circular pipe
-    """
-
-    def __init__(self, R: float):
-        self._R = R
-
-    @property
-    def R(self) -> float:
-        return self._R
-
-    @R.setter
-    def R(self, R) -> None:
-        self._R = R
-
-    @property
-    def flow_area(self) -> float:
-        return np.pi * self._R**2
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * np.pi * self._R
-
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
         Private method for converting units of the component's internal attribute
@@ -383,141 +357,7 @@ class CircularCrossSection(CrossSection):
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
-        self.R *= uc.lengthConversion
-
-
-class RectangularCrossSection(CrossSection):
-    """Rectangular cross-sectional area
-
-    Parameters
-    ----------
-    W: float
-        Width of the rectangular pipe
-    H: float
-        Height of the rectangular pipe
-    """
-
-    def __init__(self, W: float, H: float):
-        self._W = W
-        self._H = H
-
-    @property
-    def W(self) -> float:
-        return self._W
-
-    @W.setter
-    def W(self, W) -> None:
-        self._W = W
-
-    @property
-    def H(self) -> float:
-        return self._H
-
-    @H.setter
-    def H(self, H) -> None:
-        self._H = H
-
-    @property
-    def flow_area(self) -> float:
-        return self._W * self._H
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * (self._W + self._H)
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        """
-        Private method for converting units of the component's internal attribute
-
-        This method is especially useful for converting components to the expected units
-        of the application in which they will be used.
-
-        Parameters
-        ----------
-        uc : UnitConverter
-            A unit converter which holds the 'from' units and 'to' units for the conversion
-            and will ultimately provide the appropriate multipliers for unit conversion.
-        """
-        self.H *= uc.lengthConversion
-        self.W *= uc.lengthConversion
-
-
-class SquareCrossSection(RectangularCrossSection):
-    """Square cross-sectional area
-
-    Parameters
-    ----------
-    W : float
-        Width of the square pipe (i.e. flat-to-flat)
-    """
-
-    def __init__(self, W: float):
-        super().__init__(W, W)
-
-
-class StadiumCrossSection(CrossSection):
-    """Stadium cross sectional area
-
-    Parameters
-    ----------
-    A : float
-        Length of the rectangular portion of the stadium channel
-    R : float
-        Radius of the semi cirulcar portion of the stadium channel
-    """
-
-    def __init__(self, A: float, R: float):
-        self._A = A
-        self._R = R
-
-    @property
-    def A(self) -> float:
-        return self._A
-
-    @A.setter
-    def A(self, A) -> None:
-        self._A = A
-
-    @property
-    def R(self) -> float:
-        return self._R
-
-    @R.setter
-    def R(self, R) -> None:
-        self._R = R
-
-    @property
-    def flow_area(self) -> float:
-        return np.pi * (self._R) ** 2 + 2 * self._R * self._A
-
-    @property
-    def wetted_perimeter(self) -> float:
-        return 2 * (np.pi * self._R + self._A)
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        """
-        Private method for converting units of the component's internal attribute
-
-        This method is especially useful for converting components to the expected units
-        of the application in which they will be used.
-
-        Parameters
-        ----------
-        uc : UnitConverter
-            A unit converter which holds the 'from' units and 'to' units for the conversion
-            and will ultimately provide the appropriate multipliers for unit conversion.
-        """
-        self.R *= uc.lengthConversion
-        self.A *= uc.lengthConversion
-
-
-cross_section_classes = {
-    "circular": CircularCrossSection,
-    "square": SquareCrossSection,
-    "rectangular": RectangularCrossSection,
-    "stadium": StadiumCrossSection,
-}
-cross_section_param_lists = {"circular": ["R"], "square": ["W"], "rectangular": ["H", "W"], "stadium": ["A", "R"]}
+        self.shape._convertUnits(uc)
 
 
 class Pipe(Component):
@@ -578,9 +418,7 @@ class Pipe(Component):
         self._klossAvg = Klossavg
         self._roughness = roughness
         self._kwargs = kwargs
-        self._cross_section = cross_section_classes[cross_section_name](
-            **{k: v for k, v in kwargs.items() if k in cross_section_param_lists[cross_section_name]}
-        )
+        self._cross_section = FluidCrossSection(shape=cross_section_name, **kwargs)
         self._Ac = self._cross_section.flow_area
         self._Pw = self._cross_section.wetted_perimeter
         self._Dh = self._cross_section.hydraulic_diameter
@@ -2017,7 +1855,7 @@ class CartCore(Core):
         self._solid_plenum_interactions = solid_plenum_interactions
 
         self._solid_boundary_conditions, self._solid_body_forces, self._solid_wall_functions = (
-            self._getSoildBoundariesAndControllers()
+            self._getSolidBoundariesAndControllers()
         )
 
         super().__init__(components, filled_map, lower_plenum, upper_plenum, annulus, orificing, **kwargs)
@@ -2163,7 +2001,7 @@ class CartCore(Core):
         y_centroid = -(row - self._center_row) * self._y_pitch
         return x_centroid, y_centroid
 
-    def _getSoildBoundariesAndControllers(self):
+    def _getSolidBoundariesAndControllers(self):
         bcs, bfs, wfs = {}, {}, {}
 
         # Boundary Conditions
