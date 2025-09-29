@@ -137,17 +137,6 @@ class Component:
         For components that are not collections, this will be itself"""
         return [self]
 
-    @abc.abstractmethod
-    def getMomentumSource(self) -> float:
-        """Method for getting the momentum source term of the component
-
-        Returns
-        -------
-        float
-            The magnitude of the component's momentum source
-        """
-        raise NotImplementedError
-
     def addKlossInlet(self, kloss: float) -> None:
         """Method for adding to kloss inlet. Does not overwrite.
 
@@ -453,9 +442,6 @@ class Pipe(Component):
     def crossSection(self) -> CrossSection:
         return self._cross_section
 
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
-
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
         y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
@@ -552,8 +538,6 @@ class Pump(Component):
         Pump flow volume
     height : float
         Change in height experienced by the fluid across the pump
-    dP : float
-        Change in pressure of the fluid caused by the pump
     Klossinlet : float
         K-loss coefficient associated with pressure loss at the inlet of the pump
     Klossoutlet : float
@@ -572,7 +556,6 @@ class Pump(Component):
         Dh: float,
         V: float,
         height: float,
-        dP: float,
         Klossinlet: float = 0.0,
         Klossoutlet: float = 0.0,
         Klossavg: float = 0.0,
@@ -585,7 +568,6 @@ class Pump(Component):
         self._Dh = Dh
         self._V = V
         self._h = height
-        self._dP = dP
         self._klossInlet = Klossinlet
         self._klossOutlet = Klossoutlet
         self._klossAvg = Klossavg
@@ -623,9 +605,6 @@ class Pump(Component):
     @property
     def nCell(self) -> int:
         return 1
-
-    def getMomentumSource(self) -> float:
-        return self._dP * self._Ac
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         # for now making the assumption that it comes in bottom and out the side of the pump
@@ -665,7 +644,6 @@ class Pump(Component):
         self._Dh *= uc.lengthConversion
         self._V *= uc.volumeConversion
         self._h *= uc.lengthConversion
-        self._dP *= uc.pressureConversion
         self._roughness *= uc.lengthConversion
         self._heatedPerimeter *= uc.lengthConversion
 
@@ -765,9 +743,6 @@ class Nozzle(Component):
     @property
     def nCell(self) -> int:
         return 1
-
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
@@ -900,9 +875,6 @@ class Annulus(Component):
     def Rin(self) -> float:
         return self._Rin
 
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
-
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
         y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
@@ -1015,9 +987,6 @@ class Tank(Component):
     def nCell(self) -> int:
         return self._n
 
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
-
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha) + self._R * np.cos(self._alpha)
         y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha) + self._R * np.sin(self._alpha)
@@ -1124,9 +1093,6 @@ class ComponentCollection(Component):
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         yield from [component.getNodeGenerator() for component in self._myComponents.values()]
-
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         for component in self._myComponents.values():
@@ -1362,9 +1328,6 @@ class ParallelComponents(ComponentCollection):
     @property
     def annulus(self) -> Component:
         return self._annulus
-
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         lower = self._lowerPlenum.getOutlet(inlet)
@@ -2197,9 +2160,6 @@ class SerialComponents(ComponentCollection):
     @property
     def order(self) -> List[str]:
         return self._order
-
-    def getMomentumSource(self) -> float:
-        raise NotImplementedError
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         for cname in self._order:
