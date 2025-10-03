@@ -531,10 +531,10 @@ class Core(ParallelComponent):
         # Reference values
         first_comp_name = component_map[0][0]
         first_component = deepcopy(components[first_comp_name])
-        assert isinstance(first_component.baseComponents[0].crossSection.shape, Shapes.Rectangle)
+        assert isinstance(first_component.baseComponents()[0].crossSection.shape, Shapes.Rectangle)
         reference_height = first_component.height
-        reference_length = first_component.baseComponents[0].crossSection.shape.height
-        reference_width = first_component.baseComponents[0].crossSection.shape.width
+        reference_length = first_component.baseComponents()[0].crossSection.shape.height
+        reference_width = first_component.baseComponents()[0].crossSection.shape.width
 
         # Make checks
         err = lambda comp_name, comparison_type : (
@@ -544,7 +544,7 @@ class Core(ParallelComponent):
         )
         for comp_name, comp in components.items():
             assert comp.height == reference_height, err(comp_name, "height (z)")
-            for base_comp in comp.baseComponents:
+            for base_comp in comp.baseComponents():
                 assert isinstance(base_comp.crossSection.shape, Shapes.Rectangle), (
                     "can only use rectangular or square cross sections in 'Core'"
                 )
