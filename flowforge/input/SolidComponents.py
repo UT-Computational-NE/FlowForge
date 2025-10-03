@@ -5,7 +5,7 @@ from functools import partial
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.Components import FluidCrossSection
-from flowforge.input.Shapes import CrossSection
+import flowforge.input.Shapes as Shapes
 
 # pragma pylint: disable=protected-access
 
@@ -16,7 +16,7 @@ This can be used in a factory to build each component in a system.
 solid_component_list = {}
 
 
-class SolidCrossSection(CrossSection):
+class SolidCrossSection(Shapes.CrossSection):
     """
     Solid cross section class
 
@@ -200,7 +200,7 @@ class Component:
         self._zenith_angle = zenith_angle
 
     @property
-    def crossSection(self) -> CrossSection:
+    def crossSection(self) -> Shapes.CrossSection:
         return self._crossSection
 
     @crossSection.setter
@@ -516,7 +516,9 @@ class Core(ParallelComponent):
 
         Checks:
             1. heights of components are all the same
-            2. number of axial cells is the same
+            2. All base components are of 'rectangular' shape
+            3. Lengths and widths of component cross sections are all
+                the same
 
         Parameters
         ----------
@@ -528,11 +530,27 @@ class Core(ParallelComponent):
 
         # Reference values
         first_comp_name = component_map[0][0]
-        reference_height = deepcopy(components[first_comp_name].height)
+        first_component = deepcopy(components[first_comp_name])
+        assert isinstance(first_component.baseComponents[0].crossSection.shape, Shapes.Rectangle)
+        reference_height = first_component.height
+        reference_length = first_component.baseComponents[0].crossSection.shape.height
+        reference_width = first_component.baseComponents[0].crossSection.shape.width
 
         # Make checks
+        err = lambda comp_name, comparison_type : (
+            f"Incorrect component {comparison_type} when compared to " +
+            f"the reference component, {first_comp_name}. Error occurred " +
+            f"in component '{comp_name}'"
+        )
         for comp_name, comp in components.items():
-            assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
+            assert comp.height == reference_height, err(comp_name, "height (z)")
+            for base_comp in comp.baseComponents:
+                assert isinstance(base_comp.crossSection.shape, Shapes.Rectangle), (
+                    "can only use rectangular or square cross sections in 'Core'"
+                )
+                assert base_comp.crossSection.shape.height == reference_length, err(comp_name, "length (x)")
+                assert base_comp.crossSection.shape.width == reference_width, err(comp_name, "width (y)")
+
 
         self.coreHeight = reference_height  # Set core height to this reference height
 
