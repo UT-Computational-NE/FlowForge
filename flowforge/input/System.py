@@ -4,6 +4,10 @@ import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
+from flowforge.input.SolidComponents import Component as SolidComponent
+from flowforge.input.SolidComponents import SerialComponent as SolidSerialComponent
+from flowforge.input.SolidComponents import ParallelComponent as SolidParallelComponent
+from flowforge.input.SolidComponents import Core as SolidCore
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
@@ -118,7 +122,7 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
+    def __init__(self, components: Dict[str, Component], solid_components, sysdict: Dict, unitdict: Dict[str, str]) -> None:
         self._components = []
         self._output_parsers = {}
         self._connectivity = []
@@ -134,9 +138,17 @@ class System:
         self._isLoop = False  # Boolean defining if system is a loop or segement
 
         if "simple_loop" in sysdict:
+            assert "segment" not in sysdict
+            assert "solid_system" not in sysdict
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
         elif "segment" in sysdict:
+            assert "simple_loop" not in sysdict
+            assert "solid_system" not in sysdict
             self._setupSegment(components, **sysdict["segment"])
+        elif "solid_system" in sysdict:
+            assert "simple_loop" not in sysdict
+            assert "segment" not in sysdict
+            self._setupSolidSystem(solid_components, **sysdict["solid_system"])
         # TODO add additional types of systems that can be set up
 
         if "parsers" in sysdict:
@@ -268,6 +280,32 @@ class System:
 
         # get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
+
+    def _setupSolidSystem(self, solid_components, order):
+
+        for i, entry in enumerate(order):
+            self._components.append(deepcopy(solid_components[entry["component"]]))
+            bfs_i = []
+            wfs_i = []
+            if "BodyForces" in entry:
+                bfs_i = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wfs_i = entry["WallFunctions"]
+            self._bodyforces.append(deepcopy(bfs_i))
+            self._wallfunctions.append(deepcopy(wfs_i))
+
+            current_component = self._components[i]
+            if i == 0:
+                previous_component = None
+            else:
+                previous_component = self._components[i - 1]
+
+            self._connectivity.append(previous_component, current_component)
+
+        # TODO:
+        #   1) Add solid boundary conditions
+        #   2) Add solid body forces
+        #   3) Add solid wall functions
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
