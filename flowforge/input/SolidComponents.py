@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple, Optional
 from copy import deepcopy
-from functools import partial
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
@@ -260,9 +259,6 @@ class Component:
         return components
 
 solid_component_list["component"] = Component
-solid_component_list["rectangle"] = partial(Component, cross_section="rectangle")
-solid_component_list["square"] = partial(Component, cross_section="square")
-solid_component_list["hexagon"] = partial(Component, cross_section="hexagon")
 
 
 class SerialComponent:
