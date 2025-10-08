@@ -121,7 +121,11 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str], solid_components=None) -> None:
+    def __init__(self,
+                 components: Dict[str, Component],
+                 sysdict: Dict,
+                 unitdict: Dict[str, str],
+                 solid_components=None) -> None:
         self._components = []
         self._solid_components = []
         self._output_parsers = {}

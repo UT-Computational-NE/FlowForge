@@ -4,7 +4,7 @@ from copy import deepcopy
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.Components import FluidCrossSection
-import flowforge.input.Shapes as Shapes
+from flowforge.input import Shapes
 
 # pragma pylint: disable=protected-access
 
@@ -249,7 +249,7 @@ class Component:
                               for name, sub_params in sub_components_definitions.items()}
             return SerialComponent(sub_components, order)
 
-        assert type(input_dict) == dict, f"Unknown input type: {type(input_dict)}"
+        assert isinstance(input_dict, dict), f"Unknown input type: {type(input_dict)}"
 
         components = {}
         for comp_type, comp_inputs in input_dict.items():
@@ -554,11 +554,13 @@ class Core(ParallelComponent):
         reference_width = first_component.baseComponents()[0].crossSection.shape.width
 
         # Make checks
-        err = lambda comp_name, comparison_type : (
-            f"Incorrect component {comparison_type} when compared to " +
-            f"the reference component, {first_comp_name}. Error occurred " +
-            f"in component '{comp_name}'"
-        )
+        def err(comp_name, comparison_type):
+            return (
+                f"Incorrect component {comparison_type} when compared to " +
+                f"the reference component, {first_comp_name}. Error occurred " +
+                f"in component '{comp_name}'"
+            )
+
         for comp_name, comp in components.items():
             assert comp.height == reference_height, err(comp_name, "height (z)")
             for base_comp in comp.baseComponents():
