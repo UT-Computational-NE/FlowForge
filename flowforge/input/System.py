@@ -4,10 +4,6 @@ import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
-from flowforge.input.SolidComponents import Component as SolidComponent
-from flowforge.input.SolidComponents import SerialComponent as SolidSerialComponent
-from flowforge.input.SolidComponents import ParallelComponent as SolidParallelComponent
-from flowforge.input.SolidComponents import Core as SolidCore
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
@@ -122,10 +118,12 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], solid_components, sysdict: Dict, unitdict: Dict[str, str]) -> None:
+    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str], solid_components=None) -> None:
         self._components = []
+        self._solid_components = []
         self._output_parsers = {}
         self._connectivity = []
+        self._solid_connectivity = []
         self._bodyforces = []
         self._wallfunctions = []
         self._MMBC = None
@@ -281,10 +279,12 @@ class System:
         # get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
 
-    def _setupSolidSystem(self, solid_components, order):
+    def _setupSolidSystem(self, solid_components, order, boundary_conditions):
+
+        assert solid_components is not None
 
         for i, entry in enumerate(order):
-            self._components.append(deepcopy(solid_components[entry["component"]]))
+            self._solid_components.append(deepcopy(solid_components[entry["component"]]))
             bfs_i = []
             wfs_i = []
             if "BodyForces" in entry:
@@ -294,13 +294,15 @@ class System:
             self._bodyforces.append(deepcopy(bfs_i))
             self._wallfunctions.append(deepcopy(wfs_i))
 
-            current_component = self._components[i]
+            current_component = self._solid_components[i]
             if i == 0:
                 previous_component = None
             else:
-                previous_component = self._components[i - 1]
+                previous_component = self._solid_components[i - 1]
 
-            self._connectivity.append(previous_component, current_component)
+            self._solid_connectivity.append((previous_component, current_component))
+
+        self._setupSolidBoundaryConditions(boundary_conditions)
 
         # TODO:
         #   1) Add solid boundary conditions
@@ -348,6 +350,9 @@ class System:
             and ("void" not in boundary_conditions)
         ):
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+
+    def _setupSolidBoundaryConditions(self, boundary_conditions):
+        pass
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -404,6 +409,14 @@ class System:
     @property
     def connectivity(self) -> List[Tuple[Component, Component]]:
         return self._connectivity
+
+    @property
+    def solidComponents(self):
+        return self._solid_components
+
+    @property
+    def solidConnectivity(self):
+        return self._solid_connectivity
 
     @property
     def output_parsers(self) -> Dict[str, OutputParser]:

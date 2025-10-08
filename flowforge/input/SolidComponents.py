@@ -228,20 +228,34 @@ class Component:
     def baseComponents(self):
         return [self]
 
-    @classmethod
-    def build(cls, inputs: Dict):
-        return cls(**inputs)
-
     @staticmethod
     def factory(input_dict: Dict):
+        """
+        
+        """
+
+        def buildComponent(parameters):
+            return Component(**parameters)
+
+        def buildSerialComponent(sub_components_definitions, order):
+            sub_components = {name: buildComponent(sub_params)
+                              for name, sub_params in sub_components_definitions.items()}
+            return SerialComponent(sub_components, order)
 
         assert type(input_dict) == dict, f"Unknown input type: {type(input_dict)}"
 
         components = {}
         for comp_type, comp_inputs in input_dict.items():
             assert comp_type in solid_component_list, f"Error: unknown component type {comp_type}"
+
             for unique_name, parameters in comp_inputs.items():
-                components[unique_name] = solid_component_list[comp_type].build(parameters)
+                if comp_type == "component":
+                    components[unique_name] = buildComponent(parameters)
+                elif comp_type == "serial_component":
+                    components[unique_name] = buildSerialComponent(parameters["component"], parameters["order"])
+                else:
+                    raise Exception(f"No 'build' method for component type '{comp_type}'")
+
 
         return components
 
@@ -249,7 +263,6 @@ solid_component_list["component"] = Component
 solid_component_list["rectangle"] = partial(Component, cross_section="rectangle")
 solid_component_list["square"] = partial(Component, cross_section="square")
 solid_component_list["hexagon"] = partial(Component, cross_section="hexagon")
-
 
 
 class SerialComponent:
