@@ -224,13 +224,21 @@ class Component:
         if self.crossSection is not None:
             self.crossSection._convertUnits(uc)
 
-    def baseComponents(self):
+    def baseComponents(self) -> List:
+        """
+        Returns the base component (itself)
+        """
         return [self]
 
     @staticmethod
     def factory(input_dict: Dict):
         """
-        
+        Taking in a dictionary of component inputs, this factory method created each component.
+
+        Parameters
+        ----------
+        input_dict : Dict
+            Dictionary of component definitions
         """
 
         def buildComponent(parameters):

@@ -104,6 +104,9 @@ class System:
         of component pairs, with the first element in the pair being the 'from' component and
         the second element the 'to' component. The list is ordered from the 'starting segment'
         to the 'ending segment'
+    solidComponents : List[SolidComponent]]
+        The collection of solid components which comprise the solid system
+    solidConnectivity : List[Tuple[SolidComponent, SolidComponent]]
     inBoundComp : Component
         The system inlet boundary component
     outBoundComp : Component
@@ -280,6 +283,25 @@ class System:
         self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSolidSystem(self, solid_components, order, boundary_conditions):
+        """
+        Private method for setting up a solid system
+
+        Given a set of components and their respective ordering, this method builds a list
+        of the components in the correct order, as well as defines the connectivity of each
+        component.
+
+        NOTE: SolidComponent := Union[Component, SerialComponent, ParallelComponent]
+
+        Parameters
+        ----------
+        solid_components : Dict[str, SolidComponent]
+            Set of initialized components, where the key is the components unique name
+        order : List[Dict]
+            Ordering of the components, where each element is a dict containing information
+            on the specific component
+        boundary_conditions : Dict
+            Dictionary of boundary conditions for the system
+        """
 
         assert solid_components is not None
 
