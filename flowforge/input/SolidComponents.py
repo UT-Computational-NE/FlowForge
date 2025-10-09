@@ -1,10 +1,11 @@
-from typing import List, Dict, Tuple, Optional
+from __future__ import annotations
+from typing import List, Dict, Tuple, Optional, Union, Any
 from copy import deepcopy
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.Components import FluidCrossSection
-from flowforge.input.Shapes import CrossSection
+from flowforge.input import Shapes
 
 # pragma pylint: disable=protected-access
 
@@ -15,7 +16,7 @@ This can be used in a factory to build each component in a system.
 solid_component_list = {}
 
 
-class SolidCrossSection(CrossSection):
+class SolidCrossSection(Shapes.CrossSection):
     """
     Solid cross section class
 
@@ -199,11 +200,11 @@ class Component:
         self._zenith_angle = zenith_angle
 
     @property
-    def crossSection(self) -> CrossSection:
+    def crossSection(self) -> Shapes.CrossSection:
         return self._crossSection
 
     @crossSection.setter
-    def crossSection(self, cross_section: SolidCrossSection):
+    def crossSection(self, cross_section: SolidCrossSection) -> None:
         assert self._crossSection is None, "Can only add a cross-section object, not alter one."
         self._crossSection = deepcopy(cross_section)
 
@@ -224,8 +225,65 @@ class Component:
         if self.crossSection is not None:
             self.crossSection._convertUnits(uc)
 
-    def baseComponents(self):
+    def baseComponents(self) -> List:
+        """
+        Returns the base component (itself)
+        """
         return [self]
+
+    @staticmethod
+    def factory(
+        input_dict: Dict[str, Any],
+    ) -> Dict[str, Union[Component, SerialComponent, ParallelComponent]]:
+        """
+        Taking in a dictionary of component inputs, this factory method created each component.
+
+        Parameters
+        ----------
+        input_dict : Dict
+            Dictionary of component definitions
+        """
+
+        def buildComponent(parameters: Dict[str, Union[str, float, int]]) -> Component:
+            """
+            From the input parameters, this method initializes a component with said parameters
+
+            Parameters
+            ----------
+            parameters : Dict[str, Union[str, float, int]]
+                Dict of parameters used to define a component
+            """
+            return Component(**parameters)
+
+        def buildSerialComponent(
+            sub_components_definitions: Dict[str, Union[str, float, int]], order: List[str]
+        ) -> SerialComponent:
+            """
+            From the input parameters, this method initializes a serial component with said parameters
+
+            Parameters
+            ----------
+            parameters : Dict[str, Union[str, float, int]]
+                Dict of parameters used to define a component
+            order : List[str]
+                Ordering of sub-components within the serial component
+            """
+            sub_components = {name: buildComponent(sub_params) for name, sub_params in sub_components_definitions.items()}
+            return SerialComponent(sub_components, order)
+
+        components = {}
+        for comp_type, comp_inputs in input_dict.items():
+            assert comp_type in solid_component_list, f"Error: unknown component type {comp_type}"
+
+            for unique_name, parameters in comp_inputs.items():
+                if comp_type == "component":
+                    components[unique_name] = buildComponent(parameters)
+                elif comp_type == "serial_component":
+                    components[unique_name] = buildSerialComponent(parameters["component"], parameters["order"])
+                else:
+                    raise Exception(f"No 'build' method for component type '{comp_type}'")
+
+        return components
 
 
 solid_component_list["component"] = Component
@@ -239,7 +297,7 @@ class SerialComponent:
 
     Parameters
     ----------
-    components : Dict[str, SolidComponent]
+    components : Dict[str, Component]
         list of solid components used in the serial component
     order : List[str]
         order of the components in the full, serial component
@@ -332,14 +390,14 @@ class ParallelComponent:
 
     Parameters
     ----------
-    components : Dict[str, SolidComponent]
+    components : Dict[str, Union[Component, SerialComponent]]
         dict containing the solid component
     component_map: List[List[str]]
         a map showing where the component lie relative to each other in an XY-cross section
 
     Attributes
     ----------
-    components : Dict[str, SolidComponent]
+    components : Dict[str, Union[Component, SerialComponent]]
         dict of all the components used in the collection
     componentMap : List[List[str]]
         a map showing where the component lie relative to each other in an XY-cross section
@@ -351,7 +409,7 @@ class ParallelComponent:
 
     def __init__(
         self,
-        components: Dict[str, Component],
+        components: Dict[str, Union[Component, SerialComponent]],
         component_map: List[List[str]],
     ) -> None:
 
@@ -359,7 +417,7 @@ class ParallelComponent:
         self._componentMap = component_map
 
     @property
-    def components(self) -> Dict[str, Component]:
+    def components(self) -> Dict[str, Union[Component, SerialComponent]]:
         return self._components
 
     @property
@@ -416,14 +474,14 @@ class Core(ParallelComponent):
 
     Parameters
     ----------
-    components : Dict[str, SolidComponent]
+    components : Dict[str, Component]
         dict containing the solid component
     component_map: List[List[str]]
         a map showing where the component lie relative to each other in an XY-cross section
 
     Attributes
     ----------
-    components : Dict[str, SolidComponent]
+    components : Dict[str, Union[Component, SerialComponent]]
         dict of all the components used in the collection
     componentMap : List[List[str]]
         a map showing where the component lie relative to each other in an XY-cross section
@@ -439,7 +497,7 @@ class Core(ParallelComponent):
 
     def __init__(
         self,
-        components: Dict[str, Component],
+        components: Dict[str, Union[Component, SerialComponent]],
         component_map: List[List[str]],
     ) -> None:
 
@@ -467,10 +525,10 @@ class Core(ParallelComponent):
         return self._nAxialCells
 
     @nAxialCells.setter
-    def nAxialCells(self, n_axial_cells):
+    def nAxialCells(self, n_axial_cells: int) -> None:
         self._nAxialCells = n_axial_cells
 
-    def _componentTypeCheck(self, components) -> None:
+    def _componentTypeCheck(self, components: Dict[str, Union[Component, SerialComponent]]) -> None:
         """
         This method should check that all component types are acceptable.
 
@@ -479,7 +537,7 @@ class Core(ParallelComponent):
 
         Parameters
         ----------
-        components : Dict[str, SolidComponent]
+        components : Dict[str, Union[Component, SerialComponent]]
             dict containing the solid component
         """
         for comp_name, comp in components.items():
@@ -488,18 +546,20 @@ class Core(ParallelComponent):
                 "Incorrect base component type (" + comp_name + ")"
             )
 
-    def _geometryCheck(self, components, component_map) -> None:
+    def _geometryCheck(self, components: Union[Component, SerialComponent], component_map: List[List[str]]) -> None:
         """
         This method should check for internal consistency of the input components
         geometry
 
         Checks:
             1. heights of components are all the same
-            2. number of axial cells is the same
+            2. All base components are of 'rectangular' shape
+            3. Lengths and widths of component cross sections are all
+                the same
 
         Parameters
         ----------
-        components : Dict[str, SolidComponent]
+        components : Dict[str, Union[Component, SerialComponent]]
             dict containing the solid component
         component_map: List[List[str]]
             a map showing where the component lie relative to each other in an XY-cross section
@@ -507,11 +567,29 @@ class Core(ParallelComponent):
 
         # Reference values
         first_comp_name = component_map[0][0]
-        reference_height = deepcopy(components[first_comp_name].height)
+        first_component = deepcopy(components[first_comp_name])
+        first_component_shape = first_component.baseComponents()[0].crossSection.shape
+        assert isinstance(first_component_shape, Shapes.Rectangle)
+        reference_height = first_component.height
+        reference_length = first_component_shape.height
+        reference_width = first_component_shape.width
 
         # Make checks
+        def err(comp_name, comparison_type):
+            return (
+                f"Incorrect component {comparison_type} when compared to "
+                + f"the reference component, {first_comp_name}. Error occurred "
+                + f"in component '{comp_name}'"
+            )
+
         for comp_name, comp in components.items():
-            assert comp.height == reference_height, "Incorrect component height (" + comp_name + ", " + str(comp.height) + ")"
+            assert comp.height == reference_height, err(comp_name, "height (z)")
+            for base_comp in comp.baseComponents():
+                assert isinstance(
+                    base_comp.crossSection.shape, Shapes.Rectangle
+                ), "can only use rectangular or square cross sections in 'Core'"
+                assert base_comp.crossSection.shape.height == reference_length, err(comp_name, "length (x)")
+                assert base_comp.crossSection.shape.width == reference_width, err(comp_name, "width (y)")
 
         self.coreHeight = reference_height  # Set core height to this reference height
 
@@ -530,3 +608,6 @@ class Core(ParallelComponent):
 
 
 solid_component_list["core"] = Core
+
+# Type-hint for a general solid component
+SolidComponent = Union[Component, SerialComponent, ParallelComponent]

@@ -1,9 +1,10 @@
-from typing import Dict, List, Tuple, Generator
+from typing import Dict, List, Tuple, Generator, Any
 from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
+from flowforge.input.SolidComponents import SolidComponent
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
@@ -104,6 +105,12 @@ class System:
         of component pairs, with the first element in the pair being the 'from' component and
         the second element the 'to' component. The list is ordered from the 'starting segment'
         to the 'ending segment'
+    solidComponents : List[SolidComponent]]
+        The collection of solid components which comprise the solid system
+    solidConnectivity : List[Tuple[SolidComponent, SolidComponent]]
+        Connectivity map for solid components, expressing pairs of components in a (previous-
+        component, current-component) form. This list is used in meshing to build interfaces
+        between components and the components that came before it
     inBoundComp : Component
         The system inlet boundary component
     outBoundComp : Component
@@ -118,10 +125,18 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self, components: Dict[str, Component], sysdict: Dict, unitdict: Dict[str, str]) -> None:
+    def __init__(
+        self,
+        components: Dict[str, Component],
+        sysdict: Dict,
+        unitdict: Dict[str, str],
+        solid_components: Dict[str, SolidComponent] = None,
+    ) -> None:
         self._components = []
+        self._solid_components = []
         self._output_parsers = {}
         self._connectivity = []
+        self._solid_connectivity = []
         self._bodyforces = []
         self._wallfunctions = []
         self._MMBC = None
@@ -131,12 +146,19 @@ class System:
         self._gas = None
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
-        self._isLoop = False  # Boolean defining if system is a loop or segement
+        self._isLoop = False  # Boolean defining if system is a loop or segment
+
+        system_types = ["simple_loop", "segment", "solid_system"]
+        assert (
+            sum(k in sysdict for k in system_types) == 1
+        ), f"Expected exactly one of {system_types}, found {[k for k in system_types if k in sysdict]}"
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
         elif "segment" in sysdict:
             self._setupSegment(components, **sysdict["segment"])
+        elif "solid_system" in sysdict:
+            self._setupSolidSystem(solid_components, **sysdict["solid_system"])
         # TODO add additional types of systems that can be set up
 
         if "parsers" in sysdict:
@@ -269,6 +291,44 @@ class System:
         # get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
 
+    def _setupSolidSystem(
+        self, solid_components: Dict[str, SolidComponent], order: List[str], boundary_conditions: Dict[str, Any]
+    ):
+        """
+        Private method for setting up a solid system
+
+        Given a set of components and their respective ordering, this method builds a list
+        of the components in the correct order, as well as defines the connectivity of each
+        component.
+
+        Parameters
+        ----------
+        solid_components : Dict[str, SolidComponent]
+            Set of initialized components, where the key is the components unique name
+        order : List[Dict]
+            Ordering of the components, where each element is a dict containing information
+            on the specific component
+        boundary_conditions : Dict
+            Dictionary of boundary conditions for the system
+        """
+
+        for i, entry in enumerate(order):
+            self._solid_components.append(deepcopy(solid_components[entry["component"]]))
+            self._bodyforces.append(deepcopy(entry.get("BodyForces", [])))
+            self._wallfunctions.append(deepcopy(entry.get("WallFunctions", [])))
+
+            current_component = self._solid_components[i]
+            previous_component = None if i == 0 else self._solid_components[i - 1]
+
+            self._solid_connectivity.append((previous_component, current_component))
+
+        self._setupSolidBoundaryConditions(boundary_conditions)
+
+        # TODO:
+        #   1) Add solid boundary conditions
+        #   2) Add solid body forces
+        #   3) Add solid wall functions
+
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
 
@@ -310,6 +370,9 @@ class System:
             and ("void" not in boundary_conditions)
         ):
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+
+    def _setupSolidBoundaryConditions(self, boundary_conditions):
+        pass
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -366,6 +429,14 @@ class System:
     @property
     def connectivity(self) -> List[Tuple[Component, Component]]:
         return self._connectivity
+
+    @property
+    def solidComponents(self):
+        return self._solid_components
+
+    @property
+    def solidConnectivity(self):
+        return self._solid_connectivity
 
     @property
     def output_parsers(self) -> Dict[str, OutputParser]:
