@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Union, Any
 from copy import deepcopy
 
@@ -6,7 +7,7 @@ from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.Components import FluidCrossSection
 from flowforge.input import Shapes
 
-# pragma pylint: disable=protected-access, undefined-variable
+# pragma pylint: disable=protected-access
 
 """
 The components dictionary provides a key, value pair of each type of component.
@@ -233,7 +234,7 @@ class Component:
     @staticmethod
     def factory(
         input_dict: Dict[str, Any],
-    ) -> Dict[str, Union[Component, SerialComponent, ParallelComponent]]:  # pyright: ignore[reportUndefinedVariable]
+    ) -> Dict[str, Union[Component, SerialComponent, ParallelComponent]]:
         """
         Taking in a dictionary of component inputs, this factory method created each component.
 
