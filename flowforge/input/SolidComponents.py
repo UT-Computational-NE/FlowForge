@@ -6,7 +6,7 @@ from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.Components import FluidCrossSection
 from flowforge.input import Shapes
 
-# pragma pylint: disable=protected-access
+# pragma pylint: disable=protected-access, undefined-variable
 
 """
 The components dictionary provides a key, value pair of each type of component.
@@ -232,8 +232,8 @@ class Component:
 
     @staticmethod
     def factory(
-            input_dict: Dict[str, Any]
-            ) -> Dict[str, Union[Component, SerialComponent, ParallelComponent]]: # pyright: ignore[reportUndefinedVariable]
+        input_dict: Dict[str, Any],
+    ) -> Dict[str, Union[Component, SerialComponent, ParallelComponent]]:  # pyright: ignore[reportUndefinedVariable]
         """
         Taking in a dictionary of component inputs, this factory method created each component.
 
@@ -254,7 +254,9 @@ class Component:
             """
             return Component(**parameters)
 
-        def buildSerialComponent(sub_components_definitions: Dict[str, Union[str, float, int]], order: List[str]) -> SerialComponent:
+        def buildSerialComponent(
+            sub_components_definitions: Dict[str, Union[str, float, int]], order: List[str]
+        ) -> SerialComponent:
             """
             From the input parameters, this method initializes a serial component with said parameters
 
@@ -265,8 +267,7 @@ class Component:
             order : List[str]
                 Ordering of sub-components within the serial component
             """
-            sub_components = {name: buildComponent(sub_params)
-                              for name, sub_params in sub_components_definitions.items()}
+            sub_components = {name: buildComponent(sub_params) for name, sub_params in sub_components_definitions.items()}
             return SerialComponent(sub_components, order)
 
         components = {}
@@ -281,8 +282,8 @@ class Component:
                 else:
                     raise Exception(f"No 'build' method for component type '{comp_type}'")
 
-
         return components
+
 
 solid_component_list["component"] = Component
 
@@ -526,9 +527,7 @@ class Core(ParallelComponent):
     def nAxialCells(self, n_axial_cells: int) -> None:
         self._nAxialCells = n_axial_cells
 
-    def _componentTypeCheck(self,
-                            components: Dict[str, Union[Component, SerialComponent]]
-                            ) -> None:
+    def _componentTypeCheck(self, components: Dict[str, Union[Component, SerialComponent]]) -> None:
         """
         This method should check that all component types are acceptable.
 
@@ -546,10 +545,7 @@ class Core(ParallelComponent):
                 "Incorrect base component type (" + comp_name + ")"
             )
 
-    def _geometryCheck(self,
-                       components: Union[Component, SerialComponent],
-                       component_map: List[List[str]]
-                       ) -> None:
+    def _geometryCheck(self, components: Union[Component, SerialComponent], component_map: List[List[str]]) -> None:
         """
         This method should check for internal consistency of the input components
         geometry
@@ -580,20 +576,19 @@ class Core(ParallelComponent):
         # Make checks
         def err(comp_name, comparison_type):
             return (
-                f"Incorrect component {comparison_type} when compared to " +
-                f"the reference component, {first_comp_name}. Error occurred " +
-                f"in component '{comp_name}'"
+                f"Incorrect component {comparison_type} when compared to "
+                + f"the reference component, {first_comp_name}. Error occurred "
+                + f"in component '{comp_name}'"
             )
 
         for comp_name, comp in components.items():
             assert comp.height == reference_height, err(comp_name, "height (z)")
             for base_comp in comp.baseComponents():
-                assert isinstance(base_comp.crossSection.shape, Shapes.Rectangle), (
-                    "can only use rectangular or square cross sections in 'Core'"
-                )
+                assert isinstance(
+                    base_comp.crossSection.shape, Shapes.Rectangle
+                ), "can only use rectangular or square cross sections in 'Core'"
                 assert base_comp.crossSection.shape.height == reference_length, err(comp_name, "length (x)")
                 assert base_comp.crossSection.shape.width == reference_width, err(comp_name, "width (y)")
-
 
         self.coreHeight = reference_height  # Set core height to this reference height
 

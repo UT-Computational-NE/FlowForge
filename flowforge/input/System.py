@@ -125,11 +125,13 @@ class System:
         The output parsers with which to parse output from various models and map to the System
     """
 
-    def __init__(self,
-                 components: Dict[str, Component],
-                 sysdict: Dict,
-                 unitdict: Dict[str, str],
-                 solid_components: Dict[str, SolidComponent]=None) -> None:
+    def __init__(
+        self,
+        components: Dict[str, Component],
+        sysdict: Dict,
+        unitdict: Dict[str, str],
+        solid_components: Dict[str, SolidComponent] = None,
+    ) -> None:
         self._components = []
         self._solid_components = []
         self._output_parsers = {}
@@ -147,8 +149,9 @@ class System:
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         system_types = ["simple_loop", "segment", "solid_system"]
-        assert  sum(k in sysdict for k in system_types) == 1, \
-            f"Expected exactly one of {system_types}, found {[k for k in system_types if k in d]}"
+        assert (
+            sum(k in sysdict for k in system_types) == 1
+        ), f"Expected exactly one of {system_types}, found {[k for k in system_types if k in sysdict]}"
 
         if "simple_loop" in sysdict:
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
@@ -288,10 +291,9 @@ class System:
         # get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
 
-    def _setupSolidSystem(self,
-                          solid_components: Dict[str, SolidComponent],
-                          order: List[str],
-                          boundary_conditions: Dict[str, Any]):
+    def _setupSolidSystem(
+        self, solid_components: Dict[str, SolidComponent], order: List[str], boundary_conditions: Dict[str, Any]
+    ):
         """
         Private method for setting up a solid system
 
