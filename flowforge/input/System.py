@@ -1,9 +1,10 @@
-from typing import Dict, List, Tuple, Generator
+from typing import Dict, List, Tuple, Generator, Any
 from copy import deepcopy
 import numpy as np
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
+from flowforge.input.SolidComponents import SolidComponent
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
@@ -107,6 +108,9 @@ class System:
     solidComponents : List[SolidComponent]]
         The collection of solid components which comprise the solid system
     solidConnectivity : List[Tuple[SolidComponent, SolidComponent]]
+        Connectivity map for solid components, expressing pairs of components in a (previous-
+        component, current-component) form. This list is used in meshing to build interfaces
+        between components and the components that came before it
     inBoundComp : Component
         The system inlet boundary component
     outBoundComp : Component
@@ -125,7 +129,7 @@ class System:
                  components: Dict[str, Component],
                  sysdict: Dict,
                  unitdict: Dict[str, str],
-                 solid_components=None) -> None:
+                 solid_components: Dict[str, SolidComponent]=None) -> None:
         self._components = []
         self._solid_components = []
         self._output_parsers = {}
@@ -140,19 +144,17 @@ class System:
         self._gas = None
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
-        self._isLoop = False  # Boolean defining if system is a loop or segement
+        self._isLoop = False  # Boolean defining if system is a loop or segment
+
+        system_types = ["simple_loop", "segment", "solid_system"]
+        assert  sum(k in sysdict for k in system_types) == 1, \
+            f"Expected exactly one of {system_types}, found {[k for k in system_types if k in d]}"
 
         if "simple_loop" in sysdict:
-            assert "segment" not in sysdict
-            assert "solid_system" not in sysdict
             self._setupSimpleLoop(components, **sysdict["simple_loop"])
         elif "segment" in sysdict:
-            assert "simple_loop" not in sysdict
-            assert "solid_system" not in sysdict
             self._setupSegment(components, **sysdict["segment"])
         elif "solid_system" in sysdict:
-            assert "simple_loop" not in sysdict
-            assert "segment" not in sysdict
             self._setupSolidSystem(solid_components, **sysdict["solid_system"])
         # TODO add additional types of systems that can be set up
 
@@ -286,15 +288,16 @@ class System:
         # get the boundary conditions
         self._setupBoundaryConditions(boundary_conditions)
 
-    def _setupSolidSystem(self, solid_components, order, boundary_conditions):
+    def _setupSolidSystem(self,
+                          solid_components: Dict[str, SolidComponent],
+                          order: List[str],
+                          boundary_conditions: Dict[str, Any]):
         """
         Private method for setting up a solid system
 
         Given a set of components and their respective ordering, this method builds a list
         of the components in the correct order, as well as defines the connectivity of each
         component.
-
-        NOTE: SolidComponent := Union[Component, SerialComponent, ParallelComponent]
 
         Parameters
         ----------
@@ -307,24 +310,13 @@ class System:
             Dictionary of boundary conditions for the system
         """
 
-        assert solid_components is not None
-
         for i, entry in enumerate(order):
             self._solid_components.append(deepcopy(solid_components[entry["component"]]))
-            bfs_i = []
-            wfs_i = []
-            if "BodyForces" in entry:
-                bfs_i = entry["BodyForces"]
-            if "WallFunctions" in entry:
-                wfs_i = entry["WallFunctions"]
-            self._bodyforces.append(deepcopy(bfs_i))
-            self._wallfunctions.append(deepcopy(wfs_i))
+            self._bodyforces.append(deepcopy(entry.get("BodyForces", [])))
+            self._wallfunctions.append(deepcopy(entry.get("WallFunctions", [])))
 
             current_component = self._solid_components[i]
-            if i == 0:
-                previous_component = None
-            else:
-                previous_component = self._solid_components[i - 1]
+            previous_component = None if i == 0 else self._solid_components[i - 1]
 
             self._solid_connectivity.append((previous_component, current_component))
 
