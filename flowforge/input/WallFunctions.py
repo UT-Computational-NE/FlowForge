@@ -5,86 +5,78 @@ from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
 
 
-class BodyForces:
+class WallFunctions:
     """
-    Container class for all input body forces
     """
+    def __init__(self, **wall_functions):
 
-    def __init__(self, **body_forces):
+        wf_objects = {"HeatFluxWF": HeatFluxWF}
 
-        bf_objects = {"InternalHeatGenerationBF": InternalHeatGenerationBF}
-
-        self._bfs = {}
-        for bf_name, bf in body_forces.items():
-            bf_obj = bf_objects[bf["type"]]
-            input_value = EquationParser(str(bf["value"]))
-            self._bfs[bf_name] = bf_obj(bf["variable"], input_value)
+        self._wfs = {}
+        for wf_name, wf in wall_functions.items():
+            wf_obj = wf_objects[wf["type"]]
+            input_value = EquationParser(str(wf["value"]))
+            self._wfs[wf_name] = wf_obj(wf["surface"], wf["variable"], input_value)
 
     @property
-    def body_forces(self):
-        return self._bfs
+    def wall_functions(self):
+        return self._wfs
 
-    @body_forces.setter
-    def body_forces(self, body_forces: dict):
-        self._bfs = body_forces
+    @wall_functions.setter
+    def wall_functions(self, wall_functions: dict):
+        self._wfs = wall_functions
 
     def _convertUnits(self, uc: UnitConverter):
-        converted_bfs = {}
-        for bf_name, bf in self.body_forces.items():
-            bf.convertUnits(uc)
-            converted_bfs[bf_name] = deepcopy(bf)
-        self.body_forces = converted_bfs
+        converted_wfs = {}
+        for wf_name, wf in self.wall_functions.items():
+            wf.convertUnits(uc)
+            converted_wfs[wf_name] = deepcopy(wf)
+        self.wall_functions = converted_wfs
 
 
-class GeneralBF(abc.ABC):
+class GeneralWF(abc.ABC):
     """
-    General abstract class for body forces
-
-    Parameters
-    ----------
-
-    Attributes
-    ----------
-
     """
 
-    def __init__(self,
-                 variable: str,
-                 value: EquationParser) -> None:
-
+    def __init__(self, surface: str, variable: str, value: EquationParser):
+        self._surface_name = surface
         self._variable_name = variable
         self._value = value
         self._associated_cells = []
 
-        self._body_force_type = None
+        self._wall_function_type = None
         if "solid" in variable:
             self._simulation_type = "Solid"
         else:
             self._simulation_type = "Fluid"
 
     @property
-    def body_force_type(self):
-        return self._body_force_type
+    def wall_function_type(self):
+        return self._wall_function_type
 
-    @body_force_type.setter
-    def body_force_type(self, body_force_type):
-        self._body_force_type = body_force_type
+    @wall_function_type.setter
+    def wall_function_type(self, wall_function_type):
+        self._wall_function_type = wall_function_type
+
+    @property
+    def surface_name(self):
+        return self._surface_name
 
     @property
     def simulation_type(self):
         return self._simulation_type
 
     @property
-    def variable_name(self):
-        return self._variable_name
-
-    @property
-    def body_force_value(self):
+    def wall_function_value(self):
         return self._value
 
-    @body_force_value.setter
-    def body_force_value(self, value):
+    @wall_function_value.setter
+    def wall_function_value(self, value):
         self._value = value
+
+    @property
+    def variable_name(self):
+        return self._variable_name
 
     @property
     def associated_cells(self):
@@ -99,7 +91,7 @@ class GeneralBF(abc.ABC):
 
     def convertUnits(self, uc: UnitConverter) -> None:
         scale_factor, shift_factor = self._get_variable_conversion(uc)
-        self.body_force_value.performUnitConversion(scale_factor, shift_factor)
+        self.wall_function_value.performUnitConversion(scale_factor, shift_factor)
 
     def _get_variable_conversion(self, uc: UnitConverter):
         scale_factor, shift_factor = 1, 0
@@ -122,20 +114,10 @@ class GeneralBF(abc.ABC):
         return scale_factor, shift_factor
 
 
-class InternalHeatGenerationBF(GeneralBF):
+class HeatFluxWF(GeneralWF):
+    """
     """
 
-    """
-
-    def __init__(self, variable, power_value):
-        assert variable in self.valid_variables
-        super().__init__(variable, power_value)
-        self.body_force_type = "InternalHeatGenerationBF"
-
-    @property
-    def valid_variables(self):
-        return (
-            "power",
-            "temperature", "solid_temperature",
-            "enthalpy", "solid_enthalpy"
-        )
+    def __init__(self, surface, variable, heat_flux):
+        super().__init__(surface, variable, heat_flux)
+        self.wall_function_type = "HeatFluxWF"
