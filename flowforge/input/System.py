@@ -7,6 +7,8 @@ from flowforge.input.Components import Component, Nozzle, Core
 from flowforge.input.SolidComponents import SolidComponent
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
+from flowforge.input.BodyForces import BodyForces
+from flowforge.input.WallFunctions import WallFunctions
 from flowforge.parsers.OutputParser import OutputParser
 
 
@@ -131,6 +133,7 @@ class System:
         sysdict: Dict,
         unitdict: Dict[str, str],
         solid_components: Dict[str, SolidComponent] = None,
+        solid_controllers: Dict[str, Dict[str, dict]] = None
     ) -> None:
         self._components = []
         self._solid_components = []
@@ -146,6 +149,8 @@ class System:
         self._gas = None
 
         self._BoundaryConditions = None  # ** Boundary Conditions **
+        self._BodyForces = None
+        self._WallFunctions = None
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         system_types = ["simple_loop", "segment", "solid_system"]
@@ -158,7 +163,7 @@ class System:
         elif "segment" in sysdict:
             self._setupSegment(components, **sysdict["segment"])
         elif "solid_system" in sysdict:
-            self._setupSolidSystem(solid_components, **sysdict["solid_system"])
+            self._setupSolidSystem(solid_components, solid_controllers, **sysdict["solid_system"])
         # TODO add additional types of systems that can be set up
 
         if "parsers" in sysdict:
@@ -292,7 +297,11 @@ class System:
         self._setupBoundaryConditions(boundary_conditions)
 
     def _setupSolidSystem(
-        self, solid_components: Dict[str, SolidComponent], order: List[str], boundary_conditions: Dict[str, Any]
+        self,
+        solid_components: Dict[str, SolidComponent],
+        solid_controllers: Dict[str, Dict[str, dict]],
+        order: List[str],
+        boundary_conditions: Dict[str, Any]
     ):
         """
         Private method for setting up a solid system
@@ -322,12 +331,9 @@ class System:
 
             self._solid_connectivity.append((previous_component, current_component))
 
-        self._setupSolidBoundaryConditions(boundary_conditions)
-
-        # TODO:
-        #   1) Add solid boundary conditions
-        #   2) Add solid body forces
-        #   3) Add solid wall functions
+        self._setupSolidPhysics(boundary_conditions,
+                                solid_controllers.get("bodyForce", {}),
+                                solid_controllers.get("wallFunction", {}))
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
@@ -339,6 +345,18 @@ class System:
         """
 
         raise NotImplementedError("To Be Implemented")
+
+    def _setupSolidPhysics(self,
+                           boundary_conditions: dict,
+                           body_forces: dict,
+                           wall_functions: dict):
+        """
+        """
+
+        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+        self._BodyForces = BodyForces(**body_forces)
+        self._WallFunctions = WallFunctions(**wall_functions)
+
 
     def _setupBoundaryConditions(self, boundary_conditions):
         """Private method for setting up boundary conditions for the system.
