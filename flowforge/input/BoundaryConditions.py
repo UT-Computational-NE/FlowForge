@@ -210,19 +210,23 @@ class BoundaryConditions:
 
     boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "DirichletBC", "surface": "surface_name", "variable": "variable_name",  "value", float},
+                {"boundary_type": "BC_type",        "surface": "surface_name", "variable": "variable_name",     "value", float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value", 25.0},
+                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "mass_flow_rate",    "value", 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value", 1e5},
+                {"boundary_type": "DirichletBC",    "surface": "outlet",       "variable": "pressure",          "value", 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value", 700}
+                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "temperature",       "value", 700},
+        "outer_solid_temperature"    :
+                {"boundary_type": "FixedSurfaceBC", "surface": "outer",        "variable": "solid_temperature", "value", 700},
     }
     """
 
     def __init__(self, **boundary_conditions: dict):
 
-        bc_objects = {"DirichletBC": DirichletBC}
+        bc_objects = {"DirichletBC": DirichletBC,
+                      "RobinBC": RobinBC,
+                      "FixedSurfaceBC": FixedSurfaceBC}
 
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
@@ -266,7 +270,11 @@ class GeneralBC(abc.ABC):
         self._variable_name = variable
         self._value = EquationParser(str(value))
 
-        self.bc_type = "None"
+        self._boundary_type = "None"
+        if "solid" in variable:
+            self._simulation_type = "Solid"
+        else:
+            self._simulation_type = "Fluid"
 
     @property
     def boundary_type(self):
@@ -275,6 +283,10 @@ class GeneralBC(abc.ABC):
     @boundary_type.setter
     def boundary_type(self, bc_type):
         self.bc_type = bc_type
+
+    @property
+    def simulation_type(self):
+        return self._simulation_type
 
     @property
     def boundary_value(self):
@@ -302,9 +314,9 @@ class GeneralBC(abc.ABC):
             scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
             scale_factor = uc.pressureConversion
-        elif self.variable_name == "temperature":
+        elif self.variable_name == "temperature" or self.variable_name == "solid_temperature":
             scale_factor, shift_factor = uc.temperatureConversionFactors
-        elif self.variable_name == "enthalpy":
+        elif self.variable_name == "enthalpy" or self.variable_name == "solid_enthalpy":
             scale_factor = uc.enthalpyConversion
         elif self.variable_name == "void_fraction":
             pass  # void fraction is non-dimensional
@@ -324,4 +336,14 @@ class DirichletBC(GeneralBC):
 
     def __init__(self, surface: str, variable: str, value: float):
         super().__init__(surface, variable, value)
-        self.boundary_type = "DirichletBC"
+        self._boundary_type = "DirichletBC"
+
+class RobinBC(GeneralBC):
+    def __init__(self, surface: str, variable: str, value: float):
+        super().__init__(surface, variable, value)
+        self._boundary_type = "RobinBC"
+
+class FixedSurfaceBC(RobinBC):
+    def __init__(self, surface: str, variable: str, value: float):
+        super().__init__(surface, variable, value)
+        self._boundary_type = "FixedSurfaceBC"
