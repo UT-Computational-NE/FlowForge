@@ -36,6 +36,7 @@ def test_BodyForces():
     }
 
     BF = BodyForces(**body_forces)
+
     for bf_name, bf in BF.body_forces.items():
         assert bf.body_force_type == body_forces[bf_name]["type"]
         assert bf.variable_name == body_forces[bf_name]["variable"]
