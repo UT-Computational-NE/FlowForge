@@ -210,15 +210,15 @@ class BoundaryConditions:
 
     boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "BC_type",        "surface": "surface_name", "variable": "variable_name",     "value", float},
+                {"boundary_type": "BC_type",        "surface": "surface_name", "variable": "variable_name",     "value": float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "mass_flow_rate",    "value", 25.0},
+                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "mass_flow_rate",    "value": 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC",    "surface": "outlet",       "variable": "pressure",          "value", 1e5},
+                {"boundary_type": "DirichletBC",    "surface": "outlet",       "variable": "pressure",          "value": 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "temperature",       "value", 700},
+                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "temperature",       "value": 700},
         "outer_solid_temperature"    :
-                {"boundary_type": "FixedSurfaceBC", "surface": "outer",        "variable": "solid_temperature", "value", 700},
+                {"boundary_type": "FixedSurfaceBC", "surface": "outer",        "variable": "solid_temperature", "value": 700},
     }
     """
 
@@ -270,7 +270,7 @@ class GeneralBC(abc.ABC):
         self._variable_name = variable
         self._value = EquationParser(str(value))
 
-        self._boundary_type = "None"
+        self._boundary_type = None
         if "solid" in variable:
             self._simulation_type = "Solid"
         else:
@@ -278,11 +278,11 @@ class GeneralBC(abc.ABC):
 
     @property
     def boundary_type(self):
-        return self.bc_type
+        return self._boundary_type
 
     @boundary_type.setter
-    def boundary_type(self, bc_type):
-        self.bc_type = bc_type
+    def boundary_type(self, boundary_type):
+        self._boundary_type = boundary_type
 
     @property
     def simulation_type(self):
