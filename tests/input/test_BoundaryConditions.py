@@ -1,5 +1,4 @@
 from flowforge.input.BoundaryConditions import *
-from flowforge.parsers.EquationParser import EquationParser
 
 
 def test_GeneralBC():
