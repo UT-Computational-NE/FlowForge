@@ -31,7 +31,8 @@ def test_InternalHeatGenerationBF():
 def test_BodyForces():
 
     body_forces = {
-        "temp_bf_1" : {"type": "InternalHeatGenerationBF", "variable": "temperature", "value": 700}
+        "temp_bf_1" : {"type": "InternalHeatGenerationBF", "variable": "temperature", "value": 700},
+        "temp_bf_2" : {"type": "InternalHeatGenerationBF", "variable": "enthalpy", "value": 1e6}
     }
 
     BF = BodyForces(**body_forces)
