@@ -218,7 +218,7 @@ class BoundaryConditions:
         "inlet_temperature"    :
                 {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "temperature",       "value": 700},
         "outer_solid_temperature"    :
-                {"boundary_type": "FixedSurfaceBC", "surface": "outer",        "variable": "solid_temperature", "value": 700},
+                {"boundary_type": "NeumannBC",      "surface": "outer",        "variable": "solid_enthalpy",    "value": 1e6},
     }
     """
 
@@ -232,7 +232,10 @@ class BoundaryConditions:
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
-            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
+            if not isinstance(bc, RobinBC):
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
+            else:
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]), str(bc["flux"]))
 
     @property
     def boundary_conditions(self):
@@ -347,6 +350,17 @@ class NeumannBC(GeneralBC):
         self._boundary_type = "NeumannBC"
 
 class RobinBC(GeneralBC):
-    def __init__(self, surface: str, variable: str, value: str):
+    def __init__(self, surface: str, variable: str, value: str, flux: str):
         super().__init__(surface, variable, value)
         self._boundary_type = "RobinBC"
+
+        self._flux = EquationParser(flux)
+
+    @property
+    def boundary_flux(self):
+        return self._flux
+
+    def convertUnits(self, uc: UnitConverter) -> None:
+        scale_factor, shift_factor = self._get_variable_conversion(uc)
+        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
+        self.boundary_flux.performUnitConversion(scale_factor, shift_factor)
