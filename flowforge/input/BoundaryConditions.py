@@ -225,14 +225,14 @@ class BoundaryConditions:
     def __init__(self, **boundary_conditions: dict):
 
         bc_objects = {"DirichletBC": DirichletBC,
-                      "RobinBC": RobinBC,
-                      "FixedSurfaceBC": FixedSurfaceBC}
+                      "NeumannBC": NeumannBC,
+                      "RobinBC": RobinBC}
 
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
-            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
+            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
 
     @property
     def boundary_conditions(self):
@@ -265,10 +265,10 @@ class GeneralBC(abc.ABC):
         - _value: float
     """
 
-    def __init__(self, surface: str, variable: str, value):
+    def __init__(self, surface: str, variable: str, value: str):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = EquationParser(str(value))
+        self._value = EquationParser(value)
 
         self._boundary_type = None
         if "solid" in variable:
@@ -334,16 +334,19 @@ class DirichletBC(GeneralBC):
     Sub-class for Dirichlet boundary conditions
     """
 
-    def __init__(self, surface: str, variable: str, value: float):
+    def __init__(self, surface: str, variable: str, value: str):
         super().__init__(surface, variable, value)
         self._boundary_type = "DirichletBC"
 
+class NeumannBC(GeneralBC):
+    """
+    Sub-class for Neumann boundary conditions
+    """
+    def __init__(self, surface: str, variable: str, value: str):
+        super().__init__(surface, variable, value)
+        self._boundary_type = "NeumannBC"
+
 class RobinBC(GeneralBC):
-    def __init__(self, surface: str, variable: str, value: float):
+    def __init__(self, surface: str, variable: str, value: str):
         super().__init__(surface, variable, value)
         self._boundary_type = "RobinBC"
-
-class FixedSurfaceBC(RobinBC):
-    def __init__(self, surface: str, variable: str, value: float):
-        super().__init__(surface, variable, value)
-        self._boundary_type = "FixedSurfaceBC"
