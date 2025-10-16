@@ -314,6 +314,8 @@ class System:
         ----------
         solid_components : Dict[str, SolidComponent]
             Set of initialized components, where the key is the components unique name
+        solid_controllers : Dict
+            Dictionary of controllers for the system
         order : List[Dict]
             Ordering of the components, where each element is a dict containing information
             on the specific component
@@ -351,6 +353,15 @@ class System:
                            body_forces: dict,
                            wall_functions: dict):
         """
+        Sets up the physics objects for the solid boundary conditions, body forces, and
+        wall function.
+
+        boundary_conditions : Dict
+            Dictionary of boundary conditions for the system
+        body_forces : Dict
+            Dictionary of body forces for the system
+        wall_functions : Dict
+            Dictionary of wall functions for the system
         """
 
         self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
@@ -388,9 +399,6 @@ class System:
             and ("void" not in boundary_conditions)
         ):
             self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
-
-    def _setupSolidBoundaryConditions(self, boundary_conditions):
-        pass
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system

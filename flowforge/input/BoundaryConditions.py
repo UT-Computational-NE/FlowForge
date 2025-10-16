@@ -262,10 +262,14 @@ class GeneralBC(abc.ABC):
         - _convertUnits
         - _get_variable_conversion
 
-    Attributes:
-        - _surface_name: str
-        - _variable_name : str
-        - _value: float
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
     """
 
     def __init__(self, surface: str, variable: str, value: str):
@@ -335,6 +339,15 @@ class GeneralBC(abc.ABC):
 class DirichletBC(GeneralBC):
     """
     Sub-class for Dirichlet boundary conditions
+
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
     """
 
     def __init__(self, surface: str, variable: str, value: str):
@@ -344,23 +357,17 @@ class DirichletBC(GeneralBC):
 class NeumannBC(GeneralBC):
     """
     Sub-class for Neumann boundary conditions
+
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
     """
+
     def __init__(self, surface: str, variable: str, value: str):
         super().__init__(surface, variable, value)
         self._boundary_type = "NeumannBC"
-
-class RobinBC(GeneralBC):
-    def __init__(self, surface: str, variable: str, value: str, flux: str):
-        super().__init__(surface, variable, value)
-        self._boundary_type = "RobinBC"
-
-        self._flux = EquationParser(flux)
-
-    @property
-    def boundary_flux(self):
-        return self._flux
-
-    def convertUnits(self, uc: UnitConverter) -> None:
-        scale_factor, shift_factor = self._get_variable_conversion(uc)
-        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
-        self.boundary_flux.performUnitConversion(scale_factor, shift_factor)
