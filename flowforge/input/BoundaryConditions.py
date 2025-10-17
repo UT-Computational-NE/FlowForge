@@ -225,17 +225,12 @@ class BoundaryConditions:
     def __init__(self, **boundary_conditions: dict):
 
         bc_objects = {"DirichletBC": DirichletBC,
-                      "NeumannBC": NeumannBC,
-                      "RobinBC": RobinBC}
-
+                      "NeumannBC": NeumannBC}
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
-            if not isinstance(bc, RobinBC):
-                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
-            else:
-                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]), str(bc["flux"]))
+            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
 
     @property
     def boundary_conditions(self):
