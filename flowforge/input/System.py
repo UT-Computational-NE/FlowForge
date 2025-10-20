@@ -493,6 +493,14 @@ class System:
         return self._BoundaryConditions
 
     @property
+    def BodyForces(self) -> BodyForces:
+        return self._BodyForces
+
+    @property
+    def WallFunctions(self) -> WallFunctions:
+        return self._WallFunctions
+
+    @property
     def isLoop(self) -> bool:
         return self._isLoop
 

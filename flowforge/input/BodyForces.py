@@ -71,7 +71,7 @@ class GeneralBF(abc.ABC):
         self._body_force_type = body_force_type
 
     @property
-    def simulation_type(self):
+    def simulation(self):
         return self._simulation_type
 
     @property

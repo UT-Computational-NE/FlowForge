@@ -63,7 +63,7 @@ class GeneralWF(abc.ABC):
         return self._surface_name
 
     @property
-    def simulation_type(self):
+    def simulation(self):
         return self._simulation_type
 
     @property
