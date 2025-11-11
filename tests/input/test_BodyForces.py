@@ -6,7 +6,7 @@ def test_GeneralBF():
     bf_solid = GeneralBF("solid_temperature", EquationParser("700"))
 
     assert bf_solid.body_force_type is None
-    assert bf_solid.simulation_type == "Solid"
+    assert bf_solid.simulation == "Solid"
     assert bf_solid.body_force_value.evaluate() == 700
     assert bf_solid.variable_name == "solid_temperature"
 
@@ -42,9 +42,9 @@ def test_BodyForces():
         assert bf.variable_name == body_forces[bf_name]["variable"]
         assert bf.body_force_value.evaluate() == body_forces[bf_name]["value"]
         if "solid" in bf_name:
-            assert bf.simulation_type == "Solid"
+            assert bf.simulation == "Solid"
         else:
-            assert bf.simulation_type == "Fluid"
+            assert bf.simulation == "Fluid"
 
     return
 
