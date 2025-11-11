@@ -68,7 +68,8 @@ disable = [
     "too-many-instance-attributes",
     "too-many-positional-arguments",
     "unspecified-encoding",
-    "unused-variable"
+    "unused-variable",
+    "too-many-public-methods"
 ]
 
 [tool.pylint.'format']
