@@ -132,8 +132,8 @@ class System:
         components: Dict[str, Component],
         sysdict: Dict,
         unitdict: Dict[str, str],
-        solid_components: Dict[str, SolidComponent] = None,
-        solid_controllers: Dict[str, Dict[str, dict]] = None
+        solid_components: Dict[str, SolidComponent] = {},
+        solid_controllers: Dict[str, Dict[str, dict]] = {}
     ) -> None:
         self._components = []
         self._solid_components = []
@@ -332,6 +332,7 @@ class System:
             previous_component = None if i == 0 else self._solid_components[i - 1]
 
             self._solid_connectivity.append((previous_component, current_component))
+
 
         self._setupSolidPhysics(boundary_conditions,
                                 solid_controllers.get("bodyForce", {}),
