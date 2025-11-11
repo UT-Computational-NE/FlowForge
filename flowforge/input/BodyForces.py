@@ -1,5 +1,5 @@
 import abc
-from typing import List
+from typing import List, Tuple
 from copy import deepcopy
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
@@ -8,6 +8,16 @@ from flowforge.parsers.EquationParser import EquationParser
 class BodyForces:
     """
     Container class for all input body forces
+
+    Parameters
+    ----------
+    body_forces : dict[str, dict]
+        Dict of body force definitions
+
+    Attributes
+    ----------
+    body_forces : List[GeneralBF]
+        List of built body force objects
     """
 
     def __init__(self, **body_forces):
@@ -42,10 +52,23 @@ class GeneralBF(abc.ABC):
 
     Parameters
     ----------
+    variable : str
+        Name of the variable this body force applies to
+    value : EquationParser
+        Function that, when evaluated, provides the body-force value
 
     Attributes
     ----------
-
+    body_force_type : str
+        Type of body force
+    simulation : str
+        Simulation type this body force is associated with
+    variable_name : str
+        Variable this body force is associated with
+    body_force_value : EquationParser
+        Function that, when evaluated, gives the source value of the body force
+    associated_cells : List[int]
+        Indices of cells associated with this body force
     """
 
     def __init__(self,
@@ -63,53 +86,78 @@ class GeneralBF(abc.ABC):
             self._simulation_type = "Fluid"
 
     @property
-    def body_force_type(self):
+    def body_force_type(self) -> str:
         return self._body_force_type
 
     @body_force_type.setter
-    def body_force_type(self, body_force_type):
+    def body_force_type(self, body_force_type) -> None:
         self._body_force_type = body_force_type
 
     @property
-    def simulation(self):
+    def simulation(self) -> str:
         return self._simulation_type
 
     @property
-    def variable_name(self):
+    def variable_name(self) -> str:
         return self._variable_name
 
     @property
-    def body_force_value(self):
+    def body_force_value(self) -> EquationParser:
         return self._value
 
     @body_force_value.setter
-    def body_force_value(self, value):
+    def body_force_value(self, value: EquationParser) -> None:
         self._value = value
 
     @property
-    def associated_cells(self):
+    def associated_cells(self) -> List[int]:
         return self._associated_cells
 
     @associated_cells.setter
-    def associated_cells(self, cells_indices: List[int]):
+    def associated_cells(self, cells_indices: List[int]) -> None:
         self._associated_cells = cells_indices
 
-    def add_cell(self, cell_index: int):
+    def add_cell(self, cell_index: int) -> None:
+        """
+        Adds a cell to the list of associated cells
+
+        Parameters
+        ----------
+        cell_index : int
+            Index of the cell wanted to add to the list of cells
+        """
         self._associated_cells.append(cell_index)
 
     def convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Converts units
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            Unit converter object used to ge the scale factors needed
+        """
         scale_factor, shift_factor = self._get_variable_conversion(uc)
         self.body_force_value.performUnitConversion(scale_factor, shift_factor)
 
-    def _get_variable_conversion(self, uc: UnitConverter):
-        scale_factor, shift_factor = 1, 0
+    def _get_variable_conversion(self, uc: UnitConverter) -> Tuple[float, float]:
+        """
+        For the variable associated with this body force, this method extracts the proper
+        scaling and shifting factors for unit conversion
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            Unit converter object used to ge the scale factors needed
+        """
+        scale_factor, shift_factor = 1.0, 0.0
         if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
             scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
             scale_factor = uc.pressureConversion
-        elif self.variable_name == "temperature" or self.variable_name == "solid_temperature":
+        elif self.variable_name in ("temperature", "solid_temperature"):
             scale_factor, shift_factor = uc.temperatureConversionFactors
-        elif self.variable_name == "enthalpy" or self.variable_name == "solid_enthalpy":
+        elif self.variable_name in ("enthalpy", "solid_enthalpy"):
             scale_factor = uc.enthalpyConversion
         elif self.variable_name == "void_fraction":
             pass  # void fraction is non-dimensional
@@ -124,7 +172,27 @@ class GeneralBF(abc.ABC):
 
 class InternalHeatGenerationBF(GeneralBF):
     """
+    Class for an Internal-Heat-Generation Body Force
 
+    Parameters
+    ----------
+    variable : str
+        Name of the variable this body force applies to
+    value : EquationParser
+        Function that, when evaluated, provides the body-force value
+
+    Attributes
+    ----------
+    body_force_type : str
+        Type of body force
+    simulation : str
+        Simulation type this body force is associated with
+    variable_name : str
+        Variable this body force is associated with
+    body_force_value : EquationParser
+        Function that, when evaluated, gives the source value of the body force
+    associated_cells : List[int]
+        Indices of cells associated with this body force
     """
 
     def __init__(self, variable, power_value):

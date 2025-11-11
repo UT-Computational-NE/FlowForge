@@ -1,4 +1,5 @@
 import abc
+from typing import Tuple
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
 
@@ -210,15 +211,15 @@ class BoundaryConditions:
 
     boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "BC_type",        "surface": "surface_name", "variable": "variable_name",     "value": float},
+                {"boundary_type": "BC_type",     "surface": "surface_name", "variable": "variable_name",  "value": float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "mass_flow_rate",    "value": 25.0},
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value": 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC",    "surface": "outlet",       "variable": "pressure",          "value": 1e5},
+                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value": 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC",    "surface": "inlet",        "variable": "temperature",       "value": 700},
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value": 700},
         "outer_solid_temperature"    :
-                {"boundary_type": "NeumannBC",      "surface": "outer",        "variable": "solid_enthalpy",    "value": 1e6},
+                {"boundary_type": "NeumannBC",   "surface": "outer",        "variable": "solid_enthalpy", "value": 1e6},
     }
     """
 
@@ -265,6 +266,19 @@ class GeneralBC(abc.ABC):
         Name of the variable used for this boundary
     value : str
         Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    simulation_type : str
+        The simulation type this boundary applies to
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
     """
 
     def __init__(self, surface: str, variable: str, value: str):
@@ -307,18 +321,35 @@ class GeneralBC(abc.ABC):
         return self._surface_name
 
     def convertUnits(self, uc: UnitConverter) -> None:
+        """
+        Converts units
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            Unit converter object used to ge the scale factors needed
+        """
         scale_factor, shift_factor = self._get_variable_conversion(uc)
         self.boundary_value.performUnitConversion(scale_factor, shift_factor)
 
-    def _get_variable_conversion(self, uc: UnitConverter):
-        scale_factor, shift_factor = 1, 0
+    def _get_variable_conversion(self, uc: UnitConverter) -> Tuple[float, float]:
+        """
+        For the variable associated with this boundary condition, this method extracts
+        the proper scaling and shifting factors for unit conversion
+
+        Parameters
+        ----------
+        uc : UnitConverter
+            Unit converter object used to ge the scale factors needed
+        """
+        scale_factor, shift_factor = 1.0, 0.0
         if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
             scale_factor = uc.massFlowRateConversion
         elif self.variable_name == "pressure":
             scale_factor = uc.pressureConversion
-        elif self.variable_name == "temperature" or self.variable_name == "solid_temperature":
+        elif self.variable_name in ("temperature", "solid_temperature"):
             scale_factor, shift_factor = uc.temperatureConversionFactors
-        elif self.variable_name == "enthalpy" or self.variable_name == "solid_enthalpy":
+        elif self.variable_name in ("enthalpy", "solid_enthalpy"):
             scale_factor = uc.enthalpyConversion
         elif self.variable_name == "void_fraction":
             pass  # void fraction is non-dimensional
@@ -343,6 +374,19 @@ class DirichletBC(GeneralBC):
         Name of the variable used for this boundary
     value : str
         Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    simulation_type : str
+        The simulation type this boundary applies to
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
     """
 
     def __init__(self, surface: str, variable: str, value: str):
@@ -361,6 +405,19 @@ class NeumannBC(GeneralBC):
         Name of the variable used for this boundary
     value : str
         Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    simulation_type : str
+        The simulation type this boundary applies to
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
     """
 
     def __init__(self, surface: str, variable: str, value: str):
