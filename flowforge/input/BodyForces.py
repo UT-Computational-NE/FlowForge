@@ -135,7 +135,7 @@ class GeneralBF(abc.ABC):
         Parameters
         ----------
         uc : UnitConverter
-            Unit converter object used to ge the scale factors needed
+            Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = self._get_variable_conversion(uc)
         self.body_force_value.performUnitConversion(scale_factor, shift_factor)
@@ -148,7 +148,7 @@ class GeneralBF(abc.ABC):
         Parameters
         ----------
         uc : UnitConverter
-            Unit converter object used to ge the scale factors needed
+            Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = 1.0, 0.0
         if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:

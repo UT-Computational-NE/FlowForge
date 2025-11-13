@@ -357,6 +357,8 @@ class System:
         Sets up the physics objects for the solid boundary conditions, body forces, and
         wall function.
 
+        Parameters
+        ----------
         boundary_conditions : Dict
             Dictionary of boundary conditions for the system
         body_forces : Dict
@@ -368,7 +370,6 @@ class System:
         self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
         self._BodyForces = BodyForces(**body_forces)
         self._WallFunctions = WallFunctions(**wall_functions)
-
 
     def _setupBoundaryConditions(self, boundary_conditions):
         """Private method for setting up boundary conditions for the system.
