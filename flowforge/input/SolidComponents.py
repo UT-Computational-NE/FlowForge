@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Union, Any
 from copy import deepcopy
+import numpy as np
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
@@ -271,6 +272,45 @@ class Component:
             sub_components = {name: buildComponent(sub_params) for name, sub_params in sub_components_definitions.items()}
             return SerialComponent(sub_components, order)
 
+        def buildParallelComponent(
+                component_dict: Dict, component_map: List[List[str]]
+        ):
+            """
+            From the input file, builds a set of parallel components
+
+            Not currently implemented
+
+            Parameters
+            ----------
+            component_dict : Dict
+                Definitions of parallel components
+            component_map : List[List[str]]
+                Map of components relative to each other
+            """
+            raise NotImplementedError
+
+        def buildCoreComponent(
+                component_dict, component_map
+        ):
+            """
+            Builds the core from the input file
+
+            in 'factory', the sub-dict of core-specific components are extracted,
+            and these definitions are used to build a new set of components. The
+            component map then places them in their proper position within the
+            core.
+
+            Parameters
+            ----------
+            component_dict : Dict
+                Definitions of core components
+            component_map : List[List[str]]
+                Map of components relative to each other
+            """
+            core_components = Component.factory(component_dict)
+            return Core(components=core_components, component_map=component_map)
+
+
         components = {}
         for comp_type, comp_inputs in input_dict.items():
             assert comp_type in solid_component_list, f"Error: unknown component type {comp_type}"
@@ -280,6 +320,10 @@ class Component:
                     components[unique_name] = buildComponent(parameters)
                 elif comp_type == "serial_component":
                     components[unique_name] = buildSerialComponent(parameters["component"], parameters["order"])
+                elif comp_type == "parallel_component":
+                    components[unique_name] = buildParallelComponent(parameters["component"], parameters["component_map"])
+                elif comp_type == "core":
+                    components[unique_name] = buildCoreComponent(parameters["core_components"], parameters["component_map"])
                 else:
                     raise Exception(f"No 'build' method for component type '{comp_type}'")
 

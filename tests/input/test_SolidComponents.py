@@ -304,7 +304,103 @@ def test_Core():
         pass
 
 
-    return
+def test_Factory():
+
+    input_dict = {
+        "component": {
+            "cuboid_1" : {"height": 10.5,
+                          "n_cells": 5,
+                          "material":
+                          "graphite",
+                          "cross_section": "square",
+                          "W": 2.2},
+        },
+        "serial_component": {
+            "serial_1" : {
+                "component": {
+                    "a": {"height": 2.50,
+                          "n_cells": 20,
+                          "material": "graphite",
+                          "cross_section": "square",
+                          "W": 2.2},
+                    "b": {"height": 6.00,
+                          "n_cells": 3,
+                          "material": "graphite",
+                          "cross_section": "square",
+                          "W": 2.2}
+                },
+                "order": ["a", "b", "a"]
+            }
+        },
+        "core": {
+            "core_1":{
+                "core_components": {
+                    "component": {
+                        "1" : {"height": 11,
+                            "n_cells": 5,
+                            "material":
+                            "graphite",
+                            "cross_section": "square",
+                            "W": 2.2},
+                    },
+                    "serial_component": {
+                        "2" : {
+                            "component": {
+                                "a": {"height": 2.50,
+                                    "n_cells": 20,
+                                    "material": "graphite",
+                                    "cross_section": "square",
+                                    "W": 2.2},
+                                "b": {"height": 6.00,
+                                    "n_cells": 3,
+                                    "material": "graphite",
+                                    "cross_section": "square",
+                                    "W": 2.2}
+                            },
+                            "order": ["a", "b", "a"]
+                        }
+                    },
+                },
+            "component_map": [["1"],
+                              ["1", "2", "1"]]
+            }
+        }
+    }
+
+    # Build components from Factory
+    components = Component.factory(input_dict)
+
+    # Build Reference components
+    cuboid_1 = Component(**input_dict["component"]["cuboid_1"])
+
+    serial_1a = Component(**input_dict["serial_component"]["serial_1"]["component"]["a"])
+    serial_1b = Component(**input_dict["serial_component"]["serial_1"]["component"]["b"])
+    serial_1 = SerialComponent(components={"a": serial_1a, "b": serial_1b}, order=["a", "b", "a"])
+
+    core_1_1 = Component(**input_dict["core"]["core_1"]["core_components"]["component"]["1"])
+    core_1_2a = Component(**input_dict["core"]["core_1"]["core_components"]["serial_component"]["2"]["component"]["a"])
+    core_1_2b = Component(**input_dict["core"]["core_1"]["core_components"]["serial_component"]["2"]["component"]["b"])
+    core_1_2 = SerialComponent(components={"a": core_1_2a, "b": core_1_2b}, order=["a", "b", "a"])
+    core_1 = Core(components={"1": core_1_1, "2": core_1_2}, component_map=[["1"], ["1", "2", "1"]])
+
+    # Test reference against factory components
+    assert components["cuboid_1"].volume == cuboid_1.volume
+    assert components["cuboid_1"].height == cuboid_1.height
+    assert components["cuboid_1"].nCells == cuboid_1.nCells
+    assert components["cuboid_1"].material == cuboid_1.material
+
+    assert components["serial_1"].volume == serial_1.volume
+    assert components["serial_1"].height == serial_1.height
+    assert components["serial_1"].nCells == serial_1.nCells
+
+    assert components["core_1"].volume == core_1.volume
+    assert components["core_1"].componentMap == core_1.componentMap
+    assert components["core_1"].nCells == core_1.nCells
+    assert components["core_1"].coreHeight == core_1.coreHeight
+    for comp, ref_comp in zip(components["core_1"].components.values(), core_1.components.values()):
+        assert comp.volume == ref_comp.volume
+        assert comp.height == ref_comp.height
+        assert comp.nCells == ref_comp.nCells
 
 
 if __name__ == "__main__":
@@ -312,3 +408,4 @@ if __name__ == "__main__":
     test_SerialComponent()
     test_ParallelComponents()
     test_Core()
+    test_Factory()
