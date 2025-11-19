@@ -148,9 +148,10 @@ class System:
         self._fluid = None
         self._gas = None
 
-        self._BoundaryConditions = None  # ** Boundary Conditions **
-        self._BodyForces = None
-        self._WallFunctions = None
+        # Initializes objects to be empty
+        self._BoundaryConditions = BoundaryConditions(**{})
+        self._InitializedBodyForces = BodyForces(**{})
+        self._InitializedWallFunctions = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         system_types = ["simple_loop", "segment", "solid_system"]
@@ -368,8 +369,8 @@ class System:
         """
 
         self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
-        self._BodyForces = BodyForces(**body_forces)
-        self._WallFunctions = WallFunctions(**wall_functions)
+        self._InitializedBodyForces = BodyForces(**body_forces)
+        self._InitializedWallFunctions = WallFunctions(**wall_functions)
 
     def _setupBoundaryConditions(self, boundary_conditions):
         """Private method for setting up boundary conditions for the system.
@@ -495,12 +496,12 @@ class System:
         return self._BoundaryConditions
 
     @property
-    def BodyForces(self) -> BodyForces:
-        return self._BodyForces
+    def InitializedBodyForces(self) -> BodyForces:
+        return self._InitializedBodyForces
 
     @property
-    def WallFunctions(self) -> WallFunctions:
-        return self._WallFunctions
+    def InitializedWallFunctions(self) -> WallFunctions:
+        return self._InitializedWallFunctions
 
     @property
     def isLoop(self) -> bool:

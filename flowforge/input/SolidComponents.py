@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Union, Any
 from copy import deepcopy
-import numpy as np
 
 # from flowforge.visualization import VTKMesh, genUniformAnnulus, genUniformCube, genUniformCylinder, genNozzle
 from flowforge.input.UnitConverter import UnitConverter
