@@ -21,7 +21,7 @@ class WallFunctions:
     """
     def __init__(self, **wall_functions):
 
-        wf_objects = {"HeatFluxWF": HeatFluxWF}
+        wf_objects = {"heat_flux": HeatFluxWF}
 
         self._wfs = {}
         for wf_name, wf in wall_functions.items():
@@ -206,4 +206,4 @@ class HeatFluxWF(GeneralWF):
 
     def __init__(self, surface, variable, heat_flux):
         super().__init__(surface, variable, heat_flux)
-        self.wall_function_type = "HeatFluxWF"
+        self.wall_function_type = "heat_flux"

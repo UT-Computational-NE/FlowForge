@@ -26,14 +26,14 @@ def test_HeatFluxWF():
 
     wf_solid = HeatFluxWF("outer", "solid_temperature", EquationParser("700"))
 
-    assert wf_solid.wall_function_type == "HeatFluxWF"
+    assert wf_solid.wall_function_type == "heat_flux"
 
 
 def test_WallFunctions():
 
     wall_functions = {
-        "temperature_wf" : {"type": "HeatFluxWF", "surface": "outer", "variable": "temperature", "value": 700},
-        "enthalpy_wf" : {"type": "HeatFluxWF", "surface": "top", "variable": "enthalpy", "value": 1e6}
+        "temperature_wf" : {"type": "heat_flux", "surface": "outer", "variable": "temperature", "value": 700},
+        "enthalpy_wf" : {"type": "heat_flux", "surface": "top", "variable": "enthalpy", "value": 1e6}
     }
 
     WF = WallFunctions(**wall_functions)

@@ -23,16 +23,16 @@ def test_GeneralBF():
 
 def test_InternalHeatGenerationBF():
 
-    bf_solid = InternalHeatGenerationBF("solid_temperature", EquationParser("700"))
+    bf_solid = HeatGenerationBF("solid_temperature", EquationParser("700"))
 
-    assert bf_solid.body_force_type == "InternalHeatGenerationBF"
+    assert bf_solid.body_force_type == "heat_generation"
 
 
 def test_BodyForces():
 
     body_forces = {
-        "temperature_bf" : {"type": "InternalHeatGenerationBF", "variable": "temperature", "value": 700},
-        "enthalpy_bf" : {"type": "InternalHeatGenerationBF", "variable": "enthalpy", "value": 1e6}
+        "temperature_bf" : {"type": "heat_generation", "variable": "temperature", "value": 700},
+        "enthalpy_bf" : {"type": "heat_generation", "variable": "enthalpy", "value": 1e6}
     }
 
     BF = BodyForces(**body_forces)

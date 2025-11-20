@@ -22,7 +22,7 @@ class BodyForces:
 
     def __init__(self, **body_forces):
 
-        bf_objects = {"InternalHeatGenerationBF": InternalHeatGenerationBF}
+        bf_objects = {"heat_generation": HeatGenerationBF}
 
         self._bfs = {}
         for bf_name, bf in body_forces.items():
@@ -170,9 +170,9 @@ class GeneralBF(abc.ABC):
         return scale_factor, shift_factor
 
 
-class InternalHeatGenerationBF(GeneralBF):
+class HeatGenerationBF(GeneralBF):
     """
-    Class for an Internal-Heat-Generation Body Force
+    Class for a Heat Generation Body Force
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ class InternalHeatGenerationBF(GeneralBF):
     def __init__(self, variable, power_value):
         assert variable in self.valid_variables
         super().__init__(variable, power_value)
-        self.body_force_type = "InternalHeatGenerationBF"
+        self.body_force_type = "heat_generation"
 
     @property
     def valid_variables(self):
