@@ -149,9 +149,9 @@ class System:
         self._gas = None
 
         # Initializes objects to be empty
-        self._BoundaryConditions = BoundaryConditions(**{})
-        self._InitializedBodyForces = BodyForces(**{})
-        self._InitializedWallFunctions = WallFunctions(**{})
+        self._boundaryConditionContainer = BoundaryConditions(**{})
+        self._bodyForceContainer = BodyForces(**{})
+        self._wallFunctionContainer = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         system_types = ["simple_loop", "segment", "solid_system"]
@@ -179,8 +179,8 @@ class System:
             self._EBC._convertUnits(UnitConverter(unitdict))
         if self._VBC is not None:
             self._VBC._convertUnits(UnitConverter(unitdict))
-        if self._BoundaryConditions is not None:
-            self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
+        if self._boundaryConditionContainer is not None:
+            self._boundaryConditionContainer._convertUnits(UnitConverter(unitdict))
 
     @property
     def core(self) -> List[Core]:
@@ -368,9 +368,9 @@ class System:
             Dictionary of wall functions for the system
         """
 
-        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
-        self._InitializedBodyForces = BodyForces(**body_forces)
-        self._InitializedWallFunctions = WallFunctions(**wall_functions)
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
+        self._bodyForceContainer = BodyForces(**body_forces)
+        self._wallFunctionContainer = WallFunctions(**wall_functions)
 
     def _setupBoundaryConditions(self, boundary_conditions):
         """Private method for setting up boundary conditions for the system.
@@ -395,13 +395,13 @@ class System:
         self._VBC = None
         if "void" in boundary_conditions:
             self._VBC = VoidBC(**boundary_conditions["void"])
-        self._BoundaryConditions = None
+        self._boundaryConditionContainer = None
         if (
             ("mass_momentum" not in boundary_conditions)
             and ("enthalpy" not in boundary_conditions)
             and ("void" not in boundary_conditions)
         ):
-            self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+            self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -493,15 +493,15 @@ class System:
 
     @property
     def BoundaryConditions(self) -> BoundaryConditions:
-        return self._BoundaryConditions
+        return self._boundaryConditionContainer
 
     @property
-    def InitializedBodyForces(self) -> BodyForces:
-        return self._InitializedBodyForces
+    def BodyForceContainer(self) -> BodyForces:
+        return self._bodyForceContainer
 
     @property
-    def InitializedWallFunctions(self) -> WallFunctions:
-        return self._InitializedWallFunctions
+    def WallFunctionContainer(self) -> WallFunctions:
+        return self._wallFunctionContainer
 
     @property
     def isLoop(self) -> bool:
