@@ -6,9 +6,9 @@ from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
 from flowforge.input.SolidComponents import SolidComponent
 from flowforge.input.UnitConverter import UnitConverter
-from flowforge.input.BoundaryConditions import MassMomentumBC, EnthalpyBC, VoidBC, BoundaryConditions
 from flowforge.input.BodyForces import BodyForces
 from flowforge.input.WallFunctions import WallFunctions
+from flowforge.input.BoundaryConditions import BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
 
 
@@ -173,12 +173,6 @@ class System:
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
         # convert BC units
-        if self._MMBC is not None:
-            self._MMBC._convertUnits(UnitConverter(unitdict))
-        if self._EBC is not None:
-            self._EBC._convertUnits(UnitConverter(unitdict))
-        if self._VBC is not None:
-            self._VBC._convertUnits(UnitConverter(unitdict))
         if self._boundaryConditionContainer is not None:
             self._boundaryConditionContainer._convertUnits(UnitConverter(unitdict))
 
@@ -250,7 +244,7 @@ class System:
                 self._connectivity.append((self._components[i], self._components[0]))
 
         # get the boundary conditions
-        self._setupBoundaryConditions(boundary_conditions)
+        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def _setupSegment(
         self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
@@ -295,7 +289,7 @@ class System:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
 
         # get the boundary conditions
-        self._setupBoundaryConditions(boundary_conditions)
+        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
 
     def _setupSolidSystem(
         self,
@@ -372,37 +366,6 @@ class System:
         self._bodyForceContainer = BodyForces(**body_forces)
         self._wallFunctionContainer = WallFunctions(**wall_functions)
 
-    def _setupBoundaryConditions(self, boundary_conditions):
-        """Private method for setting up boundary conditions for the system.
-
-        This method initializes the appropriate boundary condition objects based
-        on the configuration dictionary provided. It handles mass/momentum,
-        enthalpy, and void boundary conditions.
-
-        Parameters
-        ----------
-        boundary_conditions : Dict
-            Dictionary containing boundary condition specifications. Can include
-            'mass_momentum', 'enthalpy', and/or 'void' keys with their respective
-            configuration parameters.
-        """
-        self._MMBC = None
-        if "mass_momentum" in boundary_conditions:
-            self._MMBC = MassMomentumBC(**boundary_conditions["mass_momentum"])
-        self._EBC = None
-        if "enthalpy" in boundary_conditions:
-            self._EBC = EnthalpyBC(**boundary_conditions["enthalpy"])
-        self._VBC = None
-        if "void" in boundary_conditions:
-            self._VBC = VoidBC(**boundary_conditions["void"])
-        self._boundaryConditionContainer = None
-        if (
-            ("mass_momentum" not in boundary_conditions)
-            and ("enthalpy" not in boundary_conditions)
-            and ("void" not in boundary_conditions)
-        ):
-            self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
-
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
 
@@ -478,18 +441,6 @@ class System:
     @property
     def wallfunctions(self) -> List[str]:
         return self._wallfunctions
-
-    @property
-    def EBC(self) -> EnthalpyBC:
-        return self._EBC
-
-    @property
-    def MMBC(self) -> MassMomentumBC:
-        return self._MMBC
-
-    @property
-    def VBC(self) -> VoidBC:
-        return self._VBC
 
     @property
     def BoundaryConditions(self) -> BoundaryConditions:
