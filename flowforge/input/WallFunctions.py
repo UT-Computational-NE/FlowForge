@@ -1,5 +1,4 @@
 import abc
-from typing import List, Tuple
 from copy import deepcopy
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser

@@ -261,6 +261,6 @@ class UnitConverter:
             pass
 
         else:
-            raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
+            raise Exception("ERROR: non-valid variable name: " + variable_name + ".")
 
         return scale_factor, shift_factor
