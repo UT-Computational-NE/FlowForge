@@ -77,7 +77,6 @@ class GeneralBF(abc.ABC):
 
         self._variable_name = variable
         self._value = value
-        self._associated_cells = []
 
         self._body_force_type = None
         if "solid" in variable:
@@ -108,25 +107,6 @@ class GeneralBF(abc.ABC):
     @body_force_value.setter
     def body_force_value(self, value: EquationParser) -> None:
         self._value = value
-
-    @property
-    def associated_cells(self) -> List[int]:
-        return self._associated_cells
-
-    @associated_cells.setter
-    def associated_cells(self, cells_indices: List[int]) -> None:
-        self._associated_cells = cells_indices
-
-    def add_cell(self, cell_index: int) -> None:
-        """
-        Adds a cell to the list of associated cells
-
-        Parameters
-        ----------
-        cell_index : int
-            Index of the cell wanted to add to the list of cells
-        """
-        self._associated_cells.append(cell_index)
 
     def convertUnits(self, uc: UnitConverter) -> None:
         """

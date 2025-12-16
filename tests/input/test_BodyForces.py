@@ -10,16 +10,6 @@ def test_GeneralBF():
     assert bf_solid.body_force_value.evaluate() == 700
     assert bf_solid.variable_name == "solid_temperature"
 
-    bf_solid.add_cell(1)
-    bf_solid.add_cell(20)
-    bf_solid.add_cell(11)
-
-    assert bf_solid.associated_cells == [1, 20, 11]
-
-    new_cells = [1, 20, 10, 15]
-    bf_solid.associated_cells = new_cells
-    assert bf_solid.associated_cells == [1, 20, 10, 15]
-
 
 def test_InternalHeatGenerationBF():
 

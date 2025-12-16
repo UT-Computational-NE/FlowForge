@@ -78,7 +78,6 @@ class GeneralWF(abc.ABC):
         self._surface_name = surface
         self._variable_name = variable
         self._value = value
-        self._associated_cells = []
 
         self._wall_function_type = None
         if "solid" in variable:
@@ -113,25 +112,6 @@ class GeneralWF(abc.ABC):
     @property
     def variable_name(self) -> str:
         return self._variable_name
-
-    @property
-    def associated_cells(self) -> List[int]:
-        return self._associated_cells
-
-    @associated_cells.setter
-    def associated_cells(self, cells_indices: List[int]) -> None:
-        self._associated_cells = cells_indices
-
-    def add_cell(self, cell_index: int) -> None:
-        """
-        Adds a cell to the list of associated cells
-
-        Parameters
-        ----------
-        cell_index : int
-            Index of the cell wanted to add to the list of cells
-        """
-        self._associated_cells.append(cell_index)
 
     def convertUnits(self, uc: UnitConverter) -> None:
         """

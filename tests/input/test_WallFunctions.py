@@ -11,16 +11,6 @@ def test_GeneralWF():
     assert wf_solid.wall_function_value.evaluate() == 700
     assert wf_solid.variable_name == "solid_temperature"
 
-    wf_solid.add_cell(1)
-    wf_solid.add_cell(20)
-    wf_solid.add_cell(11)
-
-    assert wf_solid.associated_cells == [1, 20, 11]
-
-    new_cells = [1, 20, 10, 15]
-    wf_solid.associated_cells = new_cells
-    assert wf_solid.associated_cells == [1, 20, 10, 15]
-
 
 def test_HeatFluxWF():
 
