@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 
 # enthalpy to j/kg
 enthalpydict = {"j/kg": 1.0}
@@ -226,3 +226,41 @@ class UnitConverter:
     @property
     def temperatureConversionFactors(self) -> list:
         return self._tempconvfactors
+
+    def get_variable_conversion(self, variable_name) -> Tuple[float, float]:
+        """
+        For the input variable, this method extracts the proper scaling and shifting
+        factors for unit conversion.
+
+        Parameters
+        ----------
+        variable_name : str
+            Name of the variable of which unit conversion is desired for
+        """
+        scale_factor, shift_factor = 1.0, 0.0
+
+        if variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
+            scale_factor = self.massFlowRateConversion
+
+        elif variable_name == "pressure":
+            scale_factor = self.pressureConversion
+
+        elif variable_name in ("temperature", "solid_temperature"):
+            scale_factor, shift_factor = self.temperatureConversionFactors
+
+        elif variable_name in ("enthalpy", "solid_enthalpy"):
+            scale_factor = self.enthalpyConversion
+
+        elif variable_name == "void_fraction":
+            pass  # void fraction is non-dimensional
+
+        elif variable_name.startswith("neutron_precursor_mass_concentration"):
+            pass
+
+        elif variable_name.startswith("decay_heat_precursor_mass_concentration"):
+            pass
+
+        else:
+            raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
+
+        return scale_factor, shift_factor

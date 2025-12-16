@@ -117,37 +117,8 @@ class GeneralBF(abc.ABC):
         uc : UnitConverter
             Unit converter object used to get the scale factors needed
         """
-        scale_factor, shift_factor = self._get_variable_conversion(uc)
+        scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
         self.body_force_value.performUnitConversion(scale_factor, shift_factor)
-
-    def _get_variable_conversion(self, uc: UnitConverter) -> Tuple[float, float]:
-        """
-        For the variable associated with this body force, this method extracts the proper
-        scaling and shifting factors for unit conversion
-
-        Parameters
-        ----------
-        uc : UnitConverter
-            Unit converter object used to get the scale factors needed
-        """
-        scale_factor, shift_factor = 1.0, 0.0
-        if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
-            scale_factor = uc.massFlowRateConversion
-        elif self.variable_name == "pressure":
-            scale_factor = uc.pressureConversion
-        elif self.variable_name in ("temperature", "solid_temperature"):
-            scale_factor, shift_factor = uc.temperatureConversionFactors
-        elif self.variable_name in ("enthalpy", "solid_enthalpy"):
-            scale_factor = uc.enthalpyConversion
-        elif self.variable_name == "void_fraction":
-            pass  # void fraction is non-dimensional
-        elif self.variable_name.startswith("neutron_precursor_mass_concentration"):
-            pass
-        elif self.variable_name.startswith("decay_heat_precursor_mass_concentration"):
-            pass
-        else:
-            raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
-        return scale_factor, shift_factor
 
 
 class HeatGenerationBF(GeneralBF):
