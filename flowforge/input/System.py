@@ -328,10 +328,12 @@ class System:
 
             self._solid_connectivity.append((previous_component, current_component))
 
+        body_forces = solid_controllers.get("bodyForce", {})
+        wall_functions = solid_controllers.get("wallFunction", {})
 
-        self._setupSolidPhysics(boundary_conditions,
-                                solid_controllers.get("bodyForce", {}),
-                                solid_controllers.get("wallFunction", {}))
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
+        self._bodyForceContainer = BodyForces(**body_forces)
+        self._wallFunctionContainer = WallFunctions(**wall_functions)
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
@@ -343,28 +345,6 @@ class System:
         """
 
         raise NotImplementedError("To Be Implemented")
-
-    def _setupSolidPhysics(self,
-                           boundary_conditions: dict,
-                           body_forces: dict,
-                           wall_functions: dict):
-        """
-        Sets up the physics objects for the solid boundary conditions, body forces, and
-        wall function.
-
-        Parameters
-        ----------
-        boundary_conditions : Dict
-            Dictionary of boundary conditions for the system
-        body_forces : Dict
-            Dictionary of body forces for the system
-        wall_functions : Dict
-            Dictionary of wall functions for the system
-        """
-
-        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
-        self._bodyForceContainer = BodyForces(**body_forces)
-        self._wallFunctionContainer = WallFunctions(**wall_functions)
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
