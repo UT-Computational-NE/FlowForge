@@ -244,7 +244,7 @@ class System:
                 self._connectivity.append((self._components[i], self._components[0]))
 
         # get the boundary conditions
-        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSegment(
         self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
@@ -289,7 +289,7 @@ class System:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
 
         # get the boundary conditions
-        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSolidSystem(
         self,
