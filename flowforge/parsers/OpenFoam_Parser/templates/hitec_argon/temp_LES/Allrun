@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ===============================================================
+# Move into the case directory (where this Allrun lives)
+# ===============================================================
+CASE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$CASE_DIR"
+
+echo "CASE_DIR = $CASE_DIR"
+
+# ===============================================================
+# Require OpenFOAM environment (local)
+# ===============================================================
+if [[ -z "${WM_PROJECT_DIR:-}" ]]; then
+  echo "ERROR: OpenFOAM environment not sourced (WM_PROJECT_DIR is empty)."
+  echo "Run:  source \$WM_PROJECT_DIR/etc/bashrc   (or your OpenFOAM bashrc) "
+  exit 1
+fi
+
+# Load helper functions (works only after FOAM is sourced)
+. "${WM_PROJECT_DIR}/bin/tools/RunFunctions"
+. "${WM_PROJECT_DIR}/bin/tools/CleanFunctions"
+
+# ===============================================================
+# Derive identifiers from folder structure:
+#   .../<material>/dataset_<n>/run_<m>/Allrun
+# ===============================================================
+current_dir="$CASE_DIR"
+
+material_name="$(basename "$(dirname "$(dirname "$current_dir")")")"
+dataset_dir="$(basename "$(dirname "$current_dir")")"   # dataset_x
+run_dir="$(basename "$current_dir")"                   # run_x
+
+dataset_number="$(echo "$dataset_dir" | sed 's/[^0-9]*//g')"
+run_number="$(echo "$run_dir" | sed 's/[^0-9]*//g')"
+
+if [[ -z "$dataset_number" || -z "$run_number" ]]; then
+  echo "ERROR: Could not parse dataset/run number from path:"
+  echo "  dataset_dir = $dataset_dir"
+  echo "  run_dir     = $run_dir"
+  exit 1
+fi
+
+echo "material_name   = $material_name"
+echo "dataset_number  = $dataset_number"
+echo "run_number      = $run_number"
+
+# ===============================================================
+# Locate repo root (openfoam_parser/) from deep case directory
+# Expected depth from run_x -> openfoam_parser:
+#   run_x -> dataset_x (1) -> material (2) -> run_folder (3) -> data (4) -> openfoam_parser (5)
+# ===============================================================
+REPO_ROOT="$(cd "$CASE_DIR/../../../../.." && pwd)"
+SCRIPTS_DIR="$REPO_ROOT/scripts"
+
+DATA2CSV_PY="$SCRIPTS_DIR/data2csv.py"
+CSV2H5_PY="$SCRIPTS_DIR/csv2h5.py"
+
+if [[ ! -f "$DATA2CSV_PY" ]]; then
+  echo "ERROR: data2csv.py not found at: $DATA2CSV_PY"
+  echo "REPO_ROOT   = $REPO_ROOT"
+  echo "SCRIPTS_DIR = $SCRIPTS_DIR"
+  exit 1
+fi
+
+if [[ ! -f "$CSV2H5_PY" ]]; then
+  echo "ERROR: csv2h5.py not found at: $CSV2H5_PY"
+  echo "REPO_ROOT   = $REPO_ROOT"
+  echo "SCRIPTS_DIR = $SCRIPTS_DIR"
+  exit 1
+fi
+
+echo "REPO_ROOT   = $REPO_ROOT"
+echo "SCRIPTS_DIR = $SCRIPTS_DIR"
+
+# ===============================================================
+# OPENFOAM STAGES
+# ===============================================================
+rm -f log.*
+touch output.foam
+
+runApplication setFields
+runApplication decomposePar
+runParallel "$(getApplication)"
+runApplication reconstructPar
+
+echo "Cleaning processors in: $(pwd)"
+rm -rf processor*
+
+echo "Reconstruction and cleaning complete."
+
+# ===============================================================
+# PARAVIEW (pvpython) stage (local)
+# - Assumes pvpython is on PATH
+# ===============================================================
+if ! command -v pvpython >/dev/null 2>&1; then
+  echo "ERROR: pvpython not found on PATH."
+  echo "Install ParaView / ensure pvpython is available, then re-run."
+  exit 1
+fi
+
+echo "Running pvpython data2csv..."
+pvpython "$DATA2CSV_PY" \
+  --run_number "$run_number" \
+  --material "$material_name" \
+  --dataset_number "$dataset_number"
+
+# ===============================================================
+# CSV → HDF5 PYTHON STAGE (local)
+# - Uses python on PATH (venv/conda assumed already active)
+# ===============================================================
+if ! command -v python >/dev/null 2>&1; then
+  echo "ERROR: python not found on PATH."
+  exit 1
+fi
+
+echo "Running python csv2h5..."
+python "$CSV2H5_PY" \
+  --run_number "$run_number" \
+  --material "$material_name" \
+  --dataset_number "$dataset_number"
+
+echo "Allrun completed successfully!"

@@ -1,0 +1,141 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2012                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      phaseProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+type    basicMultiphaseSystem;
+
+phases (argon hitec);
+
+argon
+{
+    type            purePhaseModel;
+    diameterModel   isothermal;
+    isothermalCoeffs
+    {
+        d0              3e-3;
+        p0              1e5;
+    }
+
+    residualAlpha   1e-6;
+}
+
+hitec
+{
+    type            purePhaseModel;
+    diameterModel   constant;
+    constantCoeffs
+    {
+        d               1e-4;
+    }
+
+    residualAlpha   1e-6;
+}
+
+blending
+{
+    default
+    {
+        type            linear;
+        minFullyContinuousAlpha.argon 0.7;
+        minPartlyContinuousAlpha.argon 0.3;
+        minFullyContinuousAlpha.hitec 0.7;
+        minPartlyContinuousAlpha.hitec 0.3;
+    }
+
+    drag
+    {
+        type            linear;
+        minFullyContinuousAlpha.argon 0.7;
+        minPartlyContinuousAlpha.argon 0.5;
+        minFullyContinuousAlpha.hitec 0.7;
+        minPartlyContinuousAlpha.hitec 0.5;
+    }
+}
+
+surfaceTension
+{
+    argon_hitec
+    {
+        type            constant;
+        sigma           {liquid_surf};
+    }
+}
+drag
+{
+    argon_dispersedIn_hitec
+    {
+        type            SchillerNaumann;
+    }
+
+    hitec_dispersedIn_argon
+    {
+        type            SchillerNaumann;
+    }
+
+    argon_segregatedWith_hitec
+    {
+        type            segregated;
+        m               0.5;
+        n               8;
+    }
+}
+
+virtualMass
+{
+    argon_dispersedIn_hitec
+    {
+        type            constantCoefficient;
+        Cvm             0.5;
+    }
+
+    hitec_dispersedIn_argon
+    {
+        type            constantCoefficient;
+        Cvm             0.5;
+    }
+}
+
+heatTransfer
+{
+    argon_dispersedIn_hitec
+    {
+        type            RanzMarshall;
+        residualAlpha   1e-3;
+    }
+
+    hitec_dispersedIn_argon
+    {
+        type            RanzMarshall;
+        residualAlpha   1e-3;
+    }
+}
+
+phaseTransfer
+{}
+
+lift
+{}
+
+wallLubrication
+{}
+
+turbulentDispersion
+{}
+
+interfaceCompression
+{}
+
+// ************************************************************************* //

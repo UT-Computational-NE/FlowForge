@@ -1,0 +1,47 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties.argon;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        molWeight   39.948;     // Molecular weight of argon in g/mol
+    }
+    thermodynamics
+    {
+        Cp          {gas_cp};   // Specific heat capacity at constant pressure in J/kg*K
+        Hf                 0;   // Heat of formation (J/kg, usually 0 for ideal gases)
+    }
+    transport
+    {
+        mu          {gas_mu};  // Dynamic viscosity in Pa*s
+        Pr          {gas_pr};  // Prandtl number for argon
+    }
+}
+
+
+// ************************************************************************* //

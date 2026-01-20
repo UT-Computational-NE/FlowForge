@@ -1,0 +1,52 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties.hitec;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       polynomial;        // Enables temperature-dependent mu and k
+    thermo          hPolynomial;       // Enables temperature-dependent Cp
+    equationOfState icoPolynomial;     // Enables temperature-dependent rho
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        molWeight   84.2433;                                    // Approximate molar mass of HITEC in g/mol
+    }
+    thermodynamics
+    {
+        CpCoeffs<8>         (5806 -10.833 7.2413e-3 0 0 0 0 0);     // Coefficients for Cp(T) = 5806 - 10.833*T + 7.2413e-3*T^2
+        Hf                  0;                                      // Heat of formation
+        Sf                  0;                                      // Entropy of formation (J/kg·K), set to zero if not needed
+    }
+    transport
+    {
+        muCoeffs<8>        (0.4737 -2.297e-3 3.731e-6 -2.019e-9 0 0 0 0);  // Coefficients for mu(T) = 0.4737 - 2.297e-3*T + 3.731e-6*T^2 - 2.019e-9*T^3
+        kappaCoeffs<8>     (0.78 -1.25e-3 1.6e-6 0 0 0 0 0);               // Coefficients for k(T) = 0.78 - 1.25e-3*T + 1.6e-6*T^2
+    }
+    equationOfState
+    {
+        rhoCoeffs<8>       (2293.6 -0.7497 0 0 0 0 0 0);  // Coefficients for rho(T) = 2293.6 - 0.7497*T
+    }
+}
+
+// ************************************************************************* //
