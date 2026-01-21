@@ -78,10 +78,6 @@ class GeneralBF(abc.ABC):
         self._value = value
 
         self._body_force_type = None
-        if "solid" in variable:
-            self._simulation_type = "Solid"
-        else:
-            self._simulation_type = "Fluid"
 
     @property
     def body_force_type(self) -> str:
@@ -90,10 +86,6 @@ class GeneralBF(abc.ABC):
     @body_force_type.setter
     def body_force_type(self, body_force_type) -> None:
         self._body_force_type = body_force_type
-
-    @property
-    def simulation(self) -> str:
-        return self._simulation_type
 
     @property
     def variable_name(self) -> str:

@@ -79,10 +79,6 @@ class GeneralWF(abc.ABC):
         self._value = value
 
         self._wall_function_type = None
-        if "solid" in variable:
-            self._simulation_type = "Solid"
-        else:
-            self._simulation_type = "Fluid"
 
     @property
     def wall_function_type(self) -> str:
@@ -95,10 +91,6 @@ class GeneralWF(abc.ABC):
     @property
     def surface_name(self) -> str:
         return self._surface_name
-
-    @property
-    def simulation(self) -> str:
-        return self._simulation_type
 
     @property
     def wall_function_value(self) -> EquationParser:

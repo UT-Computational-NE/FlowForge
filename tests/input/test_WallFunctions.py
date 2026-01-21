@@ -6,7 +6,6 @@ def test_GeneralWF():
     wf_solid = GeneralWF("outer", "solid_temperature", EquationParser("700"))
 
     assert wf_solid.wall_function_type is None
-    assert wf_solid.simulation == "Solid"
     assert wf_solid.surface_name == "outer"
     assert wf_solid.wall_function_value.evaluate() == 700
     assert wf_solid.variable_name == "solid_temperature"
@@ -33,10 +32,6 @@ def test_WallFunctions():
         assert wf.surface_name == wall_functions[wf_name]["surface"]
         assert wf.variable_name == wall_functions[wf_name]["variable"]
         assert wf.wall_function_value.evaluate() == wall_functions[wf_name]["value"]
-        if "solid" in wf_name:
-            assert wf.simulation == "Solid"
-        else:
-            assert wf.simulation == "Fluid"
 
 
 if __name__ == "__main__":
