@@ -21,6 +21,17 @@ class BoundaryConditions:
         "outer_solid_temperature"    :
                 {"boundary_type": "NeumannBC",   "surface": "outer",        "variable": "solid_enthalpy", "value": 1e6},
     }
+
+    Parameters
+    ----------
+    boundary_conditions : dict[str, dict]
+        Dict of boundary condition definitions
+
+    Attributes
+    ----------
+    boundary_conditions : List[GeneralWF]
+        List of built boundary condition objects
+
     """
 
     def __init__(self, **boundary_conditions: dict):
@@ -140,8 +151,6 @@ class DirichletBC(GeneralBC):
     ----------
     boundary_type : str
         Type of boundary condition
-    simulation_type : str
-        The simulation type this boundary applies to
     boundary_value : EquationParser
         Function that, when evaluated, gives the boundary value
     variable_name : str
@@ -171,8 +180,6 @@ class NeumannBC(GeneralBC):
     ----------
     boundary_type : str
         Type of boundary condition
-    simulation_type : str
-        The simulation type this boundary applies to
     boundary_value : EquationParser
         Function that, when evaluated, gives the boundary value
     variable_name : str

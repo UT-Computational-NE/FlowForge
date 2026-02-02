@@ -132,8 +132,6 @@ class HeatFluxWF(GeneralWF):
         Type of wall function
     surface_name : str
         Surface that this wall function is applied to
-    simulation : str
-        Simulation type this wall function is associated with
     wall_function_value : EquationParser
         Function that, when evaluated, gives the source value of the wall function
     variable_name : str

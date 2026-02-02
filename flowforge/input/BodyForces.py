@@ -123,8 +123,6 @@ class HeatGenerationBF(GeneralBF):
     ----------
     body_force_type : str
         Type of body force
-    simulation : str
-        Simulation type this body force is associated with
     variable_name : str
         Variable this body force is associated with
     body_force_value : EquationParser
