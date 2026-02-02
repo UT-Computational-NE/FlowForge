@@ -379,6 +379,9 @@ class Pipe(Component):
     pctHeated: float
         Fraction of the pipe that is heated. Used for calculating heated perimeter.
         Defaults to 1 (i.e. the entire pipe is heated)
+    num_representative : int
+        Number of representative cells to use for the pipe component
+        Defaults to 1
     """
 
     def __init__(
@@ -393,6 +396,7 @@ class Pipe(Component):
         Klossavg: float = 0.0,
         roughness: float = 0.0,
         pctHeated: float = 1.0,
+        num_representative: int = 1,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -412,11 +416,12 @@ class Pipe(Component):
         self._Pw = self._cross_section.wetted_perimeter
         self._Dh = self._cross_section.hydraulic_diameter
         self._heatedPerimeter = pctHeated * self._Pw
+        self._num_representative = num_representative
         self._temps = np.zeros(self.nCell)
 
     @property
     def flowArea(self) -> float:
-        return self._Ac
+        return self._num_representative * self._Ac
 
     @property
     def length(self) -> float:
@@ -428,7 +433,7 @@ class Pipe(Component):
 
     @property
     def heatedPerimeter(self) -> float:
-        return self._heatedPerimeter
+        return self._num_representative * self._heatedPerimeter
 
     @property
     def heightChange(self) -> float:

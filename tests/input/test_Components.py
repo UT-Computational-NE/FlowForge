@@ -1,3 +1,5 @@
+import math
+import pytest
 from flowforge.input.Components import (
     Pipe,
     Pump,
@@ -19,13 +21,31 @@ uc = UnitConverter(unitdict)
 def test_pipe():
     p = Pipe(R=2.0, L=10.0)
     p._convertUnits(uc)
-    assert p.flowArea > 0.0
-    assert p.volume > 0.0
+    # R=2cm -> 0.02m, L=10cm -> 0.1m
+    # flowArea = pi * R^2 = pi * 0.02^2 = pi * 0.0004
+    expected_flow_area = math.pi * 0.02**2
+    expected_volume = expected_flow_area * 0.1
+    expected_dh = 2 * 0.02  # hydraulic diameter = 2R for circular pipe
+    assert p.flowArea == pytest.approx(expected_flow_area)
+    assert p.volume == pytest.approx(expected_volume)
     assert p.length == 0.1
-    assert p.hydraulicDiameter > 0.0
+    assert p.hydraulicDiameter == pytest.approx(expected_dh)
     assert p.heightChange == 0.1
     assert p.nCell == 1
 
+    p = Pipe(R=2.0, L=10.0, num_representative=3)
+    p._convertUnits(uc)
+    # R=2cm -> 0.02m, L=10cm -> 0.1m
+    # flowArea = pi * R^2 = pi * 0.02^2 = pi * 0.0004
+    expected_flow_area = 3.*math.pi * 0.02**2
+    expected_volume = expected_flow_area * 0.1
+    expected_dh = 2 * 0.02  # hydraulic diameter = 2R for circular pipe
+    assert p.flowArea == pytest.approx(expected_flow_area)
+    assert p.volume == pytest.approx(expected_volume)
+    assert p.length == 0.1
+    assert p.hydraulicDiameter == pytest.approx(expected_dh)
+    assert p.heightChange == 0.1
+    assert p.nCell == 1
 
 def test_rectangular_pipe():
     p = Pipe(cross_section_name="rectangular", L=10, W=2.0, H=2.0)
@@ -38,6 +58,15 @@ def test_rectangular_pipe():
     assert p.hydraulicDiameter > 0.0
     assert p.nCell == 1
 
+    p = Pipe(cross_section_name="rectangular", L=10, W=2.0, H=2.0, num_representative=4)
+    p._convertUnits(uc)
+    assert p.flowArea == 0.0016
+    assert p._Pw == 0.08
+    assert p._Dh == 0.0016 / 0.08
+    assert p.volume > 0.0
+    assert p.length == 0.10
+    assert p.hydraulicDiameter == pytest.approx(0.0016 / 0.08)
+    assert p.nCell == 1
 
 def test_stadium_pipe():
     p = Pipe(cross_section_name="stadium", L=12, R=3, A=2)
