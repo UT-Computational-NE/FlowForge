@@ -64,8 +64,6 @@ class GeneralBF(abc.ABC):
         Variable this body force is associated with
     body_force_value : EquationParser
         Function that, when evaluated, gives the source value of the body force
-    associated_cells : List[int]
-        Indices of cells associated with this body force
     """
 
     def __init__(self,
@@ -131,8 +129,6 @@ class HeatGenerationBF(GeneralBF):
         Variable this body force is associated with
     body_force_value : EquationParser
         Function that, when evaluated, gives the source value of the body force
-    associated_cells : List[int]
-        Indices of cells associated with this body force
     """
 
     def __init__(self, variable, power_value):

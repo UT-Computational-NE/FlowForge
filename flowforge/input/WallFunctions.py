@@ -67,8 +67,6 @@ class GeneralWF(abc.ABC):
         Function that, when evaluated, gives the source value of the wall function
     variable_name : str
         Variable associated with this wall function
-    associated_cells : List[int]
-        Indices of cells associated with this wall function
     """
 
     def __init__(self, surface: str, variable: str, value: EquationParser):
@@ -140,8 +138,6 @@ class HeatFluxWF(GeneralWF):
         Function that, when evaluated, gives the source value of the wall function
     variable_name : str
         Variable associated with this wall function
-    associated_cells : List[int]
-        Indices of cells associated with this wall function
     """
 
     def __init__(self, surface, variable, heat_flux):
