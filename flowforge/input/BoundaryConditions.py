@@ -71,8 +71,6 @@ class GeneralBC(abc.ABC):
     ----------
     boundary_type : str
         Type of boundary condition
-    simulation_type : str
-        The simulation type this boundary applies to
     boundary_value : EquationParser
         Function that, when evaluated, gives the boundary value
     variable_name : str
@@ -87,10 +85,6 @@ class GeneralBC(abc.ABC):
         self._value = EquationParser(value)
 
         self._boundary_type = None
-        if "solid" in variable:
-            self._simulation_type = "Solid"
-        else:
-            self._simulation_type = "Fluid"
 
     @property
     def boundary_type(self):
@@ -99,10 +93,6 @@ class GeneralBC(abc.ABC):
     @boundary_type.setter
     def boundary_type(self, boundary_type):
         self._boundary_type = boundary_type
-
-    @property
-    def simulation_type(self):
-        return self._simulation_type
 
     @property
     def boundary_value(self):
