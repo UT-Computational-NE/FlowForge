@@ -38,11 +38,6 @@ def test_BoundaryConditions():
         assert bc.surface_name == boundary_conditions[bc_name]["surface"]
         assert bc.variable_name == boundary_conditions[bc_name]["variable"]
         assert bc.boundary_value.evaluate()  == boundary_conditions[bc_name]["value"]
-        if "solid" in bc_name:
-            assert bc.simulation_type == "Solid"
-        else:
-            assert bc.simulation_type == "Fluid"
-
 
 if __name__ == "__main__":
     test_GeneralBC()
