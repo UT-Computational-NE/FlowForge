@@ -6,6 +6,8 @@ from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
 from flowforge.input.SolidComponents import SolidComponent
 from flowforge.input.UnitConverter import UnitConverter
+from flowforge.input.BodyForces import BodyForces
+from flowforge.input.WallFunctions import WallFunctions
 from flowforge.input.BoundaryConditions import BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
 
@@ -130,7 +132,8 @@ class System:
         components: Dict[str, Component],
         sysdict: Dict,
         unitdict: Dict[str, str],
-        solid_components: Dict[str, SolidComponent] = None,
+        solid_components: Dict[str, SolidComponent] = {},
+        solid_controllers: Dict[str, Dict[str, dict]] = {}
     ) -> None:
         self._components = []
         self._solid_components = []
@@ -145,7 +148,10 @@ class System:
         self._fluid = None
         self._gas = None
 
-        self._BoundaryConditions = None  # ** Boundary Conditions **
+        # Initializes objects to be empty
+        self._boundaryConditionContainer = BoundaryConditions(**{})
+        self._bodyForceContainer = BodyForces(**{})
+        self._wallFunctionContainer = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
         system_types = ["simple_loop", "segment", "solid_system"]
@@ -158,7 +164,7 @@ class System:
         elif "segment" in sysdict:
             self._setupSegment(components, **sysdict["segment"])
         elif "solid_system" in sysdict:
-            self._setupSolidSystem(solid_components, **sysdict["solid_system"])
+            self._setupSolidSystem(solid_components, solid_controllers, **sysdict["solid_system"])
         # TODO add additional types of systems that can be set up
 
         if "parsers" in sysdict:
@@ -167,8 +173,8 @@ class System:
         for comp in self._components:
             comp._convertUnits(UnitConverter(unitdict))
         # convert BC units
-        if self._BoundaryConditions is not None:
-            self._BoundaryConditions._convertUnits(UnitConverter(unitdict))
+        if self._boundaryConditionContainer is not None:
+            self._boundaryConditionContainer._convertUnits(UnitConverter(unitdict))
 
     @property
     def core(self) -> List[Core]:
@@ -238,7 +244,7 @@ class System:
                 self._connectivity.append((self._components[i], self._components[0]))
 
         # get the boundary conditions
-        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSegment(
         self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
@@ -283,10 +289,14 @@ class System:
                 self._connectivity.append((self._components[i - 1], self._components[i]))
 
         # get the boundary conditions
-        self._BoundaryConditions = BoundaryConditions(**boundary_conditions)
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSolidSystem(
-        self, solid_components: Dict[str, SolidComponent], order: List[str], boundary_conditions: Dict[str, Any]
+        self,
+        solid_components: Dict[str, SolidComponent],
+        solid_controllers: Dict[str, Dict[str, dict]],
+        order: List[str],
+        boundary_conditions: Dict[str, Any]
     ):
         """
         Private method for setting up a solid system
@@ -299,6 +309,8 @@ class System:
         ----------
         solid_components : Dict[str, SolidComponent]
             Set of initialized components, where the key is the components unique name
+        solid_controllers : Dict
+            Dictionary of controllers for the system
         order : List[Dict]
             Ordering of the components, where each element is a dict containing information
             on the specific component
@@ -316,12 +328,12 @@ class System:
 
             self._solid_connectivity.append((previous_component, current_component))
 
-        self._setupSolidBoundaryConditions(boundary_conditions)
+        body_forces = solid_controllers.get("bodyForce", {})
+        wall_functions = solid_controllers.get("wallFunction", {})
 
-        # TODO:
-        #   1) Add solid boundary conditions
-        #   2) Add solid body forces
-        #   3) Add solid wall functions
+        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
+        self._bodyForceContainer = BodyForces(**body_forces)
+        self._wallFunctionContainer = WallFunctions(**wall_functions)
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
@@ -333,9 +345,6 @@ class System:
         """
 
         raise NotImplementedError("To Be Implemented")
-
-    def _setupSolidBoundaryConditions(self, boundary_conditions):
-        pass
 
     def getCellGenerator(self) -> Generator[Component, None, None]:
         """Generator for marching over the nodes (i.e. cells) of a system
@@ -415,7 +424,15 @@ class System:
 
     @property
     def BoundaryConditions(self) -> BoundaryConditions:
-        return self._BoundaryConditions
+        return self._boundaryConditionContainer
+
+    @property
+    def BodyForceContainer(self) -> BodyForces:
+        return self._bodyForceContainer
+
+    @property
+    def WallFunctionContainer(self) -> WallFunctions:
+        return self._wallFunctionContainer
 
     @property
     def isLoop(self) -> bool:

@@ -11,25 +11,38 @@ class BoundaryConditions:
 
     boundary_conditions = {
         "unique_boundary_name" :
-                {"boundary_type": "DirichletBC", "surface": "surface_name", "variable": "variable_name",  "value", float},
+                {"boundary_type": "BC_type",     "surface": "surface_name", "variable": "variable_name",  "value": float},
         "inlet_mdot"           :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value", 25.0},
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "mass_flow_rate", "value": 25.0},
         "outlet_pressure"      :
-                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value", 1e5},
+                {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value": 1e5},
         "inlet_temperature"    :
-                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value", 700}
+                {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value": 700},
+        "outer_solid_temperature"    :
+                {"boundary_type": "NeumannBC",   "surface": "outer",        "variable": "solid_enthalpy", "value": 1e6},
     }
+
+    Parameters
+    ----------
+    boundary_conditions : dict[str, dict]
+        Dict of boundary condition definitions
+
+    Attributes
+    ----------
+    boundary_conditions : List[GeneralWF]
+        List of built boundary condition objects
+
     """
 
     def __init__(self, **boundary_conditions: dict):
 
-        bc_objects = {"DirichletBC": DirichletBC}
-
+        bc_objects = {"DirichletBC": DirichletBC,
+                      "NeumannBC": NeumannBC}
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
-            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
+            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
 
     @property
     def boundary_conditions(self):
@@ -56,26 +69,41 @@ class GeneralBC(abc.ABC):
         - _convertUnits
         - _get_variable_conversion
 
-    Attributes:
-        - _surface_name: str
-        - _variable_name : str
-        - _value: float
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
     """
 
-    def __init__(self, surface: str, variable: str, value):
+    def __init__(self, surface: str, variable: str, value: str):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = EquationParser(str(value))
+        self._value = EquationParser(value)
 
-        self.bc_type = "None"
+        self._boundary_type = None
 
     @property
     def boundary_type(self):
-        return self.bc_type
+        return self._boundary_type
 
     @boundary_type.setter
-    def boundary_type(self, bc_type):
-        self.bc_type = bc_type
+    def boundary_type(self, boundary_type):
+        self._boundary_type = boundary_type
 
     @property
     def boundary_value(self):
@@ -94,35 +122,72 @@ class GeneralBC(abc.ABC):
         return self._surface_name
 
     def convertUnits(self, uc: UnitConverter) -> None:
-        scale_factor, shift_factor = self._get_variable_conversion(uc)
-        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
+        """
+        Converts units
 
-    def _get_variable_conversion(self, uc: UnitConverter):
-        scale_factor, shift_factor = 1, 0
-        if self.variable_name in ["mass_flow_rate", "gas_mass_flow_rate"]:
-            scale_factor = uc.massFlowRateConversion
-        elif self.variable_name == "pressure":
-            scale_factor = uc.pressureConversion
-        elif self.variable_name == "temperature":
-            scale_factor, shift_factor = uc.temperatureConversionFactors
-        elif self.variable_name == "enthalpy":
-            scale_factor = uc.enthalpyConversion
-        elif self.variable_name == "void_fraction":
-            pass  # void fraction is non-dimensional
-        elif self.variable_name.startswith("neutron_precursor_mass_concentration"):
-            pass
-        elif self.variable_name.startswith("decay_heat_precursor_mass_concentration"):
-            pass
-        else:
-            raise Exception("ERROR: non-valid variable name: " + self.variable_name + ".")
-        return scale_factor, shift_factor
+        Parameters
+        ----------
+        uc : UnitConverter
+            Unit converter object used to get the scale factors needed
+        """
+        scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
+        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
 
 
 class DirichletBC(GeneralBC):
     """
     Sub-class for Dirichlet boundary conditions
+
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
     """
 
-    def __init__(self, surface: str, variable: str, value: float):
+    def __init__(self, surface: str, variable: str, value: str):
         super().__init__(surface, variable, value)
-        self.boundary_type = "DirichletBC"
+        self._boundary_type = "DirichletBC"
+
+class NeumannBC(GeneralBC):
+    """
+    Sub-class for Neumann boundary conditions
+
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
+    """
+
+    def __init__(self, surface: str, variable: str, value: str):
+        super().__init__(surface, variable, value)
+        self._boundary_type = "NeumannBC"
