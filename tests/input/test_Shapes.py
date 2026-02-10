@@ -26,16 +26,14 @@ def test_Stadium():
 
     radius = 1.125  # m
     length = 1.88  # m
-    stadium = Stadium(A=length, R=radius)
+    stadium = Stadium(stadium_length=length + 2 * radius, stadium_width=2 * radius)
 
     assert stadium.radius == radius
-    assert stadium.length == length
     assert stadium.area == (np.pi * radius ** 2.0) + (2.0 * radius * length)
     assert stadium.perimeter == 2.0 * (np.pi * radius + length)
 
     stadium._convertUnits(uc=uc)
     assert np.isclose(stadium.radius, radius * _cm2m)
-    assert np.isclose(stadium.length, length * _cm2m)
     assert np.isclose(stadium.area, ((np.pi * radius ** 2.0) + (2.0 * radius * length)) * _cm2m * _cm2m)
     assert np.isclose(stadium.perimeter, (2.0 * (np.pi * radius + length)) * _cm2m)
 
@@ -98,13 +96,13 @@ def test_CrossSection():
     width = 1.7790  # m
 
     circle = Circle(R=radius)
-    stadium = Stadium(A=length, R=radius)
+    stadium = Stadium(stadium_length=length, stadium_width=width)
     rectangle = Rectangle(H=height, W=width)
     square = Square(W=width)
     hexagon = Hexagon(L=length)
 
     circle_CX = CrossSection(shape="circular", R=radius)
-    stadium_CX = CrossSection(shape="stadium", A=length, R=radius)
+    stadium_CX = CrossSection(shape="stadium", stadium_length=length, stadium_width=width)
     rectangle_CX = CrossSection(shape="rectangular", H=height, W=width)
     square_CX = CrossSection(shape="square", W=width)
     hexagon_CX = CrossSection(shape="hexagon", L=length)

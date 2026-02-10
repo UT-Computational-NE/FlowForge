@@ -103,17 +103,21 @@ class Stadium(Shape):
 
     Parameters
     ----------
-    length : float
-        Length of the rectangular portion of the stadium
-    radius : float
-        Radius of the semi circular portion of the stadium
+    stadium_width : float
+        The width of the stadium, equivalent to the diamater of the circle
+    stadium_length : float
+        The full length of the stadium, from apex of circle to apex of circle
 
     Attributes
     ----------
-    length : float
-        Length of the rectangular portion of the stadium
+    stadium_width : float
+        The width of the stadium, equivalent to the diamater of the circle
+    stadium_length : float
+        The full length of the stadium, from apex of circle to apex of circle
     radius : float
-        Radius of the semi circular portion of the stadium
+        The radius of the circle, equal to half the stadium width
+    partial_length: float
+        The length of the rectangle, equal to the stadium length minus the width
     area : float
         Area of the given shape
     perimeter : float
@@ -121,33 +125,43 @@ class Stadium(Shape):
     """
 
     # Class inputs
-    inputs = tuple(["A", "R"])
+    inputs = tuple(["stadium_width", "stadium_length"])
 
-    def __init__(self, A: float, R: float) -> None:
-        self._length = A
-        self._radius = R
-        self._area = (np.pi * R**2.0) + (2.0 * R * A)
-        self._perimeter = 2.0 * (np.pi * R + A)
+    def __init__(self, stadium_width: float, stadium_length: float) -> None:
+        self._stadium_width = stadium_width
+        self._stadium_length = stadium_length
 
     @property
-    def length(self) -> float:
-        return self._length
+    def stadium_width(self) -> float:
+        return self._stadium_width
 
-    @length.setter
-    def length(self, length) -> None:
-        self._length = length
-        self._area = (np.pi * self.radius**2.0) + (2.0 * self.radius * length)
-        self._perimeter = 2.0 * (np.pi * self.radius + length)
+    @stadium_width.setter
+    def stadium_width(self, stadium_width):
+        self._stadium_width = stadium_width
+
+    @property
+    def stadium_length(self) -> float:
+        return self._stadium_length
+
+    @stadium_length.setter
+    def stadium_length(self, stadium_length):
+        self._stadium_length = stadium_length
 
     @property
     def radius(self) -> float:
-        return self._radius
+        return self.stadium_width / 2
 
-    @radius.setter
-    def radius(self, radius) -> None:
-        self._radius = radius
-        self._area = (np.pi * radius**2.0) + (2.0 * radius * self.length)
-        self._perimeter = 2.0 * (np.pi * self.radius + self.length)
+    @property
+    def partial_length(self) -> float:
+        return self.stadium_length - self.stadium_width
+
+    @property
+    def _area(self) -> float:
+        return (np.pi * self.radius**2) + self.partial_length * self.stadium_width
+
+    @property
+    def _perimeter(self) -> float:
+        return 2 * np.pi * self.radius + 2 * self.partial_length
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         """
@@ -162,8 +176,8 @@ class Stadium(Shape):
             A unit converter which holds the 'from' units and 'to' units for the conversion
             and will ultimately provide the appropriate multipliers for unit conversion.
         """
-        self.radius *= uc.lengthConversion
-        self.length *= uc.lengthConversion
+        self.stadium_width *= uc.lengthConversion
+        self.stadium_length *= uc.lengthConversion
 
 
 class Rectangle(Shape):
