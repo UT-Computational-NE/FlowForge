@@ -26,6 +26,8 @@ class Component:
 
     Attributes
     ----------
+    name : string
+        Name of the component, defined by the input file
     flowArea : float
         The component flow area (currently assumed that components have constant flow areas from inlet to outlet)
     length : float
@@ -58,12 +60,21 @@ class Component:
 
     def __init__(self) -> None:
         self.uc = None
+        self._name = None
         self._roughness = 0.0
         self._klossInlet = 0.0
         self._klossOutlet = 0.0
         self._klossAvg = 0.0
         self._theta = 0.0
         self._alpha = 0.0
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name) -> None:
+        self._name = name
 
     @property
     @abc.abstractmethod
