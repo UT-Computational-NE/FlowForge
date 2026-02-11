@@ -1,0 +1,59 @@
+{
+    "components": {
+        "pipe": {"f1": {"R": 1.2, "L": 5.0, "n": 20, "theta": 0},
+                 "f2": {"R": 1.2, "L": 5.0, "n": 20, "theta": 0},
+                 "f3": {"R": 1.2, "L": 5.0, "n": 20, "theta": 0},
+                 "f4": {"R": 1.2, "L": 5.0, "n": 20, "theta": 0}}
+    },
+    "solid_components": {
+        "component": {"s1": {"height": 5.0, "n_cells": 10, "cross_section": "square", "W": 3.4},
+                      "s2": {"height": 5.0, "n_cells": 10, "cross_section": "square", "W": 3.4}}
+    },
+    "coupled_components": {
+        "c1": ["f2", "s1"],
+        "c2": ["f3", "s2"]
+    },
+    "controllers": {
+        "bodyForce": {},
+        "wallFunction": {}
+    },
+    "solid_controllers": {
+        "bodyForce": {},
+        "wallFunction": {}
+    },
+    "system": {
+        "segment": {
+            "order": [
+                {"component": "f1"},
+                {"component": "f2"},
+                {"component": "f3"},
+                {"component": "f4"}
+            ],
+            "boundary_conditions": {
+                "inlet_mdot"        : {"boundary_type": "DirichletBC", "surface": "inlet",  "variable": "mass_flow_rate", "value": 12.5},
+                "outlet_pressure"   : {"boundary_type": "DirichletBC", "surface": "outlet", "variable": "pressure",       "value": 101325},
+                "inlet_temperature" : {"boundary_type": "DirichletBC", "surface": "inlet",  "variable": "temperature",    "value": 923.15}
+            },
+            "fluid": "FLiBe"
+        },
+        "solid_system": {
+            "order": [
+                {"component": "s1"},
+                {"component": "s2"}
+            ],
+            "boundary_conditions": {
+                "outer_surface" : {"boundary_type": "DirichletBC", "surface": "outer", "variable": "solid_temperature", "value": "500"},
+                "bottom_temp"   : {"boundary_type": "DirichletBC", "surface": "inlet", "variable": "solid_temperature", "value": "500"},
+                "top_temp"      : {"boundary_type": "DirichletBC", "surface": "outlet", "variable": "solid_temperature", "value": "500"}
+            }
+        }
+    },
+    "units": {
+        "length": "cm",
+        "time"  : "s",
+        "pressure": "pa",
+        "massFlowRate": "kg/s",
+        "power": "w",
+        "temperature": "K"
+    }
+}

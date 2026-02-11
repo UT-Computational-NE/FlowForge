@@ -159,12 +159,18 @@ class System:
         # Controller Variables
         self._fluid_body_forces = []
         self._fluid_wall_functions = []
-        self._solid_body_forces = {}
-        self._solid_wall_functions = {}
+        self._solid_body_forces = []
+        self._solid_wall_functions = []
 
         # Material variables
         self._fluid = None
         self._gas = None
+
+        # Physics object definitions
+        self._fluid_boundary_conditions_definitions = {}
+        self._solid_boundary_conditions_definitions = {}
+        self._solid_body_forces_definitions = {}
+        self._solid_wall_functions_definitions = {}
 
         # Initializes container objects to be empty
         self._boundary_condition_container = BoundaryConditions(**{})
@@ -220,7 +226,7 @@ class System:
 
             # System is non-coupled
             all_valid_systems = valid_fluid_system_types + valid_solid_system_types
-            n_systems = len(sys for sys in sys_dict if sys in all_valid_systems)
+            n_systems = len([sys for sys in sys_dict if sys in all_valid_systems])
             assert n_systems == 1, "Can only define (1) system"
 
             return False
@@ -260,19 +266,19 @@ class System:
                               fluid_components: Dict[str, Component] = None,
                               solid_components: Dict[str, SolidComponent] = None,
                               solid_controllers: Dict[str, Dict[str, dict]] = None,
-                              coupled_component_inputs: List[Tuple[str, str]] = None
+                              coupled_components: List[Tuple[str, str]] = None
                               ) -> None:
         """
         """
 
-        n_fluid_systems = len(sys for sys in sys_dict if sys in valid_fluid_system_types)
-        n_solid_systems = len(sys for sys in sys_dict if sys in valid_solid_system_types)
+        n_fluid_systems = len([sys for sys in sys_dict if sys in valid_fluid_system_types])
+        n_solid_systems = len([sys for sys in sys_dict if sys in valid_solid_system_types])
 
         assert n_fluid_systems == 1, "Cannot define multiple fluid systems"
         assert n_solid_systems == 1, "Cannot define multiple solid systems"
 
         # Couple components
-        for fluid_name, solid_name in coupled_component_inputs.values():
+        for fluid_name, solid_name in coupled_components.values():
             # If input backwards (not [fluid, solid]), this flips them
             if fluid_name not in fluid_components:
                 fluid_name, solid_name = solid_name, fluid_name
@@ -309,19 +315,19 @@ class System:
         self._wall_function_container = WallFunctions(**self._solid_wall_functions_definitions)
 
         # Creates list of coupled component object in the system
-        for fluid_name, solid_name in coupled_component_inputs.values():
+        for fluid_name, solid_name in coupled_components.values():
             # If input backwards (not [fluid, solid]), this flips them
             if fluid_name not in fluid_components:
                 fluid_name, solid_name = solid_name, fluid_name
 
             built_fluid_components = [comp for comp in self._fluid_components if comp.name == fluid_name]
-            built_solid_components = [comp for comp in self._solid_components if comp.name == fluid_name]
+            built_solid_components = [comp for comp in self._solid_components if comp.name == solid_name]
 
             error_msg = "If a component is coupled, can only define (1) of them in the system"
             assert len(built_fluid_components) == 1, error_msg + f" (error in fluid system: {fluid_name})"
             assert len(built_solid_components) == 1, error_msg + f" (error in solid system: {solid_name})"
 
-            self._coupled_components_connectivity.append(built_fluid_components[0], built_solid_components[0])
+            self._coupled_components_connectivity.append((built_fluid_components[0], built_solid_components[0]))
 
     def _unit_conversion(self, unit_dict):
         """
