@@ -42,7 +42,12 @@ class BoundaryConditions:
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
-            self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
+            if bc_type in ("DirichletBC", "NeumannBC"):
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
+            elif bc_type == "AdiabaticBC":
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"])
+            else:
+                raise Exception(f"no such boundary type: {bc_type}")
 
     @property
     def boundary_conditions(self):
@@ -191,3 +196,30 @@ class NeumannBC(GeneralBC):
     def __init__(self, surface: str, variable: str, value: str):
         super().__init__(surface, variable, value)
         self._boundary_type = "NeumannBC"
+
+class AdiabaticBC(GeneralBC):
+    """
+    Sub-class for Adiabatic boundary conditions
+
+    Parameters
+    ----------
+    surface : str
+        Name of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+        (For adiabatic, set to "1.0")
+    variable_name : str
+        Variable associated with this boundary
+    surface_name : str
+        Surface this boundary is applied to
+    """
+    def __init__(self, surface, variable):
+        super().__init__(surface, variable, "1.0")
+        self._boundary_type == "AdiabaticBC"
