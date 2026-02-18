@@ -13,8 +13,8 @@ from flowforge.parsers.OutputParser import OutputParser
 from flowforge.input.ComponentCoupler import couple as FluidSolidComponentCoupler
 
 # GLOBAL VARIABLES
-valid_solid_system_types = ("solid_system")
-valid_fluid_system_types = ("segment", "simple_loop")
+valid_solid_system_types = tuple(["solid_system"])
+valid_fluid_system_types = tuple(["segment", "simple_loop"])
 
 def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
