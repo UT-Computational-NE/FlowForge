@@ -102,6 +102,16 @@ def test_nozzle():
     assert n.nCell == 1
     assert n.getOutlet((0, 0, 0)) == (0, 0, 0.1)
 
+    n = Nozzle(L=10, R_inlet=2, R_outlet=4, n=5)
+    n._convertUnits(uc)
+    assert n.flowArea > 0.0
+    assert n.volume > 0.0
+    assert n.length == 0.1
+    assert n.hydraulicDiameter > 0.0
+    assert n.heightChange == 0.1
+    assert n.nCell == 5
+    assert n.getOutlet((0, 0, 0)) == (0, 0, 0.1)
+
 
 def test_annulus():
     a = Annulus(L=10, R_inner=9, R_outer=10, n=10)

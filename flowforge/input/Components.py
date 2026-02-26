@@ -667,6 +667,8 @@ class Nozzle(Component):
         Radius of the nozzle inlet
     R_outlet : float
         Radius of the nozzle outlet
+    n : int
+        Number of cells the nozzle is divided into
     theta : float
         Orientation angle in the polar direction
     alpha : float
@@ -688,6 +690,7 @@ class Nozzle(Component):
         L: float,
         R_inlet: float,
         R_outlet: float,
+        n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
         Klossinlet: float = 0.0,
@@ -702,6 +705,7 @@ class Nozzle(Component):
         self._L = L
         self._Rin = R_inlet
         self._Rout = R_outlet
+        self._n = n
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
         self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
@@ -747,7 +751,7 @@ class Nozzle(Component):
 
     @property
     def nCell(self) -> int:
-        return 1
+        return self._n
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
