@@ -4,6 +4,7 @@ from flowforge.input.Components import (
     Pipe,
     Pump,
     Nozzle,
+    MultiCellNozzle,
     Annulus,
     Tank,
     ParallelComponents,
@@ -102,15 +103,31 @@ def test_nozzle():
     assert n.nCell == 1
     assert n.getOutlet((0, 0, 0)) == (0, 0, 0.1)
 
-    n = Nozzle(L=10, R_inlet=2, R_outlet=4, n=5)
+
+def test_multi_cell_nozzle():
+    n = MultiCellNozzle(L=10, R_inlet=2, R_outlet=4, n=5)
     n._convertUnits(uc)
-    assert n.flowArea > 0.0
-    assert n.volume > 0.0
-    assert n.length == 0.1
-    assert n.hydraulicDiameter > 0.0
-    assert n.heightChange == 0.1
     assert n.nCell == 5
-    assert n.getOutlet((0, 0, 0)) == (0, 0, 0.1)
+    assert n.length == pytest.approx(0.1)
+    assert n.heightChange == pytest.approx(0.1)
+    assert n.flowArea > 0.0
+    assert n.hydraulicDiameter > 0.0
+    assert n.inletArea == pytest.approx(math.pi * 0.02 ** 2)
+    assert n.outletArea == pytest.approx(math.pi * 0.04 ** 2)
+    assert n.getOutlet((0, 0, 0)) == pytest.approx((0, 0, 0.1))
+    assert isinstance(n, SerialComponents)
+
+    # n=1 should behave like a single Nozzle
+    n1 = MultiCellNozzle(L=10, R_inlet=2, R_outlet=4, n=1)
+    n1._convertUnits(uc)
+    ref = Nozzle(L=10, R_inlet=2, R_outlet=4)
+    ref._convertUnits(uc)
+    assert n1.nCell == 1
+    assert n1.flowArea == pytest.approx(ref.flowArea)
+    assert n1.hydraulicDiameter == pytest.approx(ref.hydraulicDiameter)
+    assert n1.length == pytest.approx(ref.length)
+    assert n1.inletArea == pytest.approx(ref.inletArea)
+    assert n1.outletArea == pytest.approx(ref.outletArea)
 
 
 def test_annulus():
@@ -305,6 +322,7 @@ if __name__ == "__main__":
     test_stadium_pipe()
     test_pump()
     test_nozzle()
+    test_multi_cell_nozzle()
     test_annulus()
     test_tank()
     test_parallel()

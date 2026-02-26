@@ -667,8 +667,6 @@ class Nozzle(Component):
         Radius of the nozzle inlet
     R_outlet : float
         Radius of the nozzle outlet
-    n : int
-        Number of cells the nozzle is divided into
     theta : float
         Orientation angle in the polar direction
     alpha : float
@@ -690,7 +688,6 @@ class Nozzle(Component):
         L: float,
         R_inlet: float,
         R_outlet: float,
-        n: int = 1,
         theta: float = 0.0,
         alpha: float = 0.0,
         Klossinlet: float = 0.0,
@@ -705,7 +702,6 @@ class Nozzle(Component):
         self._L = L
         self._Rin = R_inlet
         self._Rout = R_outlet
-        self._n = n
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
         self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
@@ -751,7 +747,7 @@ class Nozzle(Component):
 
     @property
     def nCell(self) -> int:
-        return self._n
+        return 1
 
     def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
         x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
@@ -2241,3 +2237,106 @@ def cont_factory(cont_components, order):
 
 
 component_list["serial_components"] = SerialComponents
+
+
+class MultiCellNozzle(SerialComponents):
+    """A nozzle component divided into multiple axial cells.
+
+    The nozzle is decomposed into ``n`` single-cell :class:`Nozzle` segments whose radii are
+    linearly interpolated between ``R_inlet`` and ``R_outlet``. This allows a converging or
+    diverging nozzle to be discretized for use in multi-cell fluid-mesh setups via the
+    :class:`SerialComponents` framework.
+
+    Parameters
+    ----------
+    L : float
+        Total length of the nozzle
+    R_inlet : float
+        Radius at the nozzle inlet
+    R_outlet : float
+        Radius at the nozzle outlet
+    n : int
+        Number of axial cells. Must be >= 1.
+    theta : float
+        Orientation angle in the polar direction
+    alpha : float
+        Orientation angle in the azimuthal direction
+    roughness : float
+        Nozzle roughness
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the nozzle
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the nozzle
+    Klossavg : float
+        K-loss coefficient associated with pressure loss across the nozzle
+    ptcHeated : float
+        Fraction of the nozzle that is heated. Used for calculating heated perimeter.
+    resolution : int
+        Number of sides the nozzle curvature is approximated with (for VTK mesh generation)
+    """
+
+    def __init__(
+        self,
+        L: float,
+        R_inlet: float,
+        R_outlet: float,
+        n: int = 1,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
+        roughness: float = 0.0,
+        ptcHeated: float = 1,
+        resolution: int = _CYL_RESOLUTION,
+    ) -> None:
+        radii = np.linspace(R_inlet, R_outlet, n + 1)
+        seg_length = L / n
+        nozzle_dict = {}
+        order = []
+        for i in range(n):
+            name = f"nozzle_{i}"
+            nozzle_dict[name] = {
+                "L": seg_length,
+                "R_inlet": float(radii[i]),
+                "R_outlet": float(radii[i + 1]),
+                "theta": theta,
+                "alpha": alpha,
+                "Klossinlet": Klossinlet if i == 0 else 0.0,
+                "Klossoutlet": Klossoutlet if i == n - 1 else 0.0,
+                "Klossavg": Klossavg,
+                "roughness": roughness,
+                "ptcHeated": ptcHeated,
+                "resolution": resolution,
+            }
+            order.append(name)
+        super().__init__({"nozzle": nozzle_dict}, order)
+
+    @property
+    def flowArea(self) -> float:
+        # Average cross-section area, consistent with single-cell Nozzle: pi * ((Rin+Rout)/2)^2
+        avg_r = (self._myComponents[self._order[0]]._Rin + self._myComponents[self._order[-1]]._Rout) / 2
+        return np.pi * avg_r * avg_r
+
+    @property
+    def hydraulicDiameter(self) -> float:
+        # For a circular cross-section: Dh = 4*A/P = 4*pi*r^2 / (2*pi*r) = 2*r = Rin + Rout (for avg r)
+        # Consistent with single-cell Nozzle.hydraulicDiameter = self._Rin + self._Rout
+        return self._myComponents[self._order[0]]._Rin + self._myComponents[self._order[-1]]._Rout
+
+    @property
+    def heatedPerimeter(self) -> float:
+        # For linearly interpolated radii, the arithmetic mean of all segment heated perimeters equals
+        # (first + last) / 2, consistent with single-cell Nozzle: ptcHeated * pi * (Rin + Rout)
+        return (
+            self._myComponents[self._order[0]]._heatedPerimeter
+            + self._myComponents[self._order[-1]]._heatedPerimeter
+        ) / 2
+
+    @property
+    def heightChange(self) -> float:
+        return self.length * np.cos(self._theta)
+
+
+component_list["multi_cell_nozzle"] = MultiCellNozzle
+
