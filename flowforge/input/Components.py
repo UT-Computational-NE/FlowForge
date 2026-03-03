@@ -484,27 +484,64 @@ component_list["pipe"] = Pipe
 
 
 class SimpleHX(Pipe):
+    """A simple shell-and-tube heat exchanger component
+
+    Represents the shell-side of a heat exchanger using equivalent hydraulic geometry
+    derived from the shell holdup volume and effective heated area.
+
+    Parameters
+    ----------
+    shell_active_length : float
+        Active length of the heat exchanger shell
+    shell_holdup_volume : float
+        Holdup volume of fluid on the shell side
+    effective_heated_area : float
+        Total heated surface area on the shell side
+    cross_section_name : str, optional
+        Cross section shape name, defaults to "circular"
+    n : int, optional
+        Number of axial cells, defaults to 1
+    theta : float, optional
+        Orientation angle in the polar direction, defaults to 0
+    alpha : float, optional
+        Orientation angle in the azimuthal direction, defaults to 0
+    Klossinlet : float, optional
+        K-loss coefficient at the inlet, defaults to 0
+    Klossoutlet : float, optional
+        K-loss coefficient at the outlet, defaults to 0
+    Klossavg : float, optional
+        Average K-loss coefficient across the component, defaults to 0
+    roughness : float, optional
+        Surface roughness, defaults to 0
+    pctHeated : float, optional
+        Fraction of the perimeter that is heated, defaults to 1
+    num_representative : int, optional
+        Number of representative channels, defaults to 1
+    """
+
     def __init__(
         self,
-        shell_active_length,
-        shell_holdup_volume,
-        effective_heated_area,
-        cross_section_name="circular",
-        n=1,
-        theta=0,
-        alpha=0,
-        Klossinlet=0,
-        Klossoutlet=0,
-        Klossavg=0,
-        roughness=0,
-        pctHeated=1,
-        num_representative=1,
+        shell_active_length: float,
+        shell_holdup_volume: float,
+        effective_heated_area: float,
+        cross_section_name: str = "circular",
+        n: int = 1,
+        theta: float = 0,
+        alpha: float = 0,
+        Klossinlet: float = 0,
+        Klossoutlet: float = 0,
+        Klossavg: float = 0,
+        roughness: float = 0,
+        pctHeated: float = 1,
+        num_representative: int = 1,
         **kwargs,
-    ):
-        self._Ac = shell_holdup_volume / shell_active_length
-        self._heatedPerimeter = effective_heated_area / shell_active_length
-        self._Dh = 4.0 * self._Ac / self._heatedPerimeter
-        kwargs["R"] = self._Dh / 2
+    ) -> None:
+        # Compute equivalent hydraulic geometry from shell-side geometry
+        Ac = shell_holdup_volume / shell_active_length
+        heated_perimeter = effective_heated_area / shell_active_length
+        Dh = 4.0 * Ac / heated_perimeter
+        # Pass equivalent circular radius so the parent can build a cross section for VTK visualization
+        kwargs["R"] = Dh / 2
 
         super().__init__(
             shell_active_length,
@@ -521,41 +558,14 @@ class SimpleHX(Pipe):
             **kwargs,
         )
 
-        # pipe constructor overrode but need to get r for plotting........
-        self._Ac = shell_holdup_volume / shell_active_length
-        self._heatedPerimeter = effective_heated_area / shell_active_length
-        self._Dh = 4.0 * self._Ac / self._heatedPerimeter
-
-    @property
-    def flowArea(self) -> float:
-        return self._num_representative * self._Ac
-
-    @property
-    def length(self) -> float:
-        return self._L
-
-    @property
-    def hydraulicDiameter(self) -> float:
-        return self._Dh
-
-    @property
-    def heatedPerimeter(self) -> float:
-        return self._num_representative * self._heatedPerimeter
-
-    @property
-    def heightChange(self) -> float:
-        return self._costh * self._L
-
-    @property
-    def nCell(self) -> int:
-        return self._n
-
-    @property
-    def crossSection(self) -> CrossSection:
-        return self._cross_section
+        # Restore the correct shell-side hydraulic values, which the parent overwrote with cross-section values
+        self._Ac = Ac
+        self._heatedPerimeter = heated_perimeter
+        self._Dh = Dh
 
 
 component_list["simple_hx"] = SimpleHX
+
 
 class Tee(Pipe):
     """A Tee pipe component
