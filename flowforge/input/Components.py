@@ -483,6 +483,80 @@ class Pipe(Component):
 component_list["pipe"] = Pipe
 
 
+class SimpleHX(Pipe):
+    def __init__(
+        self,
+        shell_active_length,
+        shell_holdup_volume,
+        effective_heated_area,
+        cross_section_name="circular",
+        n=1,
+        theta=0,
+        alpha=0,
+        Klossinlet=0,
+        Klossoutlet=0,
+        Klossavg=0,
+        roughness=0,
+        pctHeated=1,
+        num_representative=1,
+        **kwargs,
+    ):
+        self._Ac = shell_holdup_volume / shell_active_length
+        self._heatedPerimeter = effective_heated_area / shell_active_length
+        self._Dh = 4.0 * self._Ac / self._heatedPerimeter
+        kwargs["R"] = self._Dh / 2
+
+        super().__init__(
+            shell_active_length,
+            cross_section_name,
+            n,
+            theta,
+            alpha,
+            Klossinlet,
+            Klossoutlet,
+            Klossavg,
+            roughness,
+            pctHeated,
+            num_representative,
+            **kwargs,
+        )
+
+        # pipe constructor overrode but need to get r for plotting........
+        self._Ac = shell_holdup_volume / shell_active_length
+        self._heatedPerimeter = effective_heated_area / shell_active_length
+        self._Dh = 4.0 * self._Ac / self._heatedPerimeter
+
+    @property
+    def flowArea(self) -> float:
+        return self._num_representative * self._Ac
+
+    @property
+    def length(self) -> float:
+        return self._L
+
+    @property
+    def hydraulicDiameter(self) -> float:
+        return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._num_representative * self._heatedPerimeter
+
+    @property
+    def heightChange(self) -> float:
+        return self._costh * self._L
+
+    @property
+    def nCell(self) -> int:
+        return self._n
+
+    @property
+    def crossSection(self) -> CrossSection:
+        return self._cross_section
+
+
+component_list["simple_hx"] = SimpleHX
+
 class Tee(Pipe):
     """A Tee pipe component
 
