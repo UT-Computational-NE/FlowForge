@@ -578,3 +578,28 @@ class User_Fluid(Fluid):
         Enthalpy [J/kg]
         """
         return self.enthalpy_fun(T)
+
+
+class CharlieCustom(FLiBe_UF4):
+    def temperature(self, h):
+        """
+        Temperature [K]
+        """
+        temp = h / self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        # assert np.all(temp >= 0)
+        return temp
+
+    def density(self, h):
+        return 2413 + h * 0
+
+    def viscosity(self, h):
+        return 0.116e-3 + h * 0
+
+    def conductivity(self, h):
+        """
+        Thermal conductivity [W/m-K]:
+        Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
+        ref. [1], pg.  10, Table 7.
+        ref. [2], pg. 638, Table 3.
+        """
+        return 1.1 + h * 0
