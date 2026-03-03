@@ -10,6 +10,7 @@ from flowforge.input.Components import (
     SerialComponents,
     ComponentCollection,
     HexCore,
+    SimpleHX,
 )
 from flowforge import UnitConverter
 
@@ -89,6 +90,27 @@ def test_pump():
     assert p.hydraulicDiameter > 0.0
     assert p.heightChange > 0
     assert p.nCell == 1
+
+
+def test_simple_hx():
+    # shell_active_length=100cm, shell_holdup_volume=400cm^3, effective_heated_area=800cm^2
+    # Ac = 400/100 = 4 cm^2, heated_perimeter = 800/100 = 8 cm, Dh = 4*4/8 = 2 cm
+    hx = SimpleHX(shell_active_length=100, shell_holdup_volume=400, effective_heated_area=800)
+    hx._convertUnits(uc)
+    # After unit conversion: Ac=4cm^2->0.0004m^2, Dh=2cm->0.02m, L=100cm->1.0m, heated_perimeter=8cm->0.08m
+    assert hx.flowArea == pytest.approx(0.0004)
+    assert hx.hydraulicDiameter == pytest.approx(0.02)
+    assert hx.length == pytest.approx(1.0)
+    assert hx.heatedPerimeter == pytest.approx(0.08)
+    assert hx.heightChange == pytest.approx(1.0)
+    assert hx.nCell == 1
+
+    # Test with num_representative > 1
+    hx2 = SimpleHX(shell_active_length=100, shell_holdup_volume=400, effective_heated_area=800, num_representative=3)
+    hx2._convertUnits(uc)
+    assert hx2.flowArea == pytest.approx(3 * 0.0004)
+    assert hx2.heatedPerimeter == pytest.approx(3 * 0.08)
+    assert hx2.hydraulicDiameter == pytest.approx(0.02)
 
 
 def test_nozzle():
