@@ -278,8 +278,10 @@ def test_baseComponents():
             assert all(not isinstance(base_component, ComponentCollection) for base_component in base_components)
 
         if isinstance(component, ParallelComponents):
-            assert component.lowerPlenum in base_components
-            assert component.upperPlenum in base_components
+            lower_plenum_bases = component.lowerPlenum.baseComponents
+            upper_plenum_bases = component.upperPlenum.baseComponents
+            assert all(base in base_components for base in lower_plenum_bases)
+            assert all(base in base_components for base in upper_plenum_bases)
 
 
 def test_firstLastComponent():

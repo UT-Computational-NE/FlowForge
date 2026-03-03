@@ -419,8 +419,8 @@ class Pipe(Component):
         self._num_representative = num_representative
         self._temps = np.zeros(self.nCell)
 
-        self._region_width = kwargs.get("region_width", self._Dh / 2)
-        self._region_length = kwargs.get("region_length", self._Dh / 2)
+        self._bounding_box_dx = kwargs.get("bounding_box_dx", self._Dh / 2)
+        self._bounding_box_dy = kwargs.get("bounding_box_dy", self._Dh / 2)
 
     @property
     def flowArea(self) -> float:
@@ -467,7 +467,7 @@ class Pipe(Component):
         self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._region_width, self._region_length, self._L, self._theta, self._alpha]
+        return [inlet, outlet, self._bounding_box_dx, self._bounding_box_dy, self._L, self._theta, self._alpha]
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
@@ -476,8 +476,8 @@ class Pipe(Component):
         self._Pw *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
         self._heatedPerimeter *= uc.lengthConversion
-        self._region_length *= uc.lengthConversion
-        self._region_width *= uc.lengthConversion
+        self._bounding_box_dy *= uc.lengthConversion
+        self._bounding_box_dx *= uc.lengthConversion
 
 
 component_list["pipe"] = Pipe
@@ -745,136 +745,6 @@ class Pump(Component):
 
 
 component_list["pump"] = Pump
-
-
-class Nozzle(Component):
-    """A nozzle component
-
-    Parameters
-    ----------
-    L : float
-        Length of the nozzle
-    R_inlet : float
-        Radius of the nozzle inlet
-    R_outlet : float
-        Radius of the nozzle outlet
-    theta : float
-        Orientation angle in the polar direction
-    alpha : float
-        Orientation angle in the azimuthal direction
-    roughness : float
-        Nozzle roughness
-    Klossinlet : float
-        K-loss coefficient associated with pressure loss at the inlet of the nozzle
-    Klossoutlet : float
-        K-loss coefficient associated with pressure loss at the outlet of the nozzle
-    Klossavg : float
-        K-loss coefficient associated with pressure loss across the nozzle
-    ptcHeated : float
-        Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
-    """
-
-    def __init__(
-        self,
-        L: float,
-        R_inlet: float,
-        R_outlet: float,
-        theta: float = 0.0,
-        alpha: float = 0.0,
-        Klossinlet: float = 0.0,
-        Klossoutlet: float = 0.0,
-        Klossavg: float = 0.0,
-        roughness: float = 0.0,
-        ptcHeated: float = 1,
-        num_representative: int = 1,
-        resolution: int = _CYL_RESOLUTION,
-        **kwargs,
-    ) -> None:
-        super().__init__()
-        self._L = L
-        self._Rin = R_inlet
-        self._Rout = R_outlet
-        self._theta = theta * np.pi / 180
-        self._alpha = alpha * np.pi / 180
-        self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
-        self._Ac = 0.25 * np.pi * self._Dh * self._Dh
-        self._res = resolution
-        self._klossInlet = Klossinlet
-        self._klossOutlet = Klossoutlet
-        self._klossAvg = Klossavg
-        self._roughness = roughness
-        self._kwargs = kwargs
-        self._temps = np.zeros(self.nCell)
-        self._num_representative = num_representative
-
-        wetted_perimeter = np.pi * (self._Rin + self._Rout)  # 2 pi r and 1/2 from average also cancels
-        self._heatedPerimeter = ptcHeated * wetted_perimeter
-
-    @property
-    def flowArea(self) -> float:
-        return self._num_representative * self._Ac
-
-    @property
-    def inletArea(self) -> float:
-        return self._num_representative * np.pi * self._Rin * self._Rin
-
-    @property
-    def outletArea(self) -> float:
-        return self._num_representative * np.pi * self._Rout * self._Rout
-
-    @property
-    def length(self) -> float:
-        return self._L
-
-    @property
-    def hydraulicDiameter(self) -> float:
-        return self._Dh
-
-    @property
-    def heatedPerimeter(self) -> float:
-        return self._num_representative * self._heatedPerimeter
-
-    @property
-    def heightChange(self) -> float:
-        return self._L * np.cos(self._theta)
-
-    @property
-    def nCell(self) -> int:
-        return 1
-
-    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
-        x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
-        y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
-        z = inlet[2] + self._L * np.cos(self._theta)
-        return (x, y, z)
-
-    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genNozzle(self._L, self._Rin, self._Rout, resolution=self._res, **self._kwargs).translate(
-            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
-        )
-
-    def getBoundingBox(
-        self, inlet: Tuple[float, float, float]
-    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
-        outlet = self.getOutlet(inlet)
-        if self._Rin >= self._Rout:
-            big_r = self._Rin
-        else:
-            big_r = self._Rout
-        return [inlet, outlet, big_r, big_r, self._L, self._theta, self._alpha]
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        self._L *= uc.lengthConversion
-        self._Rin *= uc.lengthConversion
-        self._Rout *= uc.lengthConversion
-        self._Dh *= uc.lengthConversion
-        self._Ac *= uc.areaConversion
-        self._roughness *= uc.lengthConversion
-        self._heatedPerimeter *= uc.lengthConversion
-
-
-component_list["nozzle"] = Nozzle
-
 
 class Annulus(Component):
     """A annulus component
@@ -1191,7 +1061,8 @@ class ComponentCollection(Component):
         raise NotImplementedError
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
-        yield from [component.getNodeGenerator() for component in self._myComponents.values()]
+        for component in self._myComponents.values():
+            yield from component.getNodeGenerator()
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         for component in self._myComponents.values():
@@ -2304,7 +2175,7 @@ def cont_factory(cont_components, order):
         prev_area = cont_components[order[0]].inletArea
         for i, entry in enumerate(order):
             if abs(prev_area - cont_components[entry].inletArea) > 1.0e-12 * min(prev_area, cont_components[entry].inletArea):
-                tempnozzle = component_list["nozzle"](
+                tempnozzle = component_list["nozzle_node"](
                     L=1.0e-64,
                     R_inlet=np.sqrt(prev_area / np.pi),
                     R_outlet=np.sqrt(cont_components[entry].inletArea / np.pi),
@@ -2333,7 +2204,136 @@ def cont_factory(cont_components, order):
 component_list["serial_components"] = SerialComponents
 
 
-class MultiCellNozzle(SerialComponents):
+class NozzleNode(Component):
+    """A nozzle component that is a single node. For more resolution see `Nozzle` class.
+
+    Parameters
+    ----------
+    L : float
+        Length of the nozzle
+    R_inlet : float
+        Radius of the nozzle inlet
+    R_outlet : float
+        Radius of the nozzle outlet
+    theta : float
+        Orientation angle in the polar direction
+    alpha : float
+        Orientation angle in the azimuthal direction
+    roughness : float
+        Nozzle roughness
+    Klossinlet : float
+        K-loss coefficient associated with pressure loss at the inlet of the nozzle
+    Klossoutlet : float
+        K-loss coefficient associated with pressure loss at the outlet of the nozzle
+    Klossavg : float
+        K-loss coefficient associated with pressure loss across the nozzle
+    ptcHeated : float
+        Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
+    """
+
+    def __init__(
+        self,
+        L: float,
+        R_inlet: float,
+        R_outlet: float,
+        theta: float = 0.0,
+        alpha: float = 0.0,
+        Klossinlet: float = 0.0,
+        Klossoutlet: float = 0.0,
+        Klossavg: float = 0.0,
+        roughness: float = 0.0,
+        ptcHeated: float = 1,
+        num_representative: int = 1,
+        resolution: int = _CYL_RESOLUTION,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self._L = L
+        self._Rin = R_inlet
+        self._Rout = R_outlet
+        self._theta = theta * np.pi / 180
+        self._alpha = alpha * np.pi / 180
+        self._Dh = self._Rin + self._Rout  # average radius needs div 2 but radius to diameter needs mult 2 so they cancel
+        self._Ac = 0.25 * np.pi * self._Dh * self._Dh
+        self._res = resolution
+        self._klossInlet = Klossinlet
+        self._klossOutlet = Klossoutlet
+        self._klossAvg = Klossavg
+        self._roughness = roughness
+        self._kwargs = kwargs
+        self._temps = np.zeros(self.nCell)
+        self._num_representative = num_representative
+
+        wetted_perimeter = np.pi * (self._Rin + self._Rout)  # 2 pi r and 1/2 from average also cancels
+        self._heatedPerimeter = ptcHeated * wetted_perimeter
+
+    @property
+    def flowArea(self) -> float:
+        return self._num_representative * self._Ac
+
+    @property
+    def inletArea(self) -> float:
+        return self._num_representative * np.pi * self._Rin * self._Rin
+
+    @property
+    def outletArea(self) -> float:
+        return self._num_representative * np.pi * self._Rout * self._Rout
+
+    @property
+    def length(self) -> float:
+        return self._L
+
+    @property
+    def hydraulicDiameter(self) -> float:
+        return self._Dh
+
+    @property
+    def heatedPerimeter(self) -> float:
+        return self._num_representative * self._heatedPerimeter
+
+    @property
+    def heightChange(self) -> float:
+        return self._L * np.cos(self._theta)
+
+    @property
+    def nCell(self) -> int:
+        return 1
+
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
+        x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
+        y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
+        z = inlet[2] + self._L * np.cos(self._theta)
+        return (x, y, z)
+
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+        return genNozzle(self._L, self._Rin, self._Rout, resolution=self._res, **self._kwargs).translate(
+            inlet[0], inlet[1], inlet[2], self._theta, self._alpha
+        )
+
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
+        outlet = self.getOutlet(inlet)
+        if self._Rin >= self._Rout:
+            big_r = self._Rin
+        else:
+            big_r = self._Rout
+        return [inlet, outlet, big_r, big_r, self._L, self._theta, self._alpha]
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        self._L *= uc.lengthConversion
+        self._Rin *= uc.lengthConversion
+        self._Rout *= uc.lengthConversion
+        self._Dh *= uc.lengthConversion
+        self._Ac *= uc.areaConversion
+        self._roughness *= uc.lengthConversion
+        self._heatedPerimeter *= uc.lengthConversion
+
+
+component_list["nozzle_node"] = NozzleNode
+
+
+class Nozzle(SerialComponents):
     """A nozzle component divided into multiple axial cells.
 
     The nozzle is decomposed into ``n`` single-cell :class:`Nozzle` segments whose radii are
@@ -2406,7 +2406,7 @@ class MultiCellNozzle(SerialComponents):
                 "num_representative": num_representative,
             }
             order.append(name)
-        super().__init__({"nozzle": nozzle_dict}, order)
+        super().__init__({"nozzle_node": nozzle_dict}, order)
         self._num_representative = num_representative
 
     @property
@@ -2440,4 +2440,4 @@ class MultiCellNozzle(SerialComponents):
         return self.length * np.cos(self._theta)
 
 
-component_list["multi_cell_nozzle"] = MultiCellNozzle
+component_list["nozzle"] = Nozzle

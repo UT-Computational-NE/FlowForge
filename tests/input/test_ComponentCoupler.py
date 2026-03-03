@@ -103,8 +103,8 @@ def test_SerialFluid_SingularSolid():
 
     count = 0
     for fluid_comp, solid_comp in zip(coupled_fluid.orderedComponentsList, coupled_solid.orderedComponents):
-        if not isinstance(fluid_comp, FluidComps.Nozzle):  # If it is a nozzle, use the previous pipe area and do not
-                                                           # override this variables value
+        if not isinstance(fluid_comp, FluidComps.NozzleNode):  # If it is a nozzle, use the previous pipe area and do not
+            # override this variables value
             pipe_area = fluid_comp.flowArea
             count += 1
         base_area = solid_comp.crossSection.baseArea
@@ -139,8 +139,8 @@ def test_SerialFluid_SerialSolid():
 
     count = 0
     for fluid_comp, solid_comp in zip(coupled_fluid.orderedComponentsList, coupled_solid.orderedComponents):
-        if not isinstance(fluid_comp, FluidComps.Nozzle):  # If it is a nozzle, use the previous pipe area and do not
-                                                           # override this variables value
+        if not isinstance(fluid_comp, FluidComps.NozzleNode):  # If it is a nozzle, use the previous pipe area and do not
+            # override this variables value
             pipe_area = fluid_comp.flowArea
             count += 1
         base_area = solid_comp.crossSection.baseArea
