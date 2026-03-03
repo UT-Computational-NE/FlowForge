@@ -581,6 +581,7 @@ class User_Fluid(Fluid):
 
 
 class CharlieCustom(FLiBe_UF4):
+    """Charlie's Custom Fluid, which returns set values, more or less"""
     def temperature(self, h):
         """
         Temperature [K]
@@ -590,16 +591,15 @@ class CharlieCustom(FLiBe_UF4):
         return temp
 
     def density(self, h):
+        """Returns 2413"""
         return 2413 + h * 0
 
     def viscosity(self, h):
+        """Returns 0.116e-3"""
         return 0.116e-3 + h * 0
 
     def conductivity(self, h):
         """
-        Thermal conductivity [W/m-K]:
-        Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
-        ref. [1], pg.  10, Table 7.
-        ref. [2], pg. 638, Table 3.
+        Returns 1.1
         """
         return 1.1 + h * 0
