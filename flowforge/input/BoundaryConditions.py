@@ -37,7 +37,8 @@ class BoundaryConditions:
     def __init__(self, **boundary_conditions: dict):
 
         bc_objects = {"DirichletBC": DirichletBC,
-                      "NeumannBC": NeumannBC}
+                      "NeumannBC": NeumannBC,
+                      "AdiabaticBC": AdiabaticBC}
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
             bc_type = bc["boundary_type"]
