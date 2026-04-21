@@ -253,7 +253,13 @@ class System:
         self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSegment(
-        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None, HTC = "DittusBoelter"
+        self,
+        components: List[Component],
+        order: List[dict],
+        boundary_conditions: Dict = {},
+        fluid: str = "FLiBe",
+        gas=None,
+        HTC = "DittusBoelter"
     ) -> None:
         """Private method for setting up a segment
 
