@@ -477,7 +477,7 @@ class System:
         return self._gasname
 
     @property
-    def htcname(self) -> str:
+    def system_htc(self) -> str:
         return self._htc
 
     @property
