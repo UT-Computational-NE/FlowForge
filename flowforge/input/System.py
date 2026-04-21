@@ -142,11 +142,13 @@ class System:
         self._solid_connectivity = []
         self._bodyforces = []
         self._wallfunctions = []
+        self._component_htc = {} # For component-level HTC
         self._MMBC = None
         self._EBC = None
         self._VBC = None
         self._fluid = None
         self._gas = None
+        self._htc = None # For system-level HTC
 
         # Initializes objects to be empty
         self._boundaryConditionContainer = BoundaryConditions(**{})
@@ -197,6 +199,7 @@ class System:
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
         gas=None,
+        HTC= "DittusBoelter"
     ) -> None:
         """Private method for setting up a loop of components
 
@@ -223,9 +226,12 @@ class System:
         components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
+        self._htc = HTC
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
-            self._components.append(deepcopy(components[entry["component"]]))
+            current_component = deepcopy(components[entry["component"]])
+            self._components.append(current_component)
+            self._component_htc[current_component] = entry.get("HTC", HTC)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -247,7 +253,13 @@ class System:
         self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
 
     def _setupSegment(
-        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+        self,
+        components: List[Component],
+        order: List[dict],
+        boundary_conditions: Dict = {},
+        fluid: str = "FLiBe",
+        gas=None,
+        HTC = "DittusBoelter"
     ) -> None:
         """Private method for setting up a segment
 
@@ -272,9 +284,12 @@ class System:
         components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
+        self._htc = HTC
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
-            self._components.append(deepcopy(components[entry["component"]]))
+            current_component = deepcopy(components[entry["component"]])
+            self._components.append(current_component)
+            self._component_htc[current_component] = entry.get("HTC", HTC)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -387,6 +402,21 @@ class System:
         sysFile = VTKFile(filename, self.getVTKMesh())
         sysFile.writeFile()
 
+    def getComponentHTC(self, component: Component) -> str:
+        """Method for getting the heat transfer coefficient for a component
+
+        Parameters
+        ----------
+        component : Component
+            The component to get the HTC from
+
+        Returns
+        -------
+        str
+            The heat transfer coefficient for the component
+        """
+        return self._component_htc.get(component, self._htc)
+
     @property
     def nCell(self) -> int:
         ncell = 0
@@ -445,3 +475,11 @@ class System:
     @property
     def gasname(self) -> str:
         return self._gasname
+
+    @property
+    def system_htc(self) -> str:
+        return self._htc
+
+    @property
+    def component_htc(self) -> Dict[Component, str]:
+        return self._component_htc
