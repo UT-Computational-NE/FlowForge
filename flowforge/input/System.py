@@ -166,6 +166,10 @@ class System:
         self._fluid = None
         self._gas = None
 
+        # Material names
+        self._fluidname = None
+        self._gasname = None
+
         # Physics object definitions
         self._fluid_boundary_conditions_definitions = {}
         self._solid_boundary_conditions_definitions = {}
@@ -300,7 +304,7 @@ class System:
 
         # Setup system
         if "simple_loop" in sys_dict:
-                self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
+            self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
         elif "segment" in sys_dict:
             self._setupSegment(fluid_components, **sys_dict["segment"])
 
@@ -335,12 +339,12 @@ class System:
         """
         # Convert component units
         for comp in self._fluid_components:
-            comp._convertUnits(UnitConverter(unit_dict))
+            comp._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
         for comp in self._solid_components:
-            comp._convertUnits(UnitConverter(unit_dict))
+            comp._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
         # convert BC units
         if self._boundary_condition_container is not None:
-            self._boundary_condition_container._convertUnits(UnitConverter(unit_dict))
+            self._boundary_condition_container._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
 
     def _setupSimpleLoop(
         self,

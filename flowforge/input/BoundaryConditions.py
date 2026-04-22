@@ -223,4 +223,4 @@ class AdiabaticBC(GeneralBC):
     """
     def __init__(self, surface, variable):
         super().__init__(surface, variable, "1.0")
-        self._boundary_type == "AdiabaticBC"
+        self._boundary_type = "AdiabaticBC"
