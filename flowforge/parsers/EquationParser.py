@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, Tuple
 import re
 import sympy
+import scipy
 
 
 class EquationParser:
@@ -169,3 +170,44 @@ class EquationParser:
         expression = self._expression.subs(reduced_input)
 
         return float(expression)
+
+    def computeIntegral(
+            self,
+            x_bounds: Tuple[float, float] = (0,0),
+            y_bounds: Tuple[float, float] = (0,0),
+            z_bounds: Tuple[float, float] = (0,0),
+            t: float = 0.0
+    ) -> float:
+        """
+        For the given expression, this method evaluates the 3-D definite integral, using x, y, and z
+        bounds.
+
+        Parameters
+        ----------
+        x_bounds : Tuple[float, float]
+            Bounds for the x-axis
+        y_bounds : Tuple[float, float]
+            Bounds for the y-axis
+        z_bounds : Tuple[float, float]
+            Bounds for the z-axis
+        t : float
+            Current time
+        """
+        if "t" in self._variables.keys():
+            expression = self._expression.subs({self._variables["t"]: t})
+        else:
+            expression = self._expression
+
+        x, y, z = sympy.symbols('x y z')
+        func = sympy.lambdify((x, y, z), expression, modules='numpy')
+
+        integration_result, error = scipy.integrate.tplquad(
+            func,
+            min(z_bounds), max(z_bounds),
+            min(y_bounds), max(y_bounds),
+            min(x_bounds), max(x_bounds),
+        )
+
+        assert (error < 1e-8), f"Integration error is >1e-8 (error = {error})"
+
+        return integration_result
