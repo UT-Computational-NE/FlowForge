@@ -10,7 +10,11 @@ from flowforge.input.BodyForces import BodyForces
 from flowforge.input.WallFunctions import WallFunctions
 from flowforge.input.BoundaryConditions import BoundaryConditions
 from flowforge.parsers.OutputParser import OutputParser
+from flowforge.input.ComponentCoupler import couple as FluidSolidComponentCoupler
 
+# GLOBAL VARIABLES
+valid_solid_system_types = tuple(["solid_system"])
+valid_fluid_system_types = tuple(["segment", "simple_loop"])
 
 def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
@@ -133,48 +137,63 @@ class System:
         sysdict: Dict,
         unitdict: Dict[str, str],
         solid_components: Dict[str, SolidComponent] = {},
-        solid_controllers: Dict[str, Dict[str, dict]] = {}
+        solid_controllers: Dict[str, Dict[str, dict]] = {},
+        coupled_components: List[Tuple[str, str]] = []
     ) -> None:
-        self._components = []
+        # Component Dicts
+        self._fluid_components = []
         self._solid_components = []
+
+        # Parsers
         self._output_parsers = {}
-        self._connectivity = []
+
+        # Connectivity
+        self._fluid_connectivity = []
         self._solid_connectivity = []
-        self._bodyforces = []
-        self._wallfunctions = []
-        self._MMBC = None
-        self._EBC = None
-        self._VBC = None
+        self._coupled_components_connectivity = []
+
+        # Boundary conditions
+        self._fluid_boundary_conditions = {}
+        self._solid_boundary_conditions = {}
+
+        # Controller Variables
+        self._fluid_body_forces = []
+        self._fluid_wall_functions = []
+        self._solid_body_forces = []
+        self._solid_wall_functions = []
+
+        # Material variables
         self._fluid = None
         self._gas = None
 
-        # Initializes objects to be empty
-        self._boundaryConditionContainer = BoundaryConditions(**{})
-        self._bodyForceContainer = BodyForces(**{})
-        self._wallFunctionContainer = WallFunctions(**{})
+        # Material names
+        self._fluidname = None
+        self._gasname = None
+
+        # Physics object definitions
+        self._fluid_boundary_conditions_definitions = {}
+        self._solid_boundary_conditions_definitions = {}
+        self._solid_body_forces_definitions = {}
+        self._solid_wall_functions_definitions = {}
+
+        # Initializes container objects to be empty
+        self._boundary_condition_container = BoundaryConditions(**{})
+        self._body_force_container = BodyForces(**{})
+        self._wall_function_container = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
 
-        system_types = ["simple_loop", "segment", "solid_system"]
-        assert (
-            sum(k in sysdict for k in system_types) == 1
-        ), f"Expected exactly one of {system_types}, found {[k for k in system_types if k in sysdict]}"
-
-        if "simple_loop" in sysdict:
-            self._setupSimpleLoop(components, **sysdict["simple_loop"])
-        elif "segment" in sysdict:
-            self._setupSegment(components, **sysdict["segment"])
-        elif "solid_system" in sysdict:
-            self._setupSolidSystem(solid_components, solid_controllers, **sysdict["solid_system"])
-        # TODO add additional types of systems that can be set up
+        self._setup_system(
+            sys_dict=sysdict,
+            fluid_components=components,
+            solid_components=solid_components,
+            solid_controllers=solid_controllers,
+            coupled_components=coupled_components
+        )
 
         if "parsers" in sysdict:
             self._setupParsers(sysdict["parsers"])
 
-        for comp in self._components:
-            comp._convertUnits(UnitConverter(unitdict))
-        # convert BC units
-        if self._boundaryConditionContainer is not None:
-            self._boundaryConditionContainer._convertUnits(UnitConverter(unitdict))
+        self._unit_conversion(unitdict)
 
     @property
     def core(self) -> List[Core]:
@@ -182,13 +201,150 @@ class System:
         Returns the core component of the system.
         """
         cores = []
-        for comp in self._components:
+        for comp in self._fluid_components:
             if isinstance(comp, Core):
                 cores.append(comp)
 
         if not cores:
             return Exception
         return cores
+
+    def _setup_system(self,
+                      sys_dict: Dict,
+                      fluid_components: Dict[str, Component] = None,
+                      solid_components: Dict[str, SolidComponent] = None,
+                      solid_controllers: Dict[str, Dict[str, dict]] = None,
+                      coupled_components: List[Tuple[str, str]] = None
+                      ) -> None:
+        """
+        """
+
+        def is_coupled_system(sys_dict):
+            """
+            Checks the system dict to determine if the system is coupled
+            """
+            # Checks if system is coupled
+            if any(sys in valid_solid_system_types for sys in sys_dict):
+                if any(sys in valid_fluid_system_types for sys in sys_dict):
+                    return True
+
+            # System is non-coupled
+            all_valid_systems = valid_fluid_system_types + valid_solid_system_types
+            n_systems = len([sys for sys in sys_dict if sys in all_valid_systems])
+            assert n_systems == 1, "Can only define (1) system"
+
+            return False
+
+        # Coupled system
+        if is_coupled_system(sys_dict):
+            self._setup_coupled_system(
+                sys_dict=sys_dict,
+                fluid_components=fluid_components,
+                solid_components=solid_components,
+                solid_controllers=solid_controllers,
+                coupled_components=coupled_components
+            )
+
+            return
+
+        ## Non-coupled system
+
+        # Setup system
+        if "simple_loop" in sys_dict:
+            self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
+        elif "segment" in sys_dict:
+            self._setupSegment(fluid_components, **sys_dict["segment"])
+        elif "solid_system" in sys_dict:
+            self._setupSolidSystem(solid_components, solid_controllers, **sys_dict["solid_system"])
+
+        # Set physics variables
+        all_boundary_conditions = self._fluid_boundary_conditions_definitions | self._solid_boundary_conditions_definitions
+        self._boundary_condition_container = BoundaryConditions(**all_boundary_conditions)
+        # NOTE: Only for solid - should add for fluid later
+        self._body_force_container = BodyForces(**self._solid_body_forces_definitions)
+        self._wall_function_container = WallFunctions(**self._solid_wall_functions_definitions)
+
+
+    def _setup_coupled_system(self,
+                              sys_dict: Dict,
+                              fluid_components: Dict[str, Component] = None,
+                              solid_components: Dict[str, SolidComponent] = None,
+                              solid_controllers: Dict[str, Dict[str, dict]] = None,
+                              coupled_components: List[Tuple[str, str]] = None
+                              ) -> None:
+        """
+        """
+
+        n_fluid_systems = len([sys for sys in sys_dict if sys in valid_fluid_system_types])
+        n_solid_systems = len([sys for sys in sys_dict if sys in valid_solid_system_types])
+
+        assert n_fluid_systems == 1, "Cannot define multiple fluid systems"
+        assert n_solid_systems == 1, "Cannot define multiple solid systems"
+
+        # Couple components
+        for fluid_name, solid_name in coupled_components.values():
+            # If input backwards (not [fluid, solid]), this flips them
+            if fluid_name not in fluid_components:
+                fluid_name, solid_name = solid_name, fluid_name
+
+            # Checks that components exist
+            if (fluid_name not in fluid_components) or (solid_name not in solid_components):
+                raise Exception(f"Could not find fluid component {fluid_name} and/or solid component {solid_name}")
+
+            # Couples the two components
+            coupled_fluid, coupled_solid = FluidSolidComponentCoupler(
+                fluid_component=fluid_components[fluid_name],
+                solid_component=solid_components[solid_name]
+            )
+
+            # Replaces original objects with coupled versions
+            fluid_components[fluid_name] = coupled_fluid
+            solid_components[solid_name] = coupled_solid
+
+
+        # Setup system
+        if "simple_loop" in sys_dict:
+            self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
+        elif "segment" in sys_dict:
+            self._setupSegment(fluid_components, **sys_dict["segment"])
+
+        if "solid_system" in sys_dict:
+            self._setupSolidSystem(solid_components, solid_controllers, **sys_dict["solid_system"])
+
+        # Set physics variables
+        all_boundary_conditions = self._fluid_boundary_conditions_definitions | self._solid_boundary_conditions_definitions
+        self._boundary_condition_container = BoundaryConditions(**all_boundary_conditions)
+        # NOTE: Only for solid - should add for fluid later
+        self._body_force_container = BodyForces(**self._solid_body_forces_definitions)
+        self._wall_function_container = WallFunctions(**self._solid_wall_functions_definitions)
+
+        # Creates list of coupled component object in the system
+        for fluid_name, solid_name in coupled_components.values():
+            # If input backwards (not [fluid, solid]), this flips them
+            if fluid_name not in fluid_components:
+                fluid_name, solid_name = solid_name, fluid_name
+
+            built_fluid_components = [comp for comp in self._fluid_components if comp.name == fluid_name]
+            built_solid_components = [comp for comp in self._solid_components if comp.name == solid_name]
+
+            error_msg = "If a component is coupled, can only define (1) of them in the system"
+            assert len(built_fluid_components) == 1, error_msg + f" (error in fluid system: {fluid_name})"
+            assert len(built_solid_components) == 1, error_msg + f" (error in solid system: {solid_name})"
+
+            self._coupled_components_connectivity.append((built_fluid_components[0], built_solid_components[0]))
+
+    def _unit_conversion(self, unit_dict):
+        """
+        Performs unit conversion on the various objects
+        """
+        # Convert component units
+        for comp in self._fluid_components:
+            comp._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
+        for comp in self._solid_components:
+            comp._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
+        # convert BC units
+        if self._boundary_condition_container is not None:
+            self._boundary_condition_container._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
 
     def _setupSimpleLoop(
         self,
@@ -225,7 +381,9 @@ class System:
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
-            self._components.append(deepcopy(components[entry["component"]]))
+            component_i = deepcopy(components[entry["component"]])
+            component_i.name = entry["component"]
+            self._fluid_components.append(component_i)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -233,18 +391,18 @@ class System:
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
             # add a body force for the component if present
-            self._bodyforces.append(deepcopy(bftemp))
+            self._fluid_body_forces.append(deepcopy(bftemp))
             # add a wall function for the component if present
-            self._wallfunctions.append(deepcopy(wftemp))
+            self._fluid_wall_functions.append(deepcopy(wftemp))
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
-                self._connectivity.append((self._components[i - 1], self._components[i]))
+                self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
             # If the last entry in the loop, connect the last component to the first
             if i == len(loop) - 1:
-                self._connectivity.append((self._components[i], self._components[0]))
+                self._fluid_connectivity.append((self._fluid_components[i], self._fluid_components[0]))
 
         # get the boundary conditions
-        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
+        self._fluid_boundary_conditions_definitions = boundary_conditions
 
     def _setupSegment(
         self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
@@ -274,7 +432,9 @@ class System:
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
-            self._components.append(deepcopy(components[entry["component"]]))
+            component_i = deepcopy(components[entry["component"]])
+            component_i.name = entry["component"]
+            self._fluid_components.append(component_i)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -282,14 +442,14 @@ class System:
             if "WallFunctions" in entry:
                 wftemp = entry["WallFunctions"]
             # add a body force for the component if present
-            self._bodyforces.append(deepcopy(bftemp))
+            self._fluid_body_forces.append(deepcopy(bftemp))
             # add a wall function for the component if present
-            self._wallfunctions.append(deepcopy(wftemp))
+            self._fluid_wall_functions.append(deepcopy(wftemp))
             if i > 0:
-                self._connectivity.append((self._components[i - 1], self._components[i]))
+                self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
 
         # get the boundary conditions
-        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
+        self._fluid_boundary_conditions_definitions = boundary_conditions
 
     def _setupSolidSystem(
         self,
@@ -319,21 +479,20 @@ class System:
         """
 
         for i, entry in enumerate(order):
-            self._solid_components.append(deepcopy(solid_components[entry["component"]]))
-            self._bodyforces.append(deepcopy(entry.get("BodyForces", [])))
-            self._wallfunctions.append(deepcopy(entry.get("WallFunctions", [])))
+            component_i = deepcopy(solid_components[entry["component"]])
+            component_i.name = entry["component"]
+            self._solid_components.append(component_i)
+            self._solid_body_forces.append(deepcopy(entry.get("BodyForces", [])))
+            self._solid_wall_functions.append(deepcopy(entry.get("WallFunctions", [])))
 
             current_component = self._solid_components[i]
             previous_component = None if i == 0 else self._solid_components[i - 1]
 
             self._solid_connectivity.append((previous_component, current_component))
 
-        body_forces = solid_controllers.get("bodyForce", {})
-        wall_functions = solid_controllers.get("wallFunction", {})
-
-        self._boundaryConditionContainer = BoundaryConditions(**boundary_conditions)
-        self._bodyForceContainer = BodyForces(**body_forces)
-        self._wallFunctionContainer = WallFunctions(**wall_functions)
+        self._solid_boundary_conditions_definitions = boundary_conditions
+        self._solid_body_forces_definitions = solid_controllers.get("bodyForce", {})
+        self._solid_wall_functions_definitions = solid_controllers.get("wallFunction", {})
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
@@ -358,7 +517,7 @@ class System:
             The component associated with the node the generator is currently on
 
         """
-        for comp in self._components:
+        for comp in self._fluid_components:
             yield from comp.getNodeGenerator()
 
     def getVTKMesh(self) -> VTKMesh:
@@ -371,7 +530,7 @@ class System:
         """
         inlet = (0, 0, 0)
         mesh = VTKMesh()
-        for c in self._components:
+        for c in self._fluid_components:
             mesh += c.getVTKMesh(inlet)
             inlet = c.getOutlet(inlet)
         return mesh
@@ -390,17 +549,17 @@ class System:
     @property
     def nCell(self) -> int:
         ncell = 0
-        for c in self._components:
+        for c in self._fluid_components:
             ncell += c.nCell
         return ncell
 
     @property
     def components(self) -> List[Component]:
-        return self._components
+        return self._fluid_components
 
     @property
     def connectivity(self) -> List[Tuple[Component, Component]]:
-        return self._connectivity
+        return self._fluid_connectivity
 
     @property
     def solidComponents(self):
@@ -411,28 +570,40 @@ class System:
         return self._solid_connectivity
 
     @property
+    def coupled_components_connectivity(self):
+        return self._coupled_components_connectivity
+
+    @property
     def output_parsers(self) -> Dict[str, OutputParser]:
         return self._output_parsers
 
     @property
     def bodyforces(self) -> List[str]:
-        return self._bodyforces
+        return self._fluid_body_forces
 
     @property
     def wallfunctions(self) -> List[str]:
-        return self._wallfunctions
+        return self._fluid_wall_functions
+
+    @property
+    def solid_body_forces(self) -> List[str]:
+        return self._solid_body_forces
+
+    @property
+    def solid_wall_functions(self) -> List[str]:
+        return self._solid_wall_functions
 
     @property
     def BoundaryConditions(self) -> BoundaryConditions:
-        return self._boundaryConditionContainer
+        return self._boundary_condition_container
 
     @property
     def BodyForceContainer(self) -> BodyForces:
-        return self._bodyForceContainer
+        return self._body_force_container
 
     @property
     def WallFunctionContainer(self) -> WallFunctions:
-        return self._wallFunctionContainer
+        return self._wall_function_container
 
     @property
     def isLoop(self) -> bool:
