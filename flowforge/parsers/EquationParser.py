@@ -182,6 +182,9 @@ class EquationParser:
         For the given expression, this method evaluates the 3-D definite integral, using x, y, and z
         bounds.
 
+        For now, this integral is computed at a given time. TODO: add time bounds for a more
+        accurate result.
+
         Parameters
         ----------
         x_bounds : Tuple[float, float]

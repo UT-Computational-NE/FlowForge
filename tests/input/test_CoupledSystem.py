@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import json
 
@@ -7,12 +8,9 @@ from flowforge.input.SolidComponents import Component as SolidComponent
 
 def test_component_coupling():
 
-    filename = "coupled_input_file.json"
-
-    if __name__ == "__main__":
-        input_file_path = "testCoupledComponents/" + filename
-    else:
-        input_file_path = "tests/input/testCoupledComponents/" + filename
+    relative_path = "/testCoupledComponents/coupled_input_file.json"
+    folder_path = os.path.dirname(os.path.abspath(__file__))
+    input_file_path = folder_path + relative_path
 
     with open(input_file_path, "r") as rf:
         input_dict = json.load(rf)
