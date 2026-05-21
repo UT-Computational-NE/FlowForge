@@ -1204,7 +1204,7 @@ class ParallelComponents(ComponentCollection):
         assert parallel_alpha == self._upperPlenum.alpha
 
         # create the nozzles connecting manifolds to plenums
-        self._lowerNozzle = component_list["nozzle"](
+        self._lowerNozzle = component_list["nozzle_node"](
             R_inlet=np.sqrt(self._lowerPlenum.outletArea / np.pi),
             R_outlet=np.sqrt(self._lowerManifold.inletArea / np.pi),
             L=1.0e-64,
@@ -1212,7 +1212,7 @@ class ParallelComponents(ComponentCollection):
             alpha=parallel_alpha,
         )
         myComponents["lower_nozzle"] = self._lowerNozzle
-        self._upperNozzle = component_list["nozzle"](
+        self._upperNozzle = component_list["nozzle_node"](
             R_inlet=np.sqrt(self._upperPlenum.inletArea / np.pi),
             R_outlet=np.sqrt(self._upperManifold.outletArea / np.pi),
             L=1.0e-64,
