@@ -382,6 +382,12 @@ class Pipe(Component):
     num_representative : int
         Number of representative cells to use for the pipe component
         Defaults to 1
+
+    kwargs:
+        bounding_box_dx : float
+            Length of bounding box in x dimension. Defaults to hydraulic radius
+        bounding_box_dy : float
+            Length of bounding box in y dimension. Defaults to hydraulic radius
     """
 
     def __init__(
@@ -491,10 +497,10 @@ class SimpleHX(Pipe):
 
     Parameters
     ----------
-    shell_active_length : float
-        Active length of the heat exchanger shell
-    shell_holdup_volume : float
-        Holdup volume of fluid on the shell side
+    length : float
+        Total length of the heat exchanger shell.
+    shellVolume : float
+        Volume of fluid on the shell side
     effective_heated_area : float
         Total heated surface area on the shell side
     cross_section_name : str, optional
@@ -516,13 +522,14 @@ class SimpleHX(Pipe):
     pctHeated : float, optional
         Fraction of the perimeter that is heated, defaults to 1
     num_representative : int, optional
-        Number of representative channels, defaults to 1
+        Number of representative channels (hxs) to scale flow area and heated perimiter,
+        defaults to 1
     """
 
     def __init__(
         self,
-        shell_active_length: float,
-        shell_holdup_volume: float,
+        length: float,
+        shell_volume: float,
         effective_heated_area: float,
         cross_section_name: str = "circular",
         n: int = 1,
@@ -537,14 +544,14 @@ class SimpleHX(Pipe):
         **kwargs,
     ) -> None:
         # Compute equivalent hydraulic geometry from shell-side geometry
-        Ac = shell_holdup_volume / shell_active_length
-        heated_perimeter = effective_heated_area / shell_active_length
+        Ac = shell_volume / length
+        heated_perimeter = effective_heated_area / length
         Dh = 4.0 * Ac / heated_perimeter
         # Pass equivalent circular radius so the parent can build a cross section for VTK visualization
         kwargs["R"] = Dh / 2
 
         super().__init__(
-            shell_active_length,
+            length,
             cross_section_name,
             n,
             theta,
@@ -642,6 +649,9 @@ class Pump(Component):
         Pump roughness
     ptcHeated : float
         Fraction of the pump perimeter that is heated. Uses Dh to determine wetted perimeter
+        num_representative : int, optional
+        Number of representative channels (pumps) to scale flow area and heated perimiter,
+        defaults to 1
     """
 
     def __init__(
@@ -775,6 +785,9 @@ class Annulus(Component):
         Fraction of the annulus wetted perimeter that is heated. Used for calculating heated perimeter.
     resolution : int
         Number of sides the annulus curvature is approximated with (specifically for VTK mesh generation)
+    num_representative : int, optional
+        Number of representative channels (annuli) to scale flow area and heated perimiter,
+        defaults to 1
     """
 
     def __init__(
@@ -2229,6 +2242,9 @@ class NozzleNode(Component):
         K-loss coefficient associated with pressure loss across the nozzle
     ptcHeated : float
         Fraction of the nozzle that is heated. Used for calculating heated perimeter at the center of the nozzle.
+    num_representative : int, optional
+        Number of representative channels (nozzles) to scale flow area and heated perimiter,
+        defaults to 1
     """
 
     def __init__(
