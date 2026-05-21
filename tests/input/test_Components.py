@@ -1,6 +1,5 @@
 import math
 import pytest
-from shapely import length
 from flowforge.input.Components import (
     Pipe,
     Pump,
