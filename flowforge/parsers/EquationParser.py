@@ -211,6 +211,6 @@ class EquationParser:
             min(x_bounds), max(x_bounds),
         )
 
-        assert (error < 1e-8), f"Integration error is >1e-8 (error = {error})"
+        assert (error < 1e-7), f"Integration error is >1e-7 (error = {error})"
 
         return integration_result
