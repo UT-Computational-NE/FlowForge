@@ -292,8 +292,15 @@ def test_firstLastComponent():
         if not isinstance(component, ComponentCollection):
             continue
         elif isinstance(component, ParallelComponents):
-            assert component.firstComponent == component.lowerPlenum
-            assert component.lastComponent == component.upperPlenum
+            if isinstance(component.lowerPlenum, ComponentCollection):
+                assert component.firstComponent == component.lowerPlenum.firstComponent
+            else:
+                assert component.firstComponent == component.lowerPlenum
+
+            if isinstance(component.upperPlenum, ComponentCollection):
+                assert component.lastComponent == component.upperPlenum.lastComponent
+            else:
+                assert component.lastComponent == component.upperPlenum
         elif isinstance(component, SerialComponents):
             assert component.firstComponent == component._myComponents[component.order[0]]
             assert component.lastComponent == component._myComponents[component.order[-1]]
