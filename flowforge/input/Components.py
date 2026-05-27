@@ -1096,7 +1096,7 @@ class ComponentCollection(Component):
                 return component
 
             component = getattr(component, firstOrLast + "Component")
-        raise RuntimeError(f"Exceeded max depth ({maxDepth}) while resolving {firstOrLast}")
+        raise RuntimeError(f"Exceeded max depth ({maxDepth}) while resolving {firstOrLast} component")
 
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         for component in self._myComponents.values():
