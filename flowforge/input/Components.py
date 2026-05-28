@@ -767,6 +767,7 @@ class Pump(Component):
 
 component_list["pump"] = Pump
 
+
 class Annulus(Component):
     """A annulus component
 
@@ -1085,11 +1086,30 @@ class ComponentCollection(Component):
         raise NotImplementedError
 
     @staticmethod
-    def _resolveTerminalComponent(component, firstOrLast, maxDepth=100):
+    def _resolveTerminalComponent(component: Component, firstOrLast: str, maxDepth: int = 100):
         """
-        Resolves a component by repeatedly accessing either 'firstComponent'
-        or 'lastComponent' until it is no longer a ComponentCollection.
+        Recursively find either the first or last (terminal) component of a ComponentCollection.
+
+        Parameters
+        ----------
+        component : Component (ComponentCollection)
+            The initial component or collection to find the terminal component of.
+        firstOrLast : str
+            Direction to traverse; must be 'first' or 'last'.
+        maxDepth : int, optional
+            Maximum recursion depth to prevent infinite loops.
+
+        -------
+        Component
+            The terminal component found at the end of the traversal, or the
+            input component itself if not a ComponentCollection
+
+        Raises
+        ------
+        RuntimeError
+            If the resolution depth exceeds maxDepth.
         """
+
         assert firstOrLast in ("first", "last")
         for depth in range(maxDepth):
             if not isinstance(component, ComponentCollection):
