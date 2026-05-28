@@ -767,6 +767,7 @@ class Pump(Component):
 
 component_list["pump"] = Pump
 
+
 class Annulus(Component):
     """A annulus component
 
@@ -1084,6 +1085,40 @@ class ComponentCollection(Component):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def _resolveTerminalComponent(component: Component, firstOrLast: str, maxDepth: int = 100):
+        """
+        Recursively find either the first or last (terminal) component of a ComponentCollection.
+
+        Parameters
+        ----------
+        component : Component (ComponentCollection)
+            The initial component or collection to find the terminal component of.
+        firstOrLast : str
+            Direction to traverse; must be 'first' or 'last'.
+        maxDepth : int, optional
+            Maximum recursion depth to prevent infinite loops.
+
+        Returns
+        -------
+        Component
+            The terminal component found at the end of the traversal, or the
+            input component itself if not a ComponentCollection
+
+        Raises
+        ------
+        RuntimeError
+            If the resolution depth exceeds maxDepth.
+        """
+
+        assert firstOrLast in ("first", "last")
+        for depth in range(maxDepth):
+            if not isinstance(component, ComponentCollection):
+                return component
+
+            component = getattr(component, firstOrLast + "Component")
+        raise RuntimeError(f"Exceeded max depth ({maxDepth}) while resolving {firstOrLast} component")
+
     def getNodeGenerator(self) -> Generator[Component, None, None]:
         for component in self._myComponents.values():
             yield from component.getNodeGenerator()
@@ -1241,11 +1276,11 @@ class ParallelComponents(ComponentCollection):
 
     @property
     def firstComponent(self) -> Component:
-        return self._lowerPlenum
+        return self._resolveTerminalComponent(self._lowerPlenum, "first")
 
     @property
     def lastComponent(self) -> Component:
-        return self._upperPlenum
+        return self._resolveTerminalComponent(self._upperPlenum, "last")
 
     @property
     def flowArea(self) -> float:
@@ -2095,18 +2130,14 @@ class SerialComponents(ComponentCollection):
         """Always returns the first component.
         If the first component is a collection, it will return the first component of that collection recursively"""
         first_component = self._myComponents[self._order[0]]
-        if isinstance(first_component, ComponentCollection):
-            return first_component.firstComponent
-        return first_component
+        return self._resolveTerminalComponent(first_component, "first")
 
     @property
     def lastComponent(self) -> Component:
         """Always returns the last component.
         If the last component is a collection, it will return the last component of that collection recursively"""
         last_component = self._myComponents[self._order[-1]]
-        if isinstance(last_component, ComponentCollection):
-            return last_component.lastComponent
-        return last_component
+        return self._resolveTerminalComponent(last_component, "last")
 
     @property
     def orderedComponentsList(self) -> List[Component]:
