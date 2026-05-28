@@ -1099,6 +1099,7 @@ class ComponentCollection(Component):
         maxDepth : int, optional
             Maximum recursion depth to prevent infinite loops.
 
+        Returns
         -------
         Component
             The terminal component found at the end of the traversal, or the
