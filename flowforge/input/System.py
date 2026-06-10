@@ -138,7 +138,9 @@ class System:
         unitdict: Dict[str, str],
         solid_components: Dict[str, SolidComponent] = {},
         solid_controllers: Dict[str, Dict[str, dict]] = {},
-        coupled_components: List[Tuple[str, str]] = []
+        coupled_components: List[Tuple[str, str]] = [],
+        options: Dict[str, bool] = {}
+
     ) -> None:
         # Component Dicts
         self._fluid_components = []
@@ -181,6 +183,9 @@ class System:
         self._body_force_container = BodyForces(**{})
         self._wall_function_container = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
+        self._make_continuous = True # Boolean defining whether to insert infitesimal nozzles between components with discontinuities
+        if "make_continuous" in options:
+            self._make_continuous = options["make_continuous"]
 
         self._setup_system(
             sys_dict=sysdict,
@@ -375,8 +380,8 @@ class System:
 
         """
         self._isLoop = True
-
-        components, loop = make_continuous(components, loop)
+        if self._make_continuous:
+            components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
@@ -427,7 +432,8 @@ class System:
         """
         self._isLoop = False
 
-        components, order = make_continuous(components, order)
+        if self._make_continuous:
+            components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
