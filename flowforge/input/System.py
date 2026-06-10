@@ -183,7 +183,7 @@ class System:
         self._body_force_container = BodyForces(**{})
         self._wall_function_container = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
-        self._make_continuous = True # Boolean defining whether to insert infitesimal nozzles between components with discontinuities
+        self._make_continuous = True # defines whether to insert tiny nozzles between components with discontinuities
         if "make_continuous" in options:
             self._make_continuous = options["make_continuous"]
 
