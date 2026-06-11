@@ -16,7 +16,7 @@ from flowforge.input.ComponentCoupler import couple as FluidSolidComponentCouple
 valid_solid_system_types = tuple(["solid_system"])
 valid_fluid_system_types = tuple(["segment", "simple_loop"])
 
-def make_continuous(components: List[Component], order: List[dict]):
+def make_continuous(components: List[Component], order: List[dict], length: float):
     """Private method makes serial components continuous with respect to area change
 
     This method takes in a list of components and their order and inserts infitesimal nozzles between them
@@ -28,6 +28,8 @@ def make_continuous(components: List[Component], order: List[dict]):
         list of components
     order : list
         order of those components
+    length : float
+        The length of the nozzles to be inserted
 
     Returns
     -------
@@ -45,7 +47,7 @@ def make_continuous(components: List[Component], order: List[dict]):
                 prev_area, components[entry["component"]].inletArea
             ):
                 tempnozzle = Nozzle(
-                    L=1.0e-64,
+                    L=length,
                     R_inlet=np.sqrt(prev_area / np.pi),
                     R_outlet=np.sqrt(components[entry["component"]].inletArea / np.pi),
                     theta=components[entry["component"]].theta * 180 / np.pi,
@@ -109,8 +111,8 @@ class System:
     coupled_components : List[Tuple[str, str]], optional
         List of tuples representing coupled components.
     options : Dict[str, bool], optional
-        Dictionary of options for the system. For example, "make_continuous" can be set to
-        False to disable the insertion of tiny nozzles between components with discontinuities.
+        Dictionary of options for the system. For example, "auto_nozzle_length" can be set to
+        enable the insertion of tiny nozzles between components with discontinuities.
 
     Attributes
     ----------
@@ -169,9 +171,10 @@ class System:
         self._body_force_container = BodyForces(**{})
         self._wall_function_container = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
-        self._make_continuous = True # defines whether to insert tiny nozzles between components with discontinuities
-        if "make_continuous" in options:
-            self._make_continuous = options["make_continuous"]
+        self._auto_nozzle_length = None # defines whether to insert tiny nozzles between components with discontinuities
+        if "auto_nozzle_length" in options:
+            self._auto_nozzle_length = options["auto_nozzle_length"]
+            assert self._auto_nozzle_length > 0, "auto_nozzle_length must be a positive value"
 
         self._setup_system(
             sys_dict=sysdict,
@@ -366,8 +369,8 @@ class System:
 
         """
         self._isLoop = True
-        if self._make_continuous:
-            components, loop = make_continuous(components, loop)
+        if self._auto_nozzle_length is not None:
+            components, loop = make_continuous(components, loop, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
@@ -418,8 +421,8 @@ class System:
         """
         self._isLoop = False
 
-        if self._make_continuous:
-            components, order = make_continuous(components, order)
+        if self._auto_nozzle_length is not None:
+            components, order = make_continuous(components, order, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
