@@ -603,3 +603,109 @@ class CharlieCustom(FLiBe_UF4):
         Returns 1.1
         """
         return 1.1 + h * 0
+
+
+class Constant_FLiBe_UF4(Fluid):
+    """
+    Fluid subclass with FLiBe_UF4 molten salt properties.
+
+    This class implements the specific properties of FLiBe_UF4 molten salt
+    with a composition of 67-33 mol% (2LiF-BeF_2).
+
+    Parameters
+    ----------
+    name : str
+        Name of the fluid material
+
+    Attributes
+    ----------
+    name : str
+        Name of the fluid material
+
+    Notes
+    -----
+    Molar Percent: 67-33 mol% (2LiF-BeF_2)
+
+    Caveats:
+    In this section a list of temperature dependent caveats are presented
+    with any listed uncertainties from the literature [1,2,3]
+
+    References
+    ----------
+    [1] C. Davis, "Implementation of Molten Salt Properties into RELAP5-3D/ATHENA," U.S. Department of Energy,
+        Tech. Rep., Jan. 2005. doi: 10.2172/910991. Available: https://www.osti.gov/biblio/910991.
+
+    [2] R. Romatoski and L.-W. Hu, "Fluoride salt coolant properties for nuclear reactor applications:
+        A review," *Annals of Nuclear Energy*, vol. 109, pp. 635-647, Nov. 2017. doi: 10.1016/j.anucene.2017.05.036.
+
+    [3] M. S. Sohal, M. A. Ebner, P. Sabharwall, and P. Sharpe, "Engineering Database of Liquid Salt Thermophysical
+        and Thermochemical Properties," Idaho National Laboratory, Tech. Rep. INL/EXT-10-18297, Rev. 1, June 2013.
+        Available: https://inldigitallibrary.inl.gov/sites/STI/STI/5698704.pdf.
+    """
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self._Tref = 273.15  # temperature where enthalpy is 0
+
+    def conductivity(self, h: float) -> float:
+        """
+        Thermal conductivity [W/m-K]:
+        Validated for temp range 459-610 K and at 873 K with ± 10-50% uncertainty,
+        ref. [1], pg.  10, Table 7.
+        ref. [2], pg. 638, Table 3.
+        """
+        return 1.1 + h * 0
+
+    def density(self, h: float) -> float:
+        """
+        Density [kg/m^3]:
+        Validated for temp range 800-1080 K,
+        ref. [3], pg. 6, eq. (2.13)
+        """
+        density = 2413 - (0.488 * 900) + h*0
+        assert np.all(density >= 0)
+        return density
+
+    def viscosity(self, h: float) -> float:
+        """
+        Dynamic viscosity [kg/m-s]:
+        Validated for temp range 873-1073 K,
+        ref. [3], pg. 7, eq. (2.18)
+        """
+        T = 900
+        return (0.116e-3) * np.exp(3755.0 / T)
+
+    def surface_tension(self, h: float) -> float:
+        """
+        Surface tension [N/m]:
+        Validated for temp range 773.15-1073.15 K with ± 3% uncertainty,
+        under a dry argon, helium or nitrogen gas enviorment,
+        ref. [3], pg. 8 and 33, eq. (2.19)
+        """
+        T = 900
+        return 0.295778 - ((0.12e-3) * T)
+
+    def specific_heat(self, h: float) -> float:
+        """
+        Specific heat capacity [J/kg-K] (Isobaric):
+        Validated for temp range 788-1093 K with ± 3% uncertainty,
+        ref. [1], pg.   3, Table 1.
+        ref. [2], pg. 637, Table 2.
+        """
+        return 2386 + h * 0
+
+    def temperature(self, h: float) -> float:
+        """
+        Temperature [K]
+        """
+        temp = h / self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        # print(f"temp: {temp}")
+        # print(f"from h = {h}")
+        # assert np.all(temp >= 0)
+        return temp
+
+    def enthalpy(self, T: float) -> float:
+        """
+        Specific enthalpy [J/kg]
+        """
+        return self.specific_heat(0) * (T - self._Tref)  # only true because specific heat is constant
