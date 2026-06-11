@@ -101,6 +101,16 @@ class System:
     unitdict : Dict[str, str]
         Dictionary of units used for this system. This allows specification of
         custom units for length, pressure, temperature, etc.
+    solid_components : Dict[str, SolidComponent], optional
+        Collection of initialized solid components with which to construct the solid system.
+        Each component is identified by a unique name.
+    solid_controllers : Dict[str, Dict[str, dict]], optional
+        Dictionary of solid component controllers.
+    coupled_components : List[Tuple[str, str]], optional
+        List of tuples representing coupled components.
+    options : Dict[str, bool], optional
+        Dictionary of options for the system. For example, "make_continuous" can be set to
+        False to disable the insertion of tiny nozzles between components with discontinuities.
 
     Attributes
     ----------
@@ -129,6 +139,24 @@ class System:
         The gas to be used in the system (for two-phase simulations)
     output_parsers : Dict[str, OutputParser]
         The output parsers with which to parse output from various models and map to the System
+    bodyforces : List[str]
+        The body forces to be applied in the system
+    wallfunctions : List[str]
+        The wall functions to be applied in the system
+    solid_body_forces : List[str]
+        The body forces to be applied in the solid system
+    solid_wall_functions : List[str]
+        The wall functions to be applied in the solid system
+    BoundaryConditionsContainer : BoundaryConditions
+        The boundary conditions to be applied in the system, organized in a container class
+    BodyForceContainer : BodyForces
+        The body forces to be applied in the system, organized in a container class
+    WallFunctionContainer : WallFunctions
+        The wall functions to be applied in the system, organized in a container class
+    isLoop : bool
+        Boolean defining if system is a loop or segment
+    make_continuous : bool
+        Boolean defining whether to insert tiny nozzles between components with discontinuities
     """
 
     def __init__(
