@@ -297,9 +297,9 @@ class Component:
                 comp_type = key
                 comps = value
                 if comp_type in component_list:
-                    if comp_type == "simple_hx":
+                    if comp_type == "heat_exchanger":
                         for name, parameters in comps.items():
-                            components[f"hx{hx_counter}_primary"] = TubeHX( **parameters)       #Might need to generalize if more than 1 hx
+                            components[f"hx{hx_counter}_primary"] = TubeHX( **parameters)
                             components[f"hx{hx_counter}_secondary"] = ShellHX( **parameters)
                             hx_counter += 1
                     else:
