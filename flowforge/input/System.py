@@ -114,49 +114,7 @@ class System:
 
     Attributes
     ----------
-    components : List[Component]
-        The collection of components which comprise the system
-    connectivity : List[Tuple[Component, Component]]
-        The connectivity map of the sections of the system. The map is expressed as a list
-        of component pairs, with the first element in the pair being the 'from' component and
-        the second element the 'to' component. The list is ordered from the 'starting segment'
-        to the 'ending segment'
-    solidComponents : List[SolidComponent]]
-        The collection of solid components which comprise the solid system
-    solidConnectivity : List[Tuple[SolidComponent, SolidComponent]]
-        Connectivity map for solid components, expressing pairs of components in a (previous-
-        component, current-component) form. This list is used in meshing to build interfaces
-        between components and the components that came before it
-    inBoundComp : Component
-        The system inlet boundary component
-    outBoundComp : Component
-        The system outlet boundary component
-    nCells : int
-        The number of cells in the system
-    fluid : str
-        The fluid to be used in the system
-    gas : str, optional
-        The gas to be used in the system (for two-phase simulations)
-    output_parsers : Dict[str, OutputParser]
-        The output parsers with which to parse output from various models and map to the System
-    bodyforces : List[str]
-        The body forces to be applied in the system
-    wallfunctions : List[str]
-        The wall functions to be applied in the system
-    solid_body_forces : List[str]
-        The body forces to be applied in the solid system
-    solid_wall_functions : List[str]
-        The wall functions to be applied in the solid system
-    BoundaryConditionsContainer : BoundaryConditions
-        The boundary conditions to be applied in the system, organized in a container class
-    BodyForceContainer : BodyForces
-        The body forces to be applied in the system, organized in a container class
-    WallFunctionContainer : WallFunctions
-        The wall functions to be applied in the system, organized in a container class
-    isLoop : bool
-        Boolean defining if system is a loop or segment
-    make_continuous : bool
-        Boolean defining whether to insert tiny nozzles between components with discontinuities
+    A collection of System setup options.
     """
 
     def __init__(
