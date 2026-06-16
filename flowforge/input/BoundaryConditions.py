@@ -1,4 +1,5 @@
 import abc
+from typing import Union
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
 
@@ -18,6 +19,8 @@ class BoundaryConditions:
                 {"boundary_type": "DirichletBC", "surface": "outlet",       "variable": "pressure",       "value": 1e5},
         "inlet_temperature"    :
                 {"boundary_type": "DirichletBC", "surface": "inlet",        "variable": "temperature",    "value": 700},
+        "pressure_reference"   :
+                {"boundary_type": "PressureReferenceBC", "surface": 10,      "variable": "pressure",       "value": 1e5},
         "outer_solid_temperature"    :
                 {"boundary_type": "NeumannBC",   "surface": "outer",        "variable": "solid_enthalpy", "value": 1e6},
     }
@@ -35,9 +38,9 @@ class BoundaryConditions:
     """
 
     def __init__(self, **boundary_conditions: dict):
-
         bc_objects = {"DirichletBC": DirichletBC,
                       "NeumannBC": NeumannBC,
+                      "PressureReferenceBC": PressureReferenceBC,
                       "AdiabaticBC": AdiabaticBC}
         self.bcs = {}
         for bc_name, bc in boundary_conditions.items():
@@ -47,6 +50,10 @@ class BoundaryConditions:
                 self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
             elif bc_type == "AdiabaticBC":
                 self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"])
+            elif bc_type == "PressureReferenceBC":
+                self.bcs[bc_name] = bc_obj(bc["surface"], str(bc["value"]))
+                if "variable" in bc and bc["variable"] != "pressure":
+                    raise Exception("Pressure reference boundary condition variable must be pressure")
             else:
                 raise Exception(f"no such boundary type: {bc_type}")
 
@@ -96,7 +103,7 @@ class GeneralBC(abc.ABC):
         Surface this boundary is applied to
     """
 
-    def __init__(self, surface: str, variable: str, value: str):
+    def __init__(self, surface: Union[str, int] , variable: str, value: str):
         self._surface_name = surface
         self._variable_name = variable
         self._value = EquationParser(value)
@@ -224,3 +231,32 @@ class AdiabaticBC(GeneralBC):
     def __init__(self, surface, variable):
         super().__init__(surface, variable, "1.0")
         self._boundary_type = "AdiabaticBC"
+
+class PressureReferenceBC(GeneralBC):
+    """
+    Sub-class for Pressure Reference boundary conditions
+
+    Parameters
+    ----------
+    surface : int
+        Index of the surface of which this boundary condition is applied
+    variable : str
+        Name of the variable used for this boundary
+    value : str
+        Value input for the boundary condition
+
+    Attributes
+    ----------
+    boundary_type : str
+        Type of boundary condition
+    boundary_value : EquationParser
+        Function that, when evaluated, gives the boundary value
+    variable_name : str
+        Variable associated with this boundary - must be pressure
+    surface_name : int
+        Surface this boundary is applied to
+    """
+
+    def __init__(self, surface: int, value: str):
+        super().__init__(surface, "pressure", value)
+        self._boundary_type = "PressureReferenceBC"
