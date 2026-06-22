@@ -1,41 +1,72 @@
 import abc
 from copy import deepcopy
+from typing import Union
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
+import flowforge.input.Components as FluidComps
+import flowforge.input.SolidComponents as SolidComps
+from flowforge.input.System import SimulationType
 
+SolidComponent = SolidComps.SolidComponent
+FluidComponent = FluidComps.Component
+GeneralComponent = Union[FluidComponent, SolidComponent]
 
 class BodyForces:
     """
-    Container class for all input body forces
-
-    Parameters
-    ----------
-    body_forces : dict[str, dict]
-        Dict of body force definitions
-
-    Attributes
-    ----------
-    body_forces : List[GeneralBF]
-        List of built body force objects
     """
-
-    def __init__(self, **body_forces):
-
-        bf_objects = {"heat_generation": HeatGenerationBF}
-
-        self._bfs = {}
-        for bf_name, bf in body_forces.items():
-            bf_obj = bf_objects[bf["type"]]
-            input_value = EquationParser(str(bf["value"]))
-            self._bfs[bf_name] = bf_obj(bf["variable"], input_value)
+    def __init__(self,
+                 simulation_type: SimulationType):
+        self._simulation_type = simulation_type
+        self._body_forces = {}
 
     @property
-    def body_forces(self):
-        return self._bfs
+    def valid_bf_objects(self) -> dict:
+        return {
+            "InternalHeatGeneration" : InternalHeatGenerationBF,
+            "heat_generation"        : InternalHeatGenerationBF,
+            "DifferentialPressure"   : DifferentialPressureBF,
+            "dP"                     : DifferentialPressureBF
+        }
+    
+    @property
+    def body_forces(self) -> dict:
+        return self._body_forces
 
-    @body_forces.setter
-    def body_forces(self, body_forces: dict):
-        self._bfs = body_forces
+    @property
+    def simulation_type(self) -> SimulationType:
+        return self._simulation_type
+
+    def rename_body_force(self, name: str) -> str:
+        """
+        """
+        n_duplicates = 0
+        for bf in self.body_forces:
+            if name in bf:
+                n_duplicates += 1
+        return name + f"_{n_duplicates}"
+
+    def addBodyForce(self,
+                     name: str,
+                     body_force: dict,
+                     component: GeneralComponent,
+                     allow_duplicates: bool = True) -> None:
+        """
+        """
+        if not allow_duplicates:
+            assert name not in self._bfs, (
+                f"Already have a body force '{name}' defined."
+            )
+        else:
+            name = self.rename_body_force(name)
+
+        # Get the body force base object
+        bf_obj = self.valid_bf_objects[body_force["type"]]
+        # Extract and convert the input value
+        input_value = EquationParser(str(body_force["value"]))
+        # Add built body force
+        self._body_forces[name] = bf_obj(input_value)
+        # Attach the input component
+        self._body_forces[name].attach_component(component)
 
     def _convertUnits(self, uc: UnitConverter):
         converted_bfs = {}
@@ -43,38 +74,16 @@ class BodyForces:
             bf.convertUnits(uc)
             converted_bfs[bf_name] = deepcopy(bf)
         self.body_forces = converted_bfs
-
-
-class GeneralBF(abc.ABC):
+class GeneralBodyForce:
     """
-    General abstract class for body forces
-
-    Parameters
-    ----------
-    variable : str
-        Name of the variable this body force applies to
-    value : EquationParser
-        Function that, when evaluated, provides the body-force value
-
-    Attributes
-    ----------
-    body_force_type : str
-        Type of body force
-    variable_name : str
-        Variable this body force is associated with
-    body_force_value : EquationParser
-        Function that, when evaluated, gives the source value of the body force
+    Body force parent object
     """
-
-    def __init__(self,
-                 variable: str,
-                 value: EquationParser) -> None:
-
-        self._variable_name = variable
+    def __init__(self, value: EquationParser):
         self._value = value
-
+        self._variable_name = None
         self._body_force_type = None
-
+        self._component = None
+        
     @property
     def body_force_type(self) -> str:
         return self._body_force_type
@@ -95,6 +104,21 @@ class GeneralBF(abc.ABC):
     def body_force_value(self, value: EquationParser) -> None:
         self._value = value
 
+    @property
+    def component(self) -> GeneralComponent:
+        return self._component
+
+    def attach_component(self, component: GeneralComponent):
+        """
+        Attaches the reference to a component to this body force
+
+        Parameters
+        ----------
+        component : Union[FluidComponent, SolidComponent]
+            Component that this body force is associated with
+        """
+        self._component = component
+
     def convertUnits(self, uc: UnitConverter) -> None:
         """
         Converts units
@@ -107,37 +131,20 @@ class GeneralBF(abc.ABC):
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
         self.body_force_value.performUnitConversion(scale_factor, shift_factor)
 
-
-class HeatGenerationBF(GeneralBF):
+class InternalHeatGenerationBF(GeneralBodyForce):
     """
-    Class for a Heat Generation Body Force
-
-    Parameters
-    ----------
-    variable : str
-        Name of the variable this body force applies to
-    value : EquationParser
-        Function that, when evaluated, provides the body-force value
-
-    Attributes
-    ----------
-    body_force_type : str
-        Type of body force
-    variable_name : str
-        Variable this body force is associated with
-    body_force_value : EquationParser
-        Function that, when evaluated, gives the source value of the body force
+    Body force for an internal heat generation
     """
+    def __init__(self, value):
+        super().__init__(value)
+        self.body_force_type = "InternalHeatGeneration"
+        self._variable_name = "power_density"
 
-    def __init__(self, variable, power_value):
-        assert variable in self.valid_variables
-        super().__init__(variable, power_value)
-        self.body_force_type = "heat_generation"
-
-    @property
-    def valid_variables(self):
-        return (
-            "power",
-            "temperature", "solid_temperature",
-            "enthalpy", "solid_enthalpy"
-        )
+class DifferentialPressureBF(GeneralBodyForce):
+    """
+    Body force for a differential pressure
+    """
+    def __init__(self, value):
+        super().__init__(value)
+        self.body_force_type = "DifferentialPressure"
+        self._variable_name = "pressure"

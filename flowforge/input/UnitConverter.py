@@ -245,14 +245,23 @@ class UnitConverter:
         elif variable_name == "pressure":
             scale_factor = self.pressureConversion
 
-        elif variable_name in ("temperature", "solid_temperature"):
+        elif variable_name in "temperature":
             scale_factor, shift_factor = self.temperatureConversionFactors
 
-        elif variable_name in ("enthalpy", "solid_enthalpy"):
+        elif variable_name in "enthalpy":
             scale_factor = self.enthalpyConversion
 
         elif variable_name == "void_fraction":
             pass  # void fraction is non-dimensional
+
+        elif variable_name == "power":
+            scale_factor = self.powerConversion
+
+        elif variable_name == "power_density":
+            scale_factor = self.powerConversion / self.volumeConversion
+
+        elif variable_name == "power_flux":
+            scale_factor = self.powerConversion / self.areaConversion
 
         elif variable_name.startswith("neutron_precursor_mass_concentration"):
             pass
