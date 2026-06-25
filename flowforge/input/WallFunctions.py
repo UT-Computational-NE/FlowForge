@@ -13,47 +13,6 @@ GeneralComponent = Union[FluidComponent, SolidComponent]
 
 class WallFunctions:
     """
-    Container class for all input wall functions
-
-    Parameters
-    ----------
-    wall_functions : dict[str, dict]
-        Dict of wall function definitions
-
-    Attributes
-    ----------
-    wall_functions : List[GeneralWF]
-        List of built wall function objects
-    """
-    def __init__(self, **wall_functions: dict):
-
-        wf_objects = {"heat_flux" : HeatFluxWF,
-                      "HeatFlux"  : HeatFluxWF}
-
-        self._wfs = {}
-        for wf_name, wf in wall_functions.items():
-            wf_obj = wf_objects[wf["type"]]
-            input_value = EquationParser(str(wf.get("value", 0.0)))
-            self._wfs[wf_name] = wf_obj(wf.get("surface", "wall"), input_value)
-
-    @property
-    def wall_functions(self):
-        return self._wfs
-
-    @wall_functions.setter
-    def wall_functions(self, wall_functions: dict):
-        self._wfs = wall_functions
-
-    def _convertUnits(self, uc: UnitConverter):
-        converted_wfs = {}
-        for wf_name, wf in self.wall_functions.items():
-            wf.convertUnits(uc)
-            converted_wfs[wf_name] = deepcopy(wf)
-        self.wall_functions = converted_wfs
-
-
-class WallFunctions:
-    """
     """
     def __init__(self,
                  simulation_type: SimulationType):

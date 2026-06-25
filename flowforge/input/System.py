@@ -1,6 +1,12 @@
 from typing import Dict, List, Tuple, Generator, Any
 from copy import deepcopy
+from enum import Enum
 import numpy as np
+
+class SimulationType(Enum):
+    FLUID = "fluid_simulation"
+    SOLID = "solid_simulation"
+
 from flowforge.visualization.VTKMesh import VTKMesh
 from flowforge.visualization.VTKFile import VTKFile
 from flowforge.input.Components import Component, Nozzle, Core
@@ -121,13 +127,14 @@ class System:
 
     def __init__(
         self,
-        components: Dict[str, Component],
-        sysdict: Dict,
-        unitdict: Dict[str, str],
-        solid_components: Dict[str, SolidComponent] = {},
-        solid_controllers: Dict[str, Dict[str, dict]] = {},
-        coupled_components: List[Tuple[str, str]] = [],
-        options: Dict[str, bool] = {}
+        fluid_components   : Dict[str, Component],
+        sys_dict           : Dict,
+        unit_dict          : Dict[str, str],
+        fluid_controllers  : Dict[str, Dict[str, dict]] = {},
+        solid_components   : Dict[str, SolidComponent]  = {},
+        solid_controllers  : Dict[str, Dict[str, dict]] = {},
+        coupled_components : List[Tuple[str, str]]      = [],
+        options            : Dict[str, bool]            = {}
 
     ) -> None:
         # Component Dicts
@@ -146,11 +153,11 @@ class System:
         self._fluid_boundary_conditions = {}
         self._solid_boundary_conditions = {}
 
-        # Controller Variables
-        self._fluid_body_forces = []
-        self._fluid_wall_functions = []
-        self._solid_body_forces = []
-        self._solid_wall_functions = []
+        # Initialize Controller Variables
+        self._fluid_body_forces    = BodyForces(SimulationType.FLUID)
+        self._fluid_wall_functions = WallFunctions(SimulationType.FLUID)
+        self._solid_body_forces    = BodyForces(SimulationType.SOLID)
+        self._solid_wall_functions = WallFunctions(SimulationType.SOLID)
 
         # Material variables
         self._fluid = None
@@ -163,13 +170,10 @@ class System:
         # Physics object definitions
         self._fluid_boundary_conditions_definitions = {}
         self._solid_boundary_conditions_definitions = {}
-        self._solid_body_forces_definitions = {}
-        self._solid_wall_functions_definitions = {}
 
         # Initializes container objects to be empty
         self._boundary_condition_container = BoundaryConditions(**{})
-        self._body_force_container = BodyForces(**{})
-        self._wall_function_container = WallFunctions(**{})
+
         self._isLoop = False  # Boolean defining if system is a loop or segment
         self._auto_nozzle_length = None # defines whether to insert tiny nozzles between components with discontinuities
         if "auto_nozzle_length" in options:
@@ -177,17 +181,18 @@ class System:
             assert self._auto_nozzle_length > 0, "auto_nozzle_length must be a positive value"
 
         self._setup_system(
-            sys_dict=sysdict,
-            fluid_components=components,
+            sys_dict=sys_dict,
+            fluid_components=fluid_components,
+            fluid_controllers=fluid_controllers,
             solid_components=solid_components,
             solid_controllers=solid_controllers,
             coupled_components=coupled_components
         )
 
-        if "parsers" in sysdict:
-            self._setupParsers(sysdict["parsers"])
+        if "parsers" in sys_dict:
+            self._setupParsers(sys_dict["parsers"])
 
-        self._unit_conversion(unitdict)
+        self._unit_conversion(unit_dict)
 
     @property
     def core(self) -> List[Core]:
@@ -206,6 +211,7 @@ class System:
     def _setup_system(self,
                       sys_dict: Dict,
                       fluid_components: Dict[str, Component] = None,
+                      fluid_controllers: Dict[str, Dict[str, dict]] = None,
                       solid_components: Dict[str, SolidComponent] = None,
                       solid_controllers: Dict[str, Dict[str, dict]] = None,
                       coupled_components: List[Tuple[str, str]] = None
@@ -229,11 +235,12 @@ class System:
 
             return False
 
-        # Coupled system
+        ## Coupled system
         if is_coupled_system(sys_dict):
             self._setup_coupled_system(
                 sys_dict=sys_dict,
                 fluid_components=fluid_components,
+                fluid_controllers=fluid_controllers,
                 solid_components=solid_components,
                 solid_controllers=solid_controllers,
                 coupled_components=coupled_components
@@ -242,26 +249,29 @@ class System:
             return
 
         ## Non-coupled system
-
         # Setup system
         if "simple_loop" in sys_dict:
-            self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
+            self._setupSimpleLoop(fluid_components,
+                                  fluid_controllers,
+                                  **sys_dict["simple_loop"])
         elif "segment" in sys_dict:
-            self._setupSegment(fluid_components, **sys_dict["segment"])
+            self._setupSegment(fluid_components,
+                               fluid_controllers,
+                               **sys_dict["segment"])
         elif "solid_system" in sys_dict:
-            self._setupSolidSystem(solid_components, solid_controllers, **sys_dict["solid_system"])
+            self._setupSolidSystem(solid_components,
+                                   solid_controllers,
+                                   **sys_dict["solid_system"])
 
         # Set physics variables
         all_boundary_conditions = self._fluid_boundary_conditions_definitions | self._solid_boundary_conditions_definitions
         self._boundary_condition_container = BoundaryConditions(**all_boundary_conditions)
-        # NOTE: Only for solid - should add for fluid later
-        self._body_force_container = BodyForces(**self._solid_body_forces_definitions)
-        self._wall_function_container = WallFunctions(**self._solid_wall_functions_definitions)
 
 
     def _setup_coupled_system(self,
                               sys_dict: Dict,
                               fluid_components: Dict[str, Component] = None,
+                              fluid_controllers: Dict[str, Dict[str, dict]] = None,
                               solid_components: Dict[str, SolidComponent] = None,
                               solid_controllers: Dict[str, Dict[str, dict]] = None,
                               coupled_components: List[Tuple[str, str]] = None
@@ -298,19 +308,22 @@ class System:
 
         # Setup system
         if "simple_loop" in sys_dict:
-            self._setupSimpleLoop(fluid_components, **sys_dict["simple_loop"])
+            self._setupSimpleLoop(fluid_components,
+                                  fluid_controllers,
+                                  **sys_dict["simple_loop"])
         elif "segment" in sys_dict:
-            self._setupSegment(fluid_components, **sys_dict["segment"])
+            self._setupSegment(fluid_components,
+                               fluid_controllers,
+                               **sys_dict["segment"])
 
         if "solid_system" in sys_dict:
-            self._setupSolidSystem(solid_components, solid_controllers, **sys_dict["solid_system"])
+            self._setupSolidSystem(solid_components,
+                                   solid_controllers,
+                                   **sys_dict["solid_system"])
 
-        # Set physics variables
+        # Set boundary condition variables
         all_boundary_conditions = self._fluid_boundary_conditions_definitions | self._solid_boundary_conditions_definitions
         self._boundary_condition_container = BoundaryConditions(**all_boundary_conditions)
-        # NOTE: Only for solid - should add for fluid later
-        self._body_force_container = BodyForces(**self._solid_body_forces_definitions)
-        self._wall_function_container = WallFunctions(**self._solid_wall_functions_definitions)
 
         # Creates list of coupled component object in the system
         for fluid_name, solid_name in coupled_components.values():
@@ -340,54 +353,201 @@ class System:
         if self._boundary_condition_container is not None:
             self._boundary_condition_container._convertUnits(UnitConverter(unit_dict))  # pylint: disable=protected-access
 
+    # def _setupSimpleLoop(
+    #     self,
+    #     components: Dict[str, Component],
+    #     loop: List[dict],
+    #     boundary_conditions: Dict = {},
+    #     fluid: str = "FLiBe",
+    #     gas=None,
+    # ) -> None:
+    #     """Private method for setting up a loop of components
+
+    #     Here, a 'loop of components' means that the last component's outlet
+    #     connects to first component input
+
+    #     Parameters
+    #     ----------
+    #     components : Dict[str, Component]
+    #         Collection of initialized components with which to construct the loop with
+    #     loop : List[dict]
+    #         List specifying the construction of loop via component names and forces.  Ordering is
+    #         from the 'first' component of the loop to the 'last'.
+    #     boundary_conditions : Dict
+    #         Dictionary of boundary conditions for the segment
+    #     fluid : str
+    #         The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
+    #     gas  optional :
+    #         An optional parameter to specify gas in the system (e.g. "Helium")
+
+    #     """
+    #     self._isLoop = True
+    #     if self._auto_nozzle_length is not None:
+    #         components, loop = make_continuous(components, loop, self._auto_nozzle_length)
+    #     self._fluidname = fluid.lower()
+    #     self._gasname = gas if gas is None else gas.lower()
+    #     # Loop over each component in the loop, add those components to the list, define the connections between components
+    #     for i, entry in enumerate(loop):
+    #         component_i = deepcopy(components[entry["component"]])
+    #         component_i.name = entry["component"]
+    #         self._fluid_components.append(component_i)
+    #         bftemp = []
+    #         wftemp = []
+    #         if "BodyForces" in entry:
+    #             bftemp = entry["BodyForces"]
+    #         if "WallFunctions" in entry:
+    #             wftemp = entry["WallFunctions"]
+    #         # add a body force for the component if present
+    #         self._fluid_body_forces.append(deepcopy(bftemp))
+    #         # add a wall function for the component if present
+    #         self._fluid_wall_functions.append(deepcopy(wftemp))
+    #         # connect the current component to the previous (exclude the first component because there isn't a previous)
+    #         if i > 0:
+    #             self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
+    #         # If the last entry in the loop, connect the last component to the first
+    #         if i == len(loop) - 1:
+    #             self._fluid_connectivity.append((self._fluid_components[i], self._fluid_components[0]))
+
+    #     # get the boundary conditions
+    #     self._fluid_boundary_conditions_definitions = boundary_conditions
+
+    # def _setupSegment(
+    #     self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+    # ) -> None:
+    #     """Private method for setting up a segment
+
+    #     Here, a segment refers to a model with defined inlet and outlet boundary conditions
+
+    #     Parameters
+    #     ----------
+    #     components : Dict[str, Component]
+    #         Collection of initialized components with which to construct the segment with
+    #     order : List[str]
+    #         List specifying the construction of segment via component names and forces.  Ordering is
+    #         from the 'first' component of the segment to the 'last'.
+    #     boundary_conditions : Dict
+    #         Dictionary of boundary conditions for the segment
+    #     fluid : str
+    #         The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
+    #     gas  optional :
+    #         An optional parameter to specify gas in the system (e.g. "Helium")
+    #     """
+    #     self._isLoop = False
+
+    #     if self._auto_nozzle_length is not None:
+    #         components, order = make_continuous(components, order, self._auto_nozzle_length)
+    #     self._fluidname = fluid.lower()
+    #     self._gasname = gas if gas is None else gas.lower()
+    #     # Loop over each entry in segment, add the components, and connect the compnents to each other
+    #     for i, entry in enumerate(order):
+    #         component_i = deepcopy(components[entry["component"]])
+    #         component_i.name = entry["component"]
+    #         self._fluid_components.append(component_i)
+    #         bftemp = []
+    #         wftemp = []
+    #         if "BodyForces" in entry:
+    #             bftemp = entry["BodyForces"]
+    #         if "WallFunctions" in entry:
+    #             wftemp = entry["WallFunctions"]
+    #         # add a body force for the component if present
+    #         self._fluid_body_forces.append(deepcopy(bftemp))
+    #         # add a wall function for the component if present
+    #         self._fluid_wall_functions.append(deepcopy(wftemp))
+    #         if i > 0:
+    #             self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
+
+    #     # get the boundary conditions
+    #     self._fluid_boundary_conditions_definitions = boundary_conditions
+
+    # def _setupSolidSystem(
+    #     self,
+    #     solid_components: Dict[str, SolidComponent],
+    #     solid_controllers: Dict[str, Dict[str, dict]],
+    #     order: List[str],
+    #     boundary_conditions: Dict[str, Any]
+    # ):
+    #     """
+    #     Private method for setting up a solid system
+
+    #     Given a set of components and their respective ordering, this method builds a list
+    #     of the components in the correct order, as well as defines the connectivity of each
+    #     component.
+
+    #     Parameters
+    #     ----------
+    #     solid_components : Dict[str, SolidComponent]
+    #         Set of initialized components, where the key is the components unique name
+    #     solid_controllers : Dict
+    #         Dictionary of controllers for the system
+    #     order : List[Dict]
+    #         Ordering of the components, where each element is a dict containing information
+    #         on the specific component
+    #     boundary_conditions : Dict
+    #         Dictionary of boundary conditions for the system
+    #     """
+
+    #     for i, entry in enumerate(order):
+    #         component_i = deepcopy(solid_components[entry["component"]])
+    #         component_i.name = entry["component"]
+    #         self._solid_components.append(component_i)
+    #         self._solid_body_forces.append(deepcopy(entry.get("BodyForces", [])))
+    #         self._solid_wall_functions.append(deepcopy(entry.get("WallFunctions", [])))
+
+    #         current_component = self._solid_components[i]
+    #         previous_component = None if i == 0 else self._solid_components[i - 1]
+
+    #         self._solid_connectivity.append((previous_component, current_component))
+
+    #     self._solid_boundary_conditions_definitions = boundary_conditions
+    #     self._solid_body_forces_definitions = solid_controllers.get("bodyForce", {})
+    #     self._solid_wall_functions_definitions = solid_controllers.get("wallFunction", {})
+
     def _setupSimpleLoop(
         self,
         components: Dict[str, Component],
+        controllers: Dict[str, Dict[str, dict]],
         loop: List[dict],
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
         gas=None,
     ) -> None:
-        """Private method for setting up a loop of components
-
-        Here, a 'loop of components' means that the last component's outlet
-        connects to first component input
-
-        Parameters
-        ----------
-        components : Dict[str, Component]
-            Collection of initialized components with which to construct the loop with
-        loop : List[dict]
-            List specifying the construction of loop via component names and forces.  Ordering is
-            from the 'first' component of the loop to the 'last'.
-        boundary_conditions : Dict
-            Dictionary of boundary conditions for the segment
-        fluid : str
-            The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
-        gas  optional :
-            An optional parameter to specify gas in the system (e.g. "Helium")
-
+        """
         """
         self._isLoop = True
         if self._auto_nozzle_length is not None:
             components, loop = make_continuous(components, loop, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
+        
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
+            # Add copy of component
             component_i = deepcopy(components[entry["component"]])
             component_i.name = entry["component"]
             self._fluid_components.append(component_i)
-            bftemp = []
-            wftemp = []
+            
+            # Get the names of the controllers associated with the component
+            body_force_names = []
+            wall_function_names = []
             if "BodyForces" in entry:
-                bftemp = entry["BodyForces"]
+                body_force_names = entry["BodyForces"]
             if "WallFunctions" in entry:
-                wftemp = entry["WallFunctions"]
-            # add a body force for the component if present
-            self._fluid_body_forces.append(deepcopy(bftemp))
-            # add a wall function for the component if present
-            self._fluid_wall_functions.append(deepcopy(wftemp))
+                wall_function_names = entry["WallFunctions"]
+
+            # Add controllers to containers
+            for bf_name in body_force_names:
+                self._fluid_body_forces.addBodyForce(
+                    name       = bf_name,
+                    body_force = controllers["bodyForce"][bf_name],
+                    component  = component_i
+                )
+            for wf_name in wall_function_names:
+                self._fluid_wall_functions.addWallFunction(
+                    name          = wf_name,
+                    wall_function = controllers["wallFunction"][wf_name],
+                    component     = component_i
+                )
+
             # connect the current component to the previous (exclude the first component because there isn't a previous)
             if i > 0:
                 self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
@@ -399,25 +559,15 @@ class System:
         self._fluid_boundary_conditions_definitions = boundary_conditions
 
     def _setupSegment(
-        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+        self,
+        components: List[Component],
+        controllers: Dict[str, Dict[str, dict]],
+        order: List[dict],
+        boundary_conditions: Dict = {},
+        fluid: str = "FLiBe",
+        gas=None
     ) -> None:
-        """Private method for setting up a segment
-
-        Here, a segment refers to a model with defined inlet and outlet boundary conditions
-
-        Parameters
-        ----------
-        components : Dict[str, Component]
-            Collection of initialized components with which to construct the segment with
-        order : List[str]
-            List specifying the construction of segment via component names and forces.  Ordering is
-            from the 'first' component of the segment to the 'last'.
-        boundary_conditions : Dict
-            Dictionary of boundary conditions for the segment
-        fluid : str
-            The working fluid used in the segment (e.g., "FLiBe"). Defaults to "FLiBe".
-        gas  optional :
-            An optional parameter to specify gas in the system (e.g. "Helium")
+        """
         """
         self._isLoop = False
 
@@ -427,24 +577,39 @@ class System:
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
+            # Add copy of component
             component_i = deepcopy(components[entry["component"]])
             component_i.name = entry["component"]
             self._fluid_components.append(component_i)
-            bftemp = []
-            wftemp = []
+            
+            # Get the names of the controllers associated with the component
+            body_force_names = []
+            wall_function_names = []
             if "BodyForces" in entry:
-                bftemp = entry["BodyForces"]
+                body_force_names = entry["BodyForces"]
             if "WallFunctions" in entry:
-                wftemp = entry["WallFunctions"]
-            # add a body force for the component if present
-            self._fluid_body_forces.append(deepcopy(bftemp))
-            # add a wall function for the component if present
-            self._fluid_wall_functions.append(deepcopy(wftemp))
+                wall_function_names = entry["WallFunctions"]
+
+            # Add controllers to containers
+            for bf_name in body_force_names:
+                self._fluid_body_forces.addBodyForce(
+                    name       = bf_name,
+                    body_force = controllers["bodyForce"][bf_name],
+                    component  = component_i
+                )
+            for wf_name in wall_function_names:
+                self._fluid_wall_functions.addWallFunction(
+                    name          = wf_name,
+                    wall_function = controllers["wallFunction"][wf_name],
+                    component     = component_i
+                )
+
             if i > 0:
                 self._fluid_connectivity.append((self._fluid_components[i - 1], self._fluid_components[i]))
 
         # get the boundary conditions
         self._fluid_boundary_conditions_definitions = boundary_conditions
+
 
     def _setupSolidSystem(
         self,
@@ -452,33 +617,37 @@ class System:
         solid_controllers: Dict[str, Dict[str, dict]],
         order: List[str],
         boundary_conditions: Dict[str, Any]
-    ):
+    ) -> None:
         """
-        Private method for setting up a solid system
-
-        Given a set of components and their respective ordering, this method builds a list
-        of the components in the correct order, as well as defines the connectivity of each
-        component.
-
-        Parameters
-        ----------
-        solid_components : Dict[str, SolidComponent]
-            Set of initialized components, where the key is the components unique name
-        solid_controllers : Dict
-            Dictionary of controllers for the system
-        order : List[Dict]
-            Ordering of the components, where each element is a dict containing information
-            on the specific component
-        boundary_conditions : Dict
-            Dictionary of boundary conditions for the system
         """
-
         for i, entry in enumerate(order):
+            # Add copy of component
             component_i = deepcopy(solid_components[entry["component"]])
             component_i.name = entry["component"]
             self._solid_components.append(component_i)
-            self._solid_body_forces.append(deepcopy(entry.get("BodyForces", [])))
-            self._solid_wall_functions.append(deepcopy(entry.get("WallFunctions", [])))
+
+
+            # Get the names of the controllers associated with the component
+            body_force_names = []
+            wall_function_names = []
+            if "BodyForces" in entry:
+                body_force_names = entry["BodyForces"]
+            if "WallFunctions" in entry:
+                wall_function_names = entry["WallFunctions"]
+
+            # Add controllers to containers
+            for bf_name in body_force_names:
+                self._solid_body_forces.addBodyForce(
+                    name       = bf_name,
+                    body_force = solid_controllers["bodyForce"][bf_name],
+                    component  = component_i
+                )
+            for wf_name in wall_function_names:
+                self._solid_wall_functions.addWallFunction(
+                    name          = wf_name,
+                    wall_function = solid_controllers["wallFunction"][wf_name],
+                    component     = component_i
+                )
 
             current_component = self._solid_components[i]
             previous_component = None if i == 0 else self._solid_components[i - 1]
@@ -486,8 +655,6 @@ class System:
             self._solid_connectivity.append((previous_component, current_component))
 
         self._solid_boundary_conditions_definitions = boundary_conditions
-        self._solid_body_forces_definitions = solid_controllers.get("bodyForce", {})
-        self._solid_wall_functions_definitions = solid_controllers.get("wallFunction", {})
 
     def _setupParsers(self, parser_dict: Dict) -> None:
         """Private method for setting up output parsers
@@ -573,32 +740,24 @@ class System:
         return self._output_parsers
 
     @property
-    def bodyforces(self) -> List[str]:
+    def fluidBodyForces(self) -> List[str]:
         return self._fluid_body_forces
 
     @property
-    def wallfunctions(self) -> List[str]:
+    def fluidWallFunctions(self) -> List[str]:
         return self._fluid_wall_functions
 
     @property
-    def solid_body_forces(self) -> List[str]:
+    def solidBodyForces(self) -> List[str]:
         return self._solid_body_forces
 
     @property
-    def solid_wall_functions(self) -> List[str]:
+    def solidWallFunctions(self) -> List[str]:
         return self._solid_wall_functions
 
     @property
     def BoundaryConditions(self) -> BoundaryConditions:
         return self._boundary_condition_container
-
-    @property
-    def BodyForceContainer(self) -> BodyForces:
-        return self._body_force_container
-
-    @property
-    def WallFunctionContainer(self) -> WallFunctions:
-        return self._wall_function_container
 
     @property
     def isLoop(self) -> bool:
