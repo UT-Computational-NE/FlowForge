@@ -16,7 +16,7 @@ from flowforge.input.ComponentCoupler import couple as FluidSolidComponentCouple
 valid_solid_system_types = tuple(["solid_system"])
 valid_fluid_system_types = tuple(["segment", "simple_loop"])
 
-def make_continuous(components: List[Component], order: List[dict], length: float):
+def make_continuous(components: List[Component], order: List[dict]):
     """Private method makes serial components continuous with respect to area change
 
     This method takes in a list of components and their order and inserts infitesimal nozzles between them
@@ -28,8 +28,6 @@ def make_continuous(components: List[Component], order: List[dict], length: floa
         list of components
     order : list
         order of those components
-    length : float
-        The length of the nozzles to be inserted
 
     Returns
     -------
@@ -47,7 +45,7 @@ def make_continuous(components: List[Component], order: List[dict], length: floa
                 prev_area, components[entry["component"]].inletArea
             ):
                 tempnozzle = Nozzle(
-                    L=length,
+                    L=1.0e-64,
                     R_inlet=np.sqrt(prev_area / np.pi),
                     R_outlet=np.sqrt(components[entry["component"]].inletArea / np.pi),
                     theta=components[entry["component"]].theta * 180 / np.pi,
@@ -103,20 +101,34 @@ class System:
     unitdict : Dict[str, str]
         Dictionary of units used for this system. This allows specification of
         custom units for length, pressure, temperature, etc.
-    solid_components : Dict[str, SolidComponent], optional
-        Collection of initialized solid components with which to construct the solid system.
-        Each component is identified by a unique name.
-    solid_controllers : Dict[str, Dict[str, dict]], optional
-        Dictionary of solid component controllers.
-    coupled_components : List[Tuple[str, str]], optional
-        List of tuples representing coupled components.
-    options : Dict[str, bool], optional
-        Dictionary of options for the system. For example, "auto_nozzle_length" can be set to
-        enable the insertion of tiny nozzles between components with discontinuities.
 
     Attributes
     ----------
-    A collection of System setup options.
+    components : List[Component]
+        The collection of components which comprise the system
+    connectivity : List[Tuple[Component, Component]]
+        The connectivity map of the sections of the system. The map is expressed as a list
+        of component pairs, with the first element in the pair being the 'from' component and
+        the second element the 'to' component. The list is ordered from the 'starting segment'
+        to the 'ending segment'
+    solidComponents : List[SolidComponent]]
+        The collection of solid components which comprise the solid system
+    solidConnectivity : List[Tuple[SolidComponent, SolidComponent]]
+        Connectivity map for solid components, expressing pairs of components in a (previous-
+        component, current-component) form. This list is used in meshing to build interfaces
+        between components and the components that came before it
+    inBoundComp : Component
+        The system inlet boundary component
+    outBoundComp : Component
+        The system outlet boundary component
+    nCells : int
+        The number of cells in the system
+    fluid : str
+        The fluid to be used in the system
+    gas : str, optional
+        The gas to be used in the system (for two-phase simulations)
+    output_parsers : Dict[str, OutputParser]
+        The output parsers with which to parse output from various models and map to the System
     """
 
     def __init__(
@@ -126,9 +138,7 @@ class System:
         unitdict: Dict[str, str],
         solid_components: Dict[str, SolidComponent] = {},
         solid_controllers: Dict[str, Dict[str, dict]] = {},
-        coupled_components: List[Tuple[str, str]] = [],
-        options: Dict[str, bool] = {}
-
+        coupled_components: List[Tuple[str, str]] = []
     ) -> None:
         # Component Dicts
         self._fluid_components = []
@@ -171,10 +181,6 @@ class System:
         self._body_force_container = BodyForces(**{})
         self._wall_function_container = WallFunctions(**{})
         self._isLoop = False  # Boolean defining if system is a loop or segment
-        self._auto_nozzle_length = None # defines whether to insert tiny nozzles between components with discontinuities
-        if "auto_nozzle_length" in options:
-            self._auto_nozzle_length = options["auto_nozzle_length"]
-            assert self._auto_nozzle_length > 0, "auto_nozzle_length must be a positive value"
 
         self._setup_system(
             sys_dict=sysdict,
@@ -369,8 +375,8 @@ class System:
 
         """
         self._isLoop = True
-        if self._auto_nozzle_length is not None:
-            components, loop = make_continuous(components, loop, self._auto_nozzle_length)
+
+        components, loop = make_continuous(components, loop)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each component in the loop, add those components to the list, define the connections between components
@@ -421,8 +427,7 @@ class System:
         """
         self._isLoop = False
 
-        if self._auto_nozzle_length is not None:
-            components, order = make_continuous(components, order, self._auto_nozzle_length)
+        components, order = make_continuous(components, order)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
         # Loop over each entry in segment, add the components, and connect the compnents to each other
@@ -526,6 +531,8 @@ class System:
         inlet = (0, 0, 0)
         mesh = VTKMesh()
         for c in self._fluid_components:
+            if c.length < 1e-10:
+                continue
             mesh += c.getVTKMesh(inlet)
             inlet = c.getOutlet(inlet)
         return mesh
