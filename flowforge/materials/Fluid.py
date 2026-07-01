@@ -699,9 +699,7 @@ class Constant_FLiBe_UF4(Fluid):
         Temperature [K]
         """
         temp = h / self.specific_heat(h) + self._Tref  # only true because specific heat is constant
-        # print(f"temp: {temp}")
-        # print(f"from h = {h}")
-        # assert np.all(temp >= 0)
+        assert np.all(temp >= 0)
         return temp
 
     def enthalpy(self, T: float) -> float:
