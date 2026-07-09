@@ -578,3 +578,28 @@ class User_Fluid(Fluid):
         Enthalpy [J/kg]
         """
         return self.enthalpy_fun(T)
+
+
+class CharlieCustom(FLiBe_UF4):
+    """Charlie's Custom Fluid, which returns set values, more or less"""
+    def temperature(self, h):
+        """
+        Temperature [K]
+        """
+        temp = h / self.specific_heat(h) + self._Tref  # only true because specific heat is constant
+        # assert np.all(temp >= 0)
+        return temp
+
+    def density(self, h):
+        """Returns 2413"""
+        return 2413 + h * 0
+
+    def viscosity(self, h):
+        """Returns 0.116e-3"""
+        return 0.116e-3 + h * 0
+
+    def conductivity(self, h):
+        """
+        Returns 1.1
+        """
+        return 1.1 + h * 0

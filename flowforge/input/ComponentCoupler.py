@@ -121,7 +121,7 @@ class SerialFluid_SingularSolid:
 
             if isinstance(fluid_comp, FluidComponents.Pipe):
                 fluid_channel_cross_section = fluid_comp.crossSection
-            elif isinstance(fluid_comp, FluidComponents.Nozzle):
+            elif isinstance(fluid_comp, FluidComponents.NozzleNode):
                 previous_fluid_comp = ordered_fluid_comps[fluid_i - 1]
                 fluid_channel_cross_section = previous_fluid_comp.crossSection
             else:
@@ -290,7 +290,7 @@ class SerialFluid_SerialSolid:
 
         """
 
-        assert isinstance(ordered_fluid_components[component_number], FluidComponents.Nozzle)
+        assert isinstance(ordered_fluid_components[component_number], FluidComponents.NozzleNode)
         assert np.isclose(ordered_fluid_components[component_number].length, 0.0)
 
         previous_fluid_component = ordered_fluid_components[component_number - 1]
@@ -343,7 +343,7 @@ class SerialFluid_SerialSolid:
         coupled_solid_components = {}
         for i, (fluid_comp, solid_comp) in enumerate(zip(ordered_fluid_comps, ordered_solid_comps)):
             coupled_comp_name = solid_component.order[i]
-            if isinstance(fluid_comp, FluidComponents.Nozzle):
+            if isinstance(fluid_comp, FluidComponents.NozzleNode):
                 coupled_solid_components[coupled_comp_name] = self._coupleInfinitesimalSolidComponent(
                     i, ordered_fluid_comps, solid_comp
                 )

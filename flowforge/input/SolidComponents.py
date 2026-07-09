@@ -113,6 +113,8 @@ class Component:
 
     Attributes
     ----------
+    name : string
+        Name of the component, defined by the input file
     volume : float
         Volume of the component
     height : float
@@ -139,6 +141,7 @@ class Component:
         cross_section: Optional[str] = None,
         **kwargs,
     ) -> None:
+        self._name = None
         self._height = height
         self._nCells = n_cells
         self._material = material
@@ -152,6 +155,14 @@ class Component:
         assert zenith_angle == 0.0, "Cannot currently handle non-zero zenith angles"
         self._azimuthal_angle = azimuthal_angle
         self._zenith_angle = zenith_angle
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name) -> str:
+        self._name = name
 
     @property
     def volume(self) -> float:
