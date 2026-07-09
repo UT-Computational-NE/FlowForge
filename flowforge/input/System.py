@@ -160,7 +160,7 @@ class System:
         # Material variables
         self._fluid = None
         self._gas = None
-        self._htc = None # For system-level HTC
+        self._system_htc = None # For system-level HTC
 
         # Material names
         self._fluidname = None
