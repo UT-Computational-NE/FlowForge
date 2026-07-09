@@ -380,7 +380,7 @@ class System:
             components, loop = make_continuous(components, loop, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
-        self._htc = HTC
+        self._system_htc = HTC
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
             component_i = deepcopy(components[entry["component"]])
@@ -440,7 +440,7 @@ class System:
             components, order = make_continuous(components, order, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
-        self._htc = HTC
+        self._system_htc = HTC
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
             component_i = deepcopy(components[entry["component"]])
@@ -571,7 +571,7 @@ class System:
         str
             The heat transfer coefficient for the component
         """
-        return self._component_htc.get(component, self._htc)
+        return self._component_htc.get(component, self._system_htc)
 
     @property
     def nCell(self) -> int:
@@ -646,7 +646,7 @@ class System:
 
     @property
     def system_htc(self) -> str:
-        return self._htc
+        return self._system_htc
 
     @property
     def component_htc(self) -> Dict[Component, str]:
