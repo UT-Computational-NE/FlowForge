@@ -89,7 +89,8 @@ class System:
     - A closed loop (possibly of multiple components) in circulation with no external boundaries
 
     The System class also handles unit conversions, boundary conditions, and provides
-    interfaces for visualization and output parsing from various solvers.
+    interfaces for visualization and output parsing from various solvers. It also supports
+    a system-level HTC correlation with optional per-component HTC overrides.
 
     Parameters
     ----------
@@ -116,7 +117,8 @@ class System:
 
     Attributes
     ----------
-    A collection of System setup options.
+    A collection of System setup options, including system-level HTC and component-level HTC
+    correlation settings.
     """
 
     def __init__(
@@ -152,7 +154,7 @@ class System:
         self._solid_body_forces = []
         self._solid_wall_functions = []
 
-        self._component_htc = {}  # For component-level HTC
+        self._component_htc = {}
         self._MMBC = None
         self._EBC = None
         self._VBC = None
@@ -160,7 +162,7 @@ class System:
         # Material variables
         self._fluid = None
         self._gas = None
-        self._system_htc = None # For system-level HTC
+        self._system_htc = None
 
         # Material names
         self._fluidname = None
@@ -569,7 +571,7 @@ class System:
         Returns
         -------
         str
-            The heat transfer coefficient for the component
+            The component-specific HTC correlation, or the system-level HTC if none is set.
         """
         return self._component_htc.get(component, self._system_htc)
 
@@ -646,8 +648,10 @@ class System:
 
     @property
     def system_htc(self) -> str:
+        """Return the system-level HTC correlation."""
         return self._system_htc
 
     @property
     def component_htc(self) -> Dict[Component, str]:
+        """Return the per-component HTC correlation overrides."""
         return self._component_htc
