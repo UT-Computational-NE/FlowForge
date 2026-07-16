@@ -2742,6 +2742,10 @@ class TubeHX(HeatExchanger):
     def hydraulicDiameter(self) -> float:
         return self._Dh
 
+    @property
+    def heatedPerimeter(self):
+        return (2*self._Rinner)*np.pi
+
 component_list["tube"] = TubeHX
 
 class ShellHX(HeatExchanger):
@@ -2833,7 +2837,7 @@ class ShellHX(HeatExchanger):
         return self._Dh
 
     @property
-    def heatedPerimeter(self):              #might need to change? not sure what its doing
+    def heatedPerimeter(self):
         return (2*self._Rinner)*np.pi
 
     @property
@@ -3153,6 +3157,10 @@ class MSRE_HX_primary(MSRE_HX):
         return self._n
 
     @property
+    def nTubes(self) -> int:
+        return self._ntubes
+
+    @property
     def getTag(self) -> str:
         return self._tag
 
@@ -3247,7 +3255,7 @@ class MSRE_HX_secondary(MSRE_HX):
         self._Rtube = R_tube
         self._ntubes = n_tubes
         self._hx_type = hx_type
-        self._Dh = 2*self._Rtube*self._ntubes
+        self._Dh = 2*self._Rtube*np.sqrt(self._ntubes)      #diameter of pipe with same flow area as sum of tube flow areas
         self._tag = tag
         self._mdotin = mdot_in
         self._Pout = Pout
@@ -3295,6 +3303,10 @@ class MSRE_HX_secondary(MSRE_HX):
     @property
     def r_tube(self) -> float:
         return self._Rtube
+
+    @property
+    def nTubes(self) -> int:
+        return self._ntubes
 
     @property
     def nCell(self) -> int:
