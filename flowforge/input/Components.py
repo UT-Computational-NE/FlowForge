@@ -2958,7 +2958,7 @@ class MSRE_HX(Component):
         self._Pout = Pout
         self._hin = hin
         self._n = n
-        self._n_sec = (2*n)+1           #bends over itself, plus one node at curved end
+        self._n_sec = (2*n)-1           #bends over itself, plus one node at curved end
         self._costh = np.cos(np.pi / 180 * theta)
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
@@ -3109,7 +3109,7 @@ class MSRE_HX_primary(MSRE_HX):
         self._Pout = Pout
         self._hin = hin
         self._n = n
-        self._n_sec = (2*n)+1           #bends over itself, plus one node at curved end
+        self._n_sec = (2*n)-1           #bends over itself, plus one node at curved end
         self._costh = np.cos(np.pi / 180 * theta)
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
@@ -3261,7 +3261,7 @@ class MSRE_HX_secondary(MSRE_HX):
         self._Pout = Pout
         self._hin = hin
         self._n = n
-        self._n_sec = (2*n)+1           #bends over itself, plus one node at curved end
+        self._n_sec = (2*n)-1           #bends over itself, and one node at curved end
         self._costh = np.cos(np.pi / 180 * theta)
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
