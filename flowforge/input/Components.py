@@ -3122,7 +3122,7 @@ class MSRE_HX_primary(MSRE_HX):
 
     @property
     def flowArea(self) -> float:        #ignores thickness of tubes... need to fix?
-        return np.pi*((self._Rshell**2)-2*self._ntubes*(self._Rtube**2))
+        return np.pi*((self._Rshell**2)-self._ntubes*(self._Rtube**2))
 
     @property
     def length(self) -> float:
@@ -3134,7 +3134,7 @@ class MSRE_HX_primary(MSRE_HX):
 
     @property
     def heatedPerimeter(self):          #effective heat transfer area
-        return self._ntubes* (2*self._Rtube)*np.pi
+        return (self._ntubes* (2*self._Rtube)*np.pi)
 
     @property
     def heightChange(self):
@@ -3262,6 +3262,7 @@ class MSRE_HX_secondary(MSRE_HX):
         self._hin = hin
         self._n = n
         self._n_sec = (2*n)-1           #bends over itself, and one node at curved end
+        self._n_conversion = self._n_sec/(2*self._n)        #used to make nodes the same size in each loop
         self._costh = np.cos(np.pi / 180 * theta)
         self._theta = theta * np.pi / 180
         self._alpha = alpha * np.pi / 180
@@ -3278,7 +3279,7 @@ class MSRE_HX_secondary(MSRE_HX):
 
     @property
     def length(self) -> float:      #bends over itself, assume twice as long as prim side for mapping ease
-        return 2*self._L
+        return 2*self._L*self._n_conversion
 
     @property
     def hydraulicDiameter(self):    #sum tubes
