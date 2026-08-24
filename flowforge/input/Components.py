@@ -2102,7 +2102,7 @@ class SerialComponents(ComponentCollection):
 
     Attributes
     ----------
-    myComponents : List[Component]
+    myComponents : List[Component]f
         The collection of serial components
     order : List[str]
         The ordering of the serial components from start to finish using the unique component names
@@ -3023,9 +3023,9 @@ class MSRE_HX(Component):
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         raise NotImplementedError
-        # return genUniformAnnulus(
-        #     self._L, self._Rinner, self._Router, resolution=self._res, naxial_layers=self._n, **self._kwargs
-        # ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        return genUniformAnnulus(
+            self._L, self._Rinner, self._Router, resolution=self._res, naxial_layers=self._n, **self._kwargs
+        ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
@@ -3177,7 +3177,9 @@ class MSRE_HX_primary(MSRE_HX):
         return [inlet, outlet, self._Rshell, self._Rshell, self._L, self._theta, self._alpha]
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        raise NotImplementedError
+        return genUniformCylinder(
+                self._L, self._Rshell, resolution=_CYL_RESOLUTION, naxial_layers=self._n, **self._kwargs
+        ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
@@ -3261,6 +3263,7 @@ class MSRE_HX_secondary(MSRE_HX):
         self._Pout = Pout
         self._hin = hin
         self._n = n
+        self._nodal_length = self._L/self._n
         self._n_sec = (2*n)-1           #bends over itself, and one node at curved end
         self._n_conversion = self._n_sec/(2*self._n)        #used to make nodes the same size in each loop
         self._costh = np.cos(np.pi / 180 * theta)
@@ -3330,7 +3333,23 @@ class MSRE_HX_secondary(MSRE_HX):
         return [inlet, outlet, self._Rshell, self._Rshell, self._L, self._theta, self._alpha]
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        raise NotImplementedError
+        straight_length = (self._n -1)*self._nodal_length
+        mesh = VTKMesh()
+        mesh += genUniformCylinder(
+                straight_length, self._Dh/2, resolution=_CYL_RESOLUTION, naxial_layers=self._n, **self._kwargs
+                ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+        mesh += genUniformCylinder(
+                10*self._nodal_length, self._Dh/2, resolution=_CYL_RESOLUTION, naxial_layers=self._n, **self._kwargs
+                ).translate(inlet[0]+straight_length, inlet[1], inlet[2], self._theta+(np.pi/2), self._alpha)
+        mesh += genUniformCylinder(
+                straight_length, self._Dh/2, resolution=_CYL_RESOLUTION, naxial_layers=self._n, **self._kwargs
+                ).translate(inlet[0]+straight_length, inlet[1], inlet[2]-(10*self._nodal_length), self._theta+(np.pi), self._alpha)
+        return mesh
+
+        return genUniformCylinder(
+            self._L, self._R, resolution=_CYL_RESOLUTION, naxial_layers=self._n, **self._kwargs
+        ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
