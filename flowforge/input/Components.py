@@ -291,25 +291,13 @@ class Component:
             (key: Component name, value: Component object)
         """
         components = {}
-        hx_counter = 1
         for key, value in indict.items():
             if isinstance(value, dict):
                 comp_type = key
                 comps = value
                 if comp_type in component_list:
-                    if comp_type == "heat_exchanger":
-                        for name, parameters in comps.items():
-                            components[f"hx{hx_counter}_primary"] = TubeHX( **parameters)
-                            components[f"hx{hx_counter}_secondary"] = ShellHX( **parameters)
-                            hx_counter += 1
-                    if comp_type == "msre_heat_exchanger":
-                        for name, parameters in comps.items():
-                            components[f"msre_hx{hx_counter}_primary"] = MSRE_HX_primary( **parameters)
-                            components[f"msre_hx{hx_counter}_secondary"] = MSRE_HX_secondary( **parameters)
-                            hx_counter += 1
-                    else:
-                        for name, parameters in comps.items():
-                            components[name] = component_list[comp_type](**parameters)
+                    for name, parameters in comps.items():
+                        components[name] = component_list[comp_type](**parameters)
                 else:
                     raise TypeError("Unknown component type: " + comp_type)
             elif isinstance(value, Component):
@@ -2512,157 +2500,8 @@ class Nozzle(SerialComponents):
 
 component_list["nozzle"] = Nozzle
 
-class HeatExchanger(Component):
-    """A heat exchanger component
-        representing just the annulus (outer shell)
-        of the component
 
-    Parameters
-    ----------
-    L : float
-        Length of the pipe
-    R : float
-        Outer radius of outside pipe
-    r : float
-        Inner radius of outside pipe
-    tag : str
-        Name of heat exchanger used to couple with proper secondary loop
-    type : str
-        Type of Heat Exchanger, parallel or counter
-    mdot_in : float
-        Inlet mass flow rate
-    Pout : float
-        Outlet pressure
-    hin : float
-        Inlet enthalpy
-    n : int
-        Number of segments the pipe is divided into
-    theta : float
-        Orientation angle of the pipe in the polar direction
-    alpha : float
-        Orientation angle of the pipe in the azimuthal direction
-    Klossinlet : float
-        K-loss coefficient associated with pressure loss at the inlet of the pipe
-    Klossoutlet : float
-        K-loss coefficient associated with pressure loss at the outlet of the pipe
-    Klossavg : float
-        K-loss coefficient associated with pressure loss across the pipe
-    roughness : float
-        Pipe roughness
-    """
-    def __init__(
-        self,
-        # configuration: str,
-        tag: str,
-        L: float,
-        R_outer: float,
-        R_inner: float,
-        hx_type: str,
-        mdot_in: float = 1,
-        Pout: float = 101325,
-        hin: float = 64064,
-        n: int = 1,
-        theta: float = 0,
-        alpha: float = 0,
-        Klossinlet: float = 0,
-        Klossoutlet: float = 0,
-        Klossavg: float = 0,
-        roughness: float = 0,
-        resolution: int = _CYL_RESOLUTION,
-        **kwargs
-        ) -> None:
-        super().__init__()
-        self._L = L
-        self._Router = R_outer
-        self._Rinner = R_inner
-        self._hx_type = hx_type
-        self._Dh = (2*R_outer)-((2*R_inner))      #annuli
-        self._tag = tag
-        # self._configuration = configuration
-        self._mdotin = mdot_in
-        self._Pout = Pout
-        self._hin = hin
-        self._n = n
-        self._costh = np.cos(np.pi / 180 * theta)
-        self._theta = theta * np.pi / 180
-        self._alpha = alpha * np.pi / 180
-        self._klossInlet = Klossinlet
-        self._klossOutlet = Klossoutlet
-        self._klossAvg = Klossavg
-        self._roughness = roughness
-        self._res = resolution
-        self._kwargs = kwargs
-
-    @property
-    def flowArea(self) -> float:
-        return np.pi*((self._Router**2)-(self._Rinner**2))        #annuli area
-
-    @property
-    def length(self) -> float:
-        return self._L
-
-    @property
-    def hydraulicDiameter(self):
-        return self._Dh
-
-    @property
-    def heatedPerimeter(self):              #might need to change? not sure what its doing
-        return (2*self._Rinner)*np.pi
-
-    @property
-    def heightChange(self):
-        return self._costh*self._L
-
-    @property
-    def costh(self):
-        return self._costh
-
-    @property
-    def r_outer(self) -> float:
-        return self._Router
-
-    @property
-    def r_inner(self) -> float:
-        return self._Rinner
-
-    @property
-    def nCell(self) -> int:
-        return self._n
-
-    @property
-    def getTag(self) -> str:
-        return self._tag
-
-    # @property
-    # def getConfiguration(self) -> str:
-    #     return self._configuration
-
-    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
-        x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
-        y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
-        z = inlet[2] + self._L * np.cos(self._theta)
-        return (x, y, z)
-
-    def getBoundingBox(
-        self, inlet: Tuple[float, float, float]
-    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
-        outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._Router, self._Router, self._L, self._theta, self._alpha]
-
-    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
-        return genUniformAnnulus(
-            self._L, self._Rinner, self._Router, resolution=self._res, naxial_layers=self._n, **self._kwargs
-        ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
-
-    def _convertUnits(self, uc: UnitConverter) -> None:
-        self._L *= uc.lengthConversion
-        self._Router *= uc.lengthConversion
-        self._Rinner *= uc.lengthConversion
-        self._roughness *= uc.lengthConversion
-
-component_list["heat_exchanger"] = HeatExchanger
-
-class TubeHX(HeatExchanger):
+class TubeHX(Component):
     """Heat exchanger component
         representing just the inner pipe of component
 
@@ -2698,9 +2537,9 @@ class TubeHX(HeatExchanger):
         self,
         tag: str,
         L: float,
-        R_outer: float,
-        R_inner: float,
-        hx_type: str,
+        # R_shell: float,
+        R_tube: float,
+        n_tubes: int,
         mdot_in: float = 1,
         Pout: float = 101325,
         hin: float = 64064,
@@ -2715,11 +2554,10 @@ class TubeHX(HeatExchanger):
         resolution: int = _CYL_RESOLUTION,
         **kwargs
         ) -> None:
-        super().__init__(L = L, R_inner = R_inner, R_outer = R_outer, tag = tag, hx_type = hx_type)
+        super().__init__()
         self._L = L
-        self._Router = R_outer
-        self._Rinner = R_inner
-        self._Dh = (2*R_inner)
+        self._Rtube = R_tube
+        self._Dh = (2*R_tube)
         self._mdotin = mdot_in
         self._Pout = Pout
         self._hin = hin
@@ -2736,7 +2574,7 @@ class TubeHX(HeatExchanger):
 
     @property
     def flowArea(self):
-        return np.pi*(self._Rinner**2)
+        return np.pi*(self._Rtube**2)
 
     @property
     def hydraulicDiameter(self) -> float:
@@ -2744,11 +2582,57 @@ class TubeHX(HeatExchanger):
 
     @property
     def heatedPerimeter(self):
-        return (2*self._Rinner)*np.pi
+        return (2*self._Rtube)*np.pi
+
+    @property
+    def length(self) -> float:
+        return self._L
+
+    @property
+    def heightChange(self):
+        return self._costh*self._L
+
+    @property
+    def costh(self):
+        return self._costh
+
+    @property
+    def r_shell(self) -> float:
+        return self._Rshell
+
+    @property
+    def r_tube(self) -> float:
+        return self._Rtube
+
+    @property
+    def nCell(self) -> int:
+        return self._n
+
+    def getOutlet(self, inlet: Tuple[float, float, float]) -> Tuple[float, float, float]:
+        x = inlet[0] + self._L * np.sin(self._theta) * np.cos(self._alpha)
+        y = inlet[1] + self._L * np.sin(self._theta) * np.sin(self._alpha)
+        z = inlet[2] + self._L * np.cos(self._theta)
+        return (x, y, z)
+
+    def getBoundingBox(
+        self, inlet: Tuple[float, float, float]
+    ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
+        outlet = self.getOutlet(inlet)
+        return [inlet, outlet, self._Rtube, self._Rtube, self._L, self._theta, self._alpha]
+
+    def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
+        return genUniformAnnulus(
+            self._L, self._Rtube, self._Rshell, resolution=self._res, naxial_layers=self._n, **self._kwargs
+        ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
+
+    def _convertUnits(self, uc: UnitConverter) -> None:
+        self._L *= uc.lengthConversion
+        self._Rtube *= uc.lengthConversion
+        self._roughness *= uc.lengthConversion
 
 component_list["tube"] = TubeHX
 
-class ShellHX(HeatExchanger):
+class ShellHX(Component):
     """Heat exchanger component
         representing just the outer shell of component
 
@@ -2784,9 +2668,9 @@ class ShellHX(HeatExchanger):
         self,
         tag: str,
         L: float,
-        R_outer: float,
-        R_inner: float,
-        hx_type: str,
+        R_shell: float,
+        R_tube: float,
+        n_tubes: int,
         mdot_in: float = 1,
         Pout: float = 101325,
         hin: float = 64064,
@@ -2801,11 +2685,12 @@ class ShellHX(HeatExchanger):
         resolution: int = _CYL_RESOLUTION,
         **kwargs
         ) -> None:
-        super().__init__(L = L, R_inner = R_inner, R_outer = R_outer, tag = tag, hx_type = hx_type)
+        super().__init__()
         self._L = L
-        self._Router = R_outer
-        self._Rinner = R_inner
-        self._Dh = (2*R_outer)-((2*R_inner))      #annuli
+        self._Rshell = R_shell
+        self._Rtube = R_tube
+        self._Dh = (2*R_shell)-((2*R_tube))      #annuli
+        self._ntubes = n_tubes
         self._mdotin = mdot_in
         self._Pout = Pout
         self._hin = hin
@@ -2822,11 +2707,7 @@ class ShellHX(HeatExchanger):
 
     @property
     def flowArea(self) -> float:
-        return np.pi*((self._Router**2)-(self._Rinner**2))        #annuli area
-
-    @property
-    def effFlowArea(self) -> float:     #to be used to calculate accurate Reynolds
-        return np.pi*((self._Router**2) - self._ntubes*(self._Rinner**2))
+        return np.pi*((self._Rshell**2)-self._ntubes*(self._Rtube**2))        #annuli area
 
     @property
     def length(self) -> float:
@@ -2838,7 +2719,7 @@ class ShellHX(HeatExchanger):
 
     @property
     def heatedPerimeter(self):
-        return (2*self._Rinner)*np.pi
+        return (2*self._Rtube)*np.pi
 
     @property
     def heightChange(self):
@@ -2849,12 +2730,12 @@ class ShellHX(HeatExchanger):
         return self._costh
 
     @property
-    def r_outer(self) -> float:
-        return self._Router
+    def r_shell(self) -> float:
+        return self._Rshell
 
     @property
-    def r_inner(self) -> float:
-        return self._Rinner
+    def r_tube(self) -> float:
+        return self._Rtube
 
     @property
     def nCell(self) -> int:
@@ -2870,17 +2751,17 @@ class ShellHX(HeatExchanger):
         self, inlet: Tuple[float, float, float]
     ) -> Tuple[Tuple[float, float, float], Tuple[float, float, float], float, float, float, float, float]:
         outlet = self.getOutlet(inlet)
-        return [inlet, outlet, self._Router, self._Router, self._L, self._theta, self._alpha]
+        return [inlet, outlet, self._Rshell, self._Rshell, self._L, self._theta, self._alpha]
 
     def getVTKMesh(self, inlet: Tuple[float, float, float]) -> VTKMesh:
         return genUniformAnnulus(
-            self._L, self._Rinner, self._Router, resolution=self._res, naxial_layers=self._n, **self._kwargs
+            self._L, self._Rtube, self._Rshell, resolution=self._res, naxial_layers=self._n, **self._kwargs
         ).translate(inlet[0], inlet[1], inlet[2], self._theta, self._alpha)
 
     def _convertUnits(self, uc: UnitConverter) -> None:
         self._L *= uc.lengthConversion
-        self._Router *= uc.lengthConversion
-        self._Rinner *= uc.lengthConversion
+        self._Rshell *= uc.lengthConversion
+        self._Rtube *= uc.lengthConversion
         self._roughness *= uc.lengthConversion
 
 component_list["shell"] = ShellHX
@@ -2932,7 +2813,6 @@ class MSRE_HX(Component):
         R_shell: float,
         R_tube: float,
         n_tubes: int,
-        hx_type: str,
         mdot_in: float = 1,
         Pout: float = 101325,
         hin: float = 64064,
@@ -2951,7 +2831,6 @@ class MSRE_HX(Component):
         self._Rshell = R_shell
         self._Rtube = R_tube
         self._ntubes = n_tubes
-        self._hx_type = hx_type
         self._Dh = (4*np.pi*((self._Rshell**2)-self._ntubes*(self._Rtube**2)))/((2*self._Rtube)*np.pi*self._ntubes)
         self._tag = tag
         self._mdotin = mdot_in
@@ -3083,7 +2962,6 @@ class MSRE_HX_primary(MSRE_HX):
         R_shell: float,
         R_tube: float,
         n_tubes: int,
-        hx_type: str,
         mdot_in: float = 1,
         Pout: float = 101325,
         hin: float = 64064,
@@ -3097,12 +2975,11 @@ class MSRE_HX_primary(MSRE_HX):
         resolution: int = _CYL_RESOLUTION,
         **kwargs
         ) -> None:
-        super().__init__(L = L, R_shell = R_shell, R_tube = R_tube, n_tubes = n_tubes, tag = tag, hx_type = hx_type)
+        super().__init__(L = L, R_shell = R_shell, R_tube = R_tube, n_tubes = n_tubes, tag = tag)
         self._L = L
         self._Rshell = R_shell
         self._Rtube = R_tube
         self._ntubes = n_tubes
-        self._hx_type = hx_type
         self._Dh = (self._Rshell**2 - 2*self._ntubes*self._Rtube**2)/self._Rtube
         self._tag = tag
         self._mdotin = mdot_in
@@ -3237,7 +3114,6 @@ class MSRE_HX_secondary(MSRE_HX):
         R_shell: float,
         R_tube: float,
         n_tubes: int,
-        hx_type: str,
         mdot_in: float = 1,
         Pout: float = 101325,
         hin: float = 64064,
@@ -3251,12 +3127,11 @@ class MSRE_HX_secondary(MSRE_HX):
         resolution: int = _CYL_RESOLUTION,
         **kwargs
         ) -> None:
-        super().__init__(L = L, R_shell = R_shell, R_tube = R_tube, n_tubes = n_tubes, tag = tag, hx_type = hx_type)
+        super().__init__(L = L, R_shell = R_shell, R_tube = R_tube, n_tubes = n_tubes, tag = tag)
         self._L = L
         self._Rshell = R_shell
         self._Rtube = R_tube
         self._ntubes = n_tubes
-        self._hx_type = hx_type
         self._Dh = 2*self._Rtube*np.sqrt(self._ntubes)      #diameter of pipe with same flow area as sum of tube flow areas
         self._tag = tag
         self._mdotin = mdot_in
@@ -3358,3 +3233,59 @@ class MSRE_HX_secondary(MSRE_HX):
         self._roughness *= uc.lengthConversion
 
 component_list["msre_heat_exchanger_sec"] = MSRE_HX_secondary
+
+class UBendHX(SerialComponents):
+    """A heat exchanger based on SerialComponents, with an odd number of components. The even indices are tubes, odd indices are U-bend
+
+    Parameters
+    ----------
+    components : Dict
+        The collection of pipe components which comprise this component.  The structure of
+        this dictionary follows the same convention as :func:`Component.factory`
+    order : List[str]
+        The order of the components listed in order from start to finish using the unique component names
+
+    """
+    # def __init__(self, components: Dict[str, Dict[str, float]], order: List[str], **kwargs) -> None:
+
+    def __init__(self, R_tube, L, L_bend, n_tubes, n, tag = "main", theta = 0):
+        eff_radius = np.sqrt(n_tubes)*R_tube
+        pf_theta = theta - 90
+        cf_theta = pf_theta - 180
+        axial_n = int((n-1)/2)
+        pipe_components = {"pipe": {"inlet":    {"L": 0.5, "R": eff_radius, "n": 1, "theta": theta},
+                                    "parallel": {"L": axial_length, "R": eff_radius, "n": axial_n, "theta": pf_theta},
+                                    "bend":     {"L": bend_length, "R": eff_radius, "n": 1, "theta": theta},
+                                    "counter":  {"L": axial_length, "R": eff_radius, "n": axial_n, "theta": cf_theta},
+                                    "outlet":   {"L": 0.5, "R": eff_radius, "n": 1, "theta": theta}}}
+        order_of_pipes = ["inlet", "parallel", "bend", "counter", "outlet"]
+        super().__init__(pipe_components, order_of_pipes)
+        self._tube_radius = tube_radius
+        self._axial_length = axial_length
+        self._bend_length = bend_length
+        self._n_tubes = n_tubes
+        self._tag = tag
+        self._n = n
+        assert self._n % 2 == 1         #must have odd number of nodes so bend can be one node
+
+    @property
+    def orderedHXComponentsList(self):
+        """
+        returns ordered hx components list, ignoring the inlet and outlet pipes,
+        since they aren't active in heat transfer
+        """
+        return self.orderedComponentsList[1:-1]
+
+    @property
+    def getFirstHXComp(self):
+        return self.orderedHXComponentsList[0]
+
+    @property
+    def getLastHXComp(self):
+        return self.orderedHXComponentsList[-1]
+
+    @property
+    def getHXBendComp(self):
+        return self.orderedHXComponentsList[1]
+
+component_list["u_bend_hx"] = UBendHX
