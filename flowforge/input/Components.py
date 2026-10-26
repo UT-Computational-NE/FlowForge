@@ -67,6 +67,7 @@ class Component:
         self._klossAvg = 0.0
         self._theta = 0.0
         self._alpha = 0.0
+        self._myComponents = {"component": self}
 
     @property
     def name(self) -> str:
