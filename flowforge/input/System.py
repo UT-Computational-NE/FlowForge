@@ -89,7 +89,8 @@ class System:
     - A closed loop (possibly of multiple components) in circulation with no external boundaries
 
     The System class also handles unit conversions, boundary conditions, and provides
-    interfaces for visualization and output parsing from various solvers.
+    interfaces for visualization and output parsing from various solvers. It also supports
+    a system-level HTC correlation with optional per-component HTC overrides.
 
     Parameters
     ----------
@@ -116,7 +117,8 @@ class System:
 
     Attributes
     ----------
-    A collection of System setup options.
+    A collection of System setup options, including system-level HTC and component-level HTC
+    correlation settings.
     """
 
     def __init__(
@@ -152,9 +154,15 @@ class System:
         self._solid_body_forces = []
         self._solid_wall_functions = []
 
+        self._component_htc = {}
+        self._MMBC = None
+        self._EBC = None
+        self._VBC = None
+
         # Material variables
         self._fluid = None
         self._gas = None
+        self._system_htc = None
 
         # Material names
         self._fluidname = None
@@ -347,6 +355,7 @@ class System:
         boundary_conditions: Dict = {},
         fluid: str = "FLiBe",
         gas=None,
+        HTC= "DittusBoelter"
     ) -> None:
         """Private method for setting up a loop of components
 
@@ -373,11 +382,13 @@ class System:
             components, loop = make_continuous(components, loop, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
+        self._system_htc = HTC
         # Loop over each component in the loop, add those components to the list, define the connections between components
         for i, entry in enumerate(loop):
             component_i = deepcopy(components[entry["component"]])
             component_i.name = entry["component"]
             self._fluid_components.append(component_i)
+            self._component_htc[component_i] = entry.get("HTC", HTC)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -399,7 +410,13 @@ class System:
         self._fluid_boundary_conditions_definitions = boundary_conditions
 
     def _setupSegment(
-        self, components: List[Component], order: List[dict], boundary_conditions: Dict = {}, fluid: str = "FLiBe", gas=None
+        self,
+        components: List[Component],
+        order: List[dict],
+        boundary_conditions: Dict = {},
+        fluid: str = "FLiBe",
+        gas=None,
+        HTC = "DittusBoelter"
     ) -> None:
         """Private method for setting up a segment
 
@@ -425,11 +442,13 @@ class System:
             components, order = make_continuous(components, order, self._auto_nozzle_length)
         self._fluidname = fluid.lower()
         self._gasname = gas if gas is None else gas.lower()
+        self._system_htc = HTC
         # Loop over each entry in segment, add the components, and connect the compnents to each other
         for i, entry in enumerate(order):
             component_i = deepcopy(components[entry["component"]])
             component_i.name = entry["component"]
             self._fluid_components.append(component_i)
+            self._component_htc[component_i] = entry.get("HTC", HTC)
             bftemp = []
             wftemp = []
             if "BodyForces" in entry:
@@ -541,6 +560,21 @@ class System:
         sysFile = VTKFile(filename, self.getVTKMesh())
         sysFile.writeFile()
 
+    def getComponentHTC(self, component: Component) -> str:
+        """Method for getting the heat transfer coefficient for a component
+
+        Parameters
+        ----------
+        component : Component
+            The component to get the HTC from
+
+        Returns
+        -------
+        str
+            The component-specific HTC correlation, or the system-level HTC if none is set.
+        """
+        return self._component_htc.get(component, self._system_htc)
+
     @property
     def nCell(self) -> int:
         ncell = 0
@@ -611,3 +645,13 @@ class System:
     @property
     def gasname(self) -> str:
         return self._gasname
+
+    @property
+    def system_htc(self) -> str:
+        """Return the system-level HTC correlation."""
+        return self._system_htc
+
+    @property
+    def component_htc(self) -> Dict[Component, str]:
+        """Return the per-component HTC correlation overrides."""
+        return self._component_htc
